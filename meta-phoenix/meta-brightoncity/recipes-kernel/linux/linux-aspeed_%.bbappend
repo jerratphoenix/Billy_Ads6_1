@@ -15,7 +15,6 @@ do_compile:prepend(){
 }
 
 SRC_URI += " \
-        file://intel.cfg \
         file://0001-peci-Add-debug-printing-to-check-caller-PID.patch \
         file://0002-soc-aspeed-add-AST2600-A0-specific-fix-into-mbox-dri.patch \
         file://0003-Fix-libmctp-build-error.patch \
@@ -31,9 +30,11 @@ SRC_URI += "${@bb.utils.contains('IMAGE_FSTYPES', 'intel-pfr', 'file://1000-128M
 SRC_URI += "${@bb.utils.contains('EXTRA_IMAGE_FEATURES', 'debug-tweaks', 'file://debug.cfg', '', d)}"
 
 
-SRC_URI += "file://aspeed-bmc-phoenix-brightoncity.dts \
-            file://aspeed-g5.dtsi \
-            "
+SRC_URI += " \
+        file://brightoncity.cfg \
+        file://aspeed-bmc-phoenix-brightoncity.dts \
+        file://aspeed-g5.dtsi \
+        "
 
 
 do_patch:append() {

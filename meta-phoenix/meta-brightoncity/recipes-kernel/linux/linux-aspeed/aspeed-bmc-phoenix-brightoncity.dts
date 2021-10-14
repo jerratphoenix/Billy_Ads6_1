@@ -107,6 +107,7 @@
 	flash@0 {
 		status = "okay";
 		m25p,fast-read;
+		label = "bmc";
 		partitions {
 			compatible = "fixed-partitions";
 			#address-cells = <1>;
