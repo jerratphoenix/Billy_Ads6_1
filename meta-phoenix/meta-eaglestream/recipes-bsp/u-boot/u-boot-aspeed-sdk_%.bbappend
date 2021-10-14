@@ -38,6 +38,7 @@ file://0033-Disable-debug-interfaces.patch \
 file://0034-Implement-the-IPMI-commands-in-FFUJ-mode-in-u-boot.patch \
 file://0501-Add-phoenix-eaglestream-device-tree-to-Makefile.patch \
 file://0502-Setup-Kernel-address.patch \
+file://0503-Disable-Intel-FFUJ-abort-BMC-boot.patch \
 "
 
 do_copyfile () {
@@ -45,4 +46,5 @@ do_copyfile () {
 }
 
 addtask copyfile after do_patch before do_configure
+
 
