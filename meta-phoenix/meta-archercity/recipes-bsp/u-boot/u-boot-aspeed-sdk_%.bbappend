@@ -1,8 +1,8 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 SRC_URI:append += " \
-file://phoenix-eaglestream.dts \
-file://intel.cfg \
+file://phoenix-archercity.dts \
+file://phoenix.cfg \
 file://0001-Add-ast2600-intel-as-a-new-board.patch \
 file://0002-AST2600-Enable-host-searial-port-clock-configuration.patch \
 file://0003-ast2600-intel-layout-environment-addr.patch \
@@ -36,13 +36,13 @@ file://0031-Add-a-workaround-to-fix-AST2600-A0-booting-issue.patch \
 file://0032-Disable-eSPI-initialization-in-u-boot-for-normal-boo.patch \
 file://0033-Disable-debug-interfaces.patch \
 file://0034-Implement-the-IPMI-commands-in-FFUJ-mode-in-u-boot.patch \
-file://0501-Add-phoenix-eaglestream-device-tree-to-Makefile.patch \
+file://0501-Add-phoenix-archercity-device-tree-to-Makefile.patch \
 file://0502-Setup-Kernel-address.patch \
 file://0503-Disable-Intel-FFUJ-abort-BMC-boot.patch \
 "
 
 do_copyfile () {
-    cp ${WORKDIR}/phoenix-eaglestream.dts ${S}/arch/arm/dts
+    cp ${WORKDIR}/phoenix-archercity.dts ${S}/arch/arm/dts
 }
 
 addtask copyfile after do_patch before do_configure

@@ -14,7 +14,7 @@
 #
 # Machine Selection
 #
-MACHINE ??= "eaglestream"
+MACHINE ??= "archercity"
 
 #
 # Where to place downloads

@@ -23,9 +23,9 @@ source setup brightoncity
 bitbake obmc-phosphor-image
 ```
 
-target **Phoenix Technologies Ltd. Intel Eagle Stream** 
+target **Phoenix Technologies Ltd. Intel Archer City** 
 ```bash
-source setup eaglestream
+source setup archercity
 bitbake obmc-phosphor-image
 ```
 

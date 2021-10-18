@@ -17,5 +17,5 @@ BBLAYERS ?= " \
   ##OEROOT##/meta-phosphor \
   ##OEROOT##/meta-aspeed \
   ##OEROOT##/meta-phoenix \
-  ##OEROOT##/meta-phoenix/meta-eaglestream \
+  ##OEROOT##/meta-phoenix/meta-archercity \
 "

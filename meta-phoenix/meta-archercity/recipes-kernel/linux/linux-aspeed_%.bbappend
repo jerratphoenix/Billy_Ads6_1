@@ -14,10 +14,10 @@ do_compile:prepend(){
 }
 
 SRC_URI += " \
-        file://aspeed-bmc-phoenix-eaglestream.dts \
+        file://aspeed-bmc-phoenix-archercity.dts \
         file://aspeed-g6.dtsi \
         file://aspeed-g6-pinctrl.dtsi \
-        file://eaglestream.cfg \
+        file://archercity.cfg \
         file://0001-peci-Add-debug-printing-to-check-caller-PID.patch \
         file://0002-soc-aspeed-add-AST2600-A0-specific-fix-into-mbox-dri.patch \
         file://0003-Fix-libmctp-build-error.patch \
@@ -38,12 +38,12 @@ SRC_URI += " \
 #SRC_URI += "${@bb.utils.contains('EXTRA_IMAGE_FEATURES', 'debug-tweaks', 'file://debug.cfg', '', d)}"
 
 do_patch:append() {
-    if [ -r "${WORKDIR}/aspeed-bmc-phoenix-eaglestream.dts" ]; then
-        cp ${WORKDIR}/aspeed-bmc-phoenix-eaglestream.dts \
+    if [ -r "${WORKDIR}/aspeed-bmc-phoenix-archercity.dts" ]; then
+        cp ${WORKDIR}/aspeed-bmc-phoenix-archercity.dts \
             ${STAGING_KERNEL_DIR}/arch/${ARCH}/boot/dts
     fi
-    if [ -r "${DEVTOOL_TEMPDIR}/oe-local-files/aspeed-bmc-phoenix-eaglestream.dts" ]; then
-        cp ${DEVTOOL_TEMPDIR}/oe-local-files/aspeed-bmc-phoenix-eaglestream.dts \
+    if [ -r "${DEVTOOL_TEMPDIR}/oe-local-files/aspeed-bmc-phoenix-archercity.dts" ]; then
+        cp ${DEVTOOL_TEMPDIR}/oe-local-files/aspeed-bmc-phoenix-archercity.dts \
             ${STAGING_KERNEL_DIR}/arch/${ARCH}/boot/dts
     fi
     if [ -r "${WORKDIR}/aspeed-g6.dtsi" ]; then

@@ -5,7 +5,7 @@
 #include "ast2600-u-boot.dtsi"
 
 / {
-	model = "Phoenix AST2600 - Eaglestream";
+	model = "Phoenix AST2600 - ArcherCity";
 	compatible = "aspeed,ast2600-intel", "aspeed,ast2600";
 
 	memory {

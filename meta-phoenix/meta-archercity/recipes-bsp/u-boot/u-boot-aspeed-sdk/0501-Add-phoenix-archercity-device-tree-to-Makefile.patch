@@ -1,7 +1,7 @@
 From de6c8ed7564f00720cb00d543549f301dc238b71 Mon Sep 17 00:00:00 2001
 From: Adeli Yeh <Adeli_Yeh@phoenix.com>
 Date: Wed, 29 Sep 2021 12:35:51 +0800
-Subject: [PATCH] Add phoenix eaglestream device tree to Makefile
+Subject: [PATCH] Add Phoenix Archer City device tree to Makefile
 
 ---
  arch/arm/dts/Makefile | 3 ++-
@@ -17,7 +17,7 @@ index df844065cd..e7d020aa2a 100755
  	ast2600-tacoma.dtb \
 -	ast2600-intel.dtb
 +	ast2600-intel.dtb \
-+	phoenix-eaglestream.dtb
++	phoenix-archercity.dtb
  
  dtb-$(CONFIG_ARCH_STI) += stih410-b2260.dtb
  
