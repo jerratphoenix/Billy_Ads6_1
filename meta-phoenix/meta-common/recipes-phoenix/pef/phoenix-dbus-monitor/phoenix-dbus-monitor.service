@@ -1,0 +1,11 @@
+[Unit]
+Description=Phoenix DBus Monitor
+After=obmc-mapper.target
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/env phoenix-dbus-monitor
+SyslogIdentifier=phoenix-dbus-monitor
+
+[Install]
+WantedBy=multi-user.target
