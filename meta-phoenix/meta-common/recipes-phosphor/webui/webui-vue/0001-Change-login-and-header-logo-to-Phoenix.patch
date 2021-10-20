@@ -1,95 +1,19 @@
-From ca227829ba6501665577d64ecf130d2539ebd495 Mon Sep 17 00:00:00 2001
+From dbe3f3f7434b51e877625a4b23d5ae924a6ff0d2 Mon Sep 17 00:00:00 2001
 From: leocheng-tw <Leo_Cheng@phoenix.com>
-Date: Mon, 18 Oct 2021 09:12:21 +0000
+Date: Wed, 20 Oct 2021 02:02:24 +0000
 Subject: [PATCH] Change login and header logo to Phoenix.
 
 ---
- package-lock.json                         | 50 +++++++-------
  src/assets/images/login-phoenix-logo.svg  | 84 +++++++++++++++++++++++
  src/assets/images/logo-phoenix-header.svg | 84 +++++++++++++++++++++++
  src/components/AppHeader/AppHeader.vue    |  2 +-
  src/layouts/LoginLayout.vue               |  2 +-
- 5 files changed, 196 insertions(+), 26 deletions(-)
+ 4 files changed, 170 insertions(+), 2 deletions(-)
  create mode 100755 src/assets/images/login-phoenix-logo.svg
  create mode 100755 src/assets/images/logo-phoenix-header.svg
  mode change 100644 => 100755 src/components/AppHeader/AppHeader.vue
  mode change 100644 => 100755 src/layouts/LoginLayout.vue
 
-diff --git a/package-lock.json b/package-lock.json
-index 18185d5..7391b1b 100644
---- a/package-lock.json
-+++ b/package-lock.json
-@@ -4155,18 +4155,6 @@
-             "supports-color": "^7.0.0"
-           }
-         },
--        "loader-utils": {
--          "version": "2.0.0",
--          "resolved": "https://registry.npmjs.org/loader-utils/-/loader-utils-2.0.0.tgz",
--          "integrity": "sha512-rP4F0h2RaWSvPEkD7BLDFQnvSf+nK+wr3ESUjNTyAGobqrijmW92zc+SO6d4p4B1wh7+B/Jg1mkQe5NYUEHtHQ==",
--          "dev": true,
--          "optional": true,
--          "requires": {
--            "big.js": "^5.2.2",
--            "emojis-list": "^3.0.0",
--            "json5": "^2.1.2"
--          }
--        },
-         "source-map": {
-           "version": "0.6.1",
-           "resolved": "https://registry.npmjs.org/source-map/-/source-map-0.6.1.tgz",
-@@ -4200,18 +4188,6 @@
-             "webpack-sources": "^1.4.3"
-           }
-         },
--        "vue-loader-v16": {
--          "version": "npm:vue-loader@16.1.2",
--          "resolved": "https://registry.npmjs.org/vue-loader/-/vue-loader-16.1.2.tgz",
--          "integrity": "sha512-8QTxh+Fd+HB6fiL52iEVLKqE9N1JSlMXLR92Ijm6g8PZrwIxckgpqjPDWRP5TWxdiPaHR+alUWsnu1ShQOwt+Q==",
--          "dev": true,
--          "optional": true,
--          "requires": {
--            "chalk": "^4.1.0",
--            "hash-sum": "^2.0.0",
--            "loader-utils": "^2.0.0"
--          }
--        },
-         "wrap-ansi": {
-           "version": "6.2.0",
-           "resolved": "https://registry.npmjs.org/wrap-ansi/-/wrap-ansi-6.2.0.tgz",
-@@ -19502,6 +19478,32 @@
-         }
-       }
-     },
-+    "vue-loader-v16": {
-+      "version": "npm:vue-loader@16.8.1",
-+      "resolved": "https://registry.npmjs.org/vue-loader/-/vue-loader-16.8.1.tgz",
-+      "integrity": "sha512-V53TJbHmzjBhCG5OYI2JWy/aYDspz4oVHKxS43Iy212GjGIG1T3EsB3+GWXFm/1z5VwjdjLmdZUFYM70y77vtQ==",
-+      "dev": true,
-+      "optional": true,
-+      "requires": {
-+        "chalk": "^4.1.0",
-+        "hash-sum": "^2.0.0",
-+        "loader-utils": "^2.0.0"
-+      },
-+      "dependencies": {
-+        "loader-utils": {
-+          "version": "2.0.0",
-+          "resolved": "https://registry.npmjs.org/loader-utils/-/loader-utils-2.0.0.tgz",
-+          "integrity": "sha512-rP4F0h2RaWSvPEkD7BLDFQnvSf+nK+wr3ESUjNTyAGobqrijmW92zc+SO6d4p4B1wh7+B/Jg1mkQe5NYUEHtHQ==",
-+          "dev": true,
-+          "optional": true,
-+          "requires": {
-+            "big.js": "^5.2.2",
-+            "emojis-list": "^3.0.0",
-+            "json5": "^2.1.2"
-+          }
-+        }
-+      }
-+    },
-     "vue-router": {
-       "version": "3.5.1",
-       "resolved": "https://registry.npmjs.org/vue-router/-/vue-router-3.5.1.tgz",
 diff --git a/src/assets/images/login-phoenix-logo.svg b/src/assets/images/login-phoenix-logo.svg
 new file mode 100755
 index 0000000..c9f91fd
