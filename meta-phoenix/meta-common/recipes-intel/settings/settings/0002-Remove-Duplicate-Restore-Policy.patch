@@ -1,0 +1,24 @@
+diff --git a/include/defaults.hpp b/include/defaults.hpp
+index 3a5d9f9..ed4a494 100755
+--- a/include/defaults.hpp
++++ b/include/defaults.hpp
+@@ -86,13 +86,13 @@ inline void loadSettings(sdbusplus::asio::object_server &objectServer,
+     setting->addProperty("PowerCap", static_cast<uint32_t>(0));
+     setting->addProperty("PowerCapEnable", false);
+ 
+-    setting = &settings.emplace_back(
+-        objectServer, "/xyz/openbmc_project/control/host0/power_restore_policy",
+-        "xyz.openbmc_project.Control.Power.RestorePolicy");
++    // setting = &settings.emplace_back(
++    //     objectServer, "/xyz/openbmc_project/control/host0/power_restore_policy",
++    //     "xyz.openbmc_project.Control.Power.RestorePolicy");
+ 
+-    setting->addProperty(
+-        "PowerRestorePolicy",
+-        "xyz.openbmc_project.Control.Power.RestorePolicy.Policy.AlwaysOff");
++    // setting->addProperty(
++    //     "PowerRestorePolicy",
++    //     "xyz.openbmc_project.Control.Power.RestorePolicy.Policy.AlwaysOff");
+ 
+     setting = &settings.emplace_back(
+         objectServer, "/xyz/openbmc_project/control/power_restore_delay",
