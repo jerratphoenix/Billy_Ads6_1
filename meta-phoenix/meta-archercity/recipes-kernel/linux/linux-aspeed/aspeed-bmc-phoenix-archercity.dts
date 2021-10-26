@@ -6,7 +6,7 @@
 #include <dt-bindings/i2c/i2c.h>
 
 / {
-	model = "AST2600 EVB";
+	model = "Archer City";
 	compatible = "aspeed,ast2600";
 
 	chosen {
@@ -994,7 +994,7 @@
 };
 
 &mac3 {
-	status = "okay";
+	status = "disabled";
 	use-ncsi;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_rmii4_default>;
