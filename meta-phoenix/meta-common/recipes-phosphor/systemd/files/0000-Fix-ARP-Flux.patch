@@ -1,0 +1,13 @@
+diff --git a/sysctl.d/50-default.conf b/sysctl.d/50-default.conf
+index 41bd1f9183..ec54e76a34 100644
+--- a/sysctl.d/50-default.conf
++++ b/sysctl.d/50-default.conf
+@@ -48,3 +48,8 @@ fs.protected_symlinks = 1
+ # Enable regular file and FIFO protection
+ fs.protected_regular = 1
+ fs.protected_fifos = 1
++
++# Protect from ARP flux
++net.ipv4.conf.all.arp_announce=1
++net.ipv4.conf.all.arp_ignore=2
++
