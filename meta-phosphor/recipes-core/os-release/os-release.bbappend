@@ -17,6 +17,22 @@ def run_git(d, cmd):
         bb.warn("Unexpected exception from 'git' call: %s" % e)
         pass
 
+def strip_specific_str(d, target, key):
+    try:
+        tag = d.getVar(target, True)
+        split_str = tag.split(key)  # strip the specific tag string
+        if split_str:
+            if len(split_str) == 1:
+                # for committee and master branches
+                return split_str[0]
+            else:
+                # for CRB and customization branches
+                return split_str[1]
+        return None
+    except Exception as e:
+        bb.warn("Unexpected exception to strip specific string: %s" % e)
+        pass
+
 # DISTRO_VERSION can be overridden by a bbappend or config, so it must be a
 # weak override.  But, when a variable is weakly overridden the definition
 # and not the contents are used in the task-hash (for sstate reuse).  We need
@@ -26,9 +42,12 @@ def run_git(d, cmd):
 PHOSPHOR_OS_RELEASE_DISTRO_VERSION := "${@run_git(d, 'describe --dirty')}"
 DISTRO_VERSION ??= "${PHOSPHOR_OS_RELEASE_DISTRO_VERSION}"
 
-VERSION = "${@'-'.join(d.getVar('VERSION_ID').split('-')[0:2])}"
+VERSION_SPLIT := "${@strip_specific_str(d, 'VERSION_ID', '@')}"
+VERSION = "${@'-'.join(d.getVar('VERSION_SPLIT').split('-')[0:2])}"
+VERSION_ID = "${VERSION}"
 
-BUILD_ID := "${@run_git(d, 'describe --abbrev=0')}"
+BUILD_ID_TAG := "${@run_git(d, 'describe --abbrev=0')}"
+BUILD_ID := "${@strip_specific_str(d, 'BUILD_ID_TAG', '@')}"
 OPENBMC_TARGET_MACHINE = "${MACHINE}"
 
 OS_RELEASE_FIELDS:append = " BUILD_ID OPENBMC_TARGET_MACHINE EXTENDED_VERSION"
