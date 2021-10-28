@@ -1,0 +1,35 @@
+From 5179bd917a5d20eeadf4615dbe4ade4f9f28f764 Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Thu, 28 Oct 2021 08:18:34 +0000
+Subject: [PATCH] [PATCH][FIX] When user account is disable can still login and
+ send redfish requests
+
+---
+ user_mgr.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+ mode change 100644 => 100755 user_mgr.cpp
+
+diff --git a/user_mgr.cpp b/user_mgr.cpp
+old mode 100644
+new mode 100755
+index 1b14e8e..8ed2b22
+--- a/user_mgr.cpp
++++ b/user_mgr.cpp
+@@ -323,7 +323,7 @@ void UserMgr::createUser(std::string userName,
+         executeCmd("/usr/sbin/useradd", userName.c_str(), "-G", groups.c_str(),
+                    "-m", "-N", "-s",
+                    (sshRequested ? "/bin/sh" : "/bin/nologin"), "-e",
+-                   (enabled ? "" : "1970-01-02"));
++                   (enabled ? "" : "1970-01-01"));
+     }
+     catch (const InternalFailure& e)
+     {
+@@ -650,7 +650,7 @@ void UserMgr::userEnable(const std::string& userName, bool enabled)
+     try
+     {
+         executeCmd("/usr/sbin/usermod", userName.c_str(), "-e",
+-                   (enabled ? "" : "1970-01-02"));
++                   (enabled ? "" : "1970-01-01"));
+     }
+     catch (const InternalFailure& e)
+     {
