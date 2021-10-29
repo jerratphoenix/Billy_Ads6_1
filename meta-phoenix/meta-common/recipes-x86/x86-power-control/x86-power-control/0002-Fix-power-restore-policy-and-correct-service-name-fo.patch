@@ -1,0 +1,56 @@
+From 2f586c1263cb0cc8e2697b8f7cf845ce94c996e0 Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Fri, 29 Oct 2021 05:53:22 +0000
+Subject: [PATCH] Fix power restore policy and correct service name for POH.
+
+---
+ power-control-x86/src/power_control.cpp | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/power-control-x86/src/power_control.cpp b/power-control-x86/src/power_control.cpp
+index b96e45f..1d996c2 100755
+--- a/power-control-x86/src/power_control.cpp
++++ b/power-control-x86/src/power_control.cpp
+@@ -651,7 +651,7 @@ static void resetACBootProperty()
+                         "failed to reset ACBoot property");
+                 }
+             },
+-            "xyz.openbmc_project.Settings",
++            "xyz.openbmc_project.Intel_Settings",
+             "/xyz/openbmc_project/control/host0/ac_boot",
+             "org.freedesktop.DBus.Properties", "Set",
+             "xyz.openbmc_project.Common.ACBoot", "ACBoot",
+@@ -982,7 +982,7 @@ static void powerRestorePolicyStart()
+             }
+             powerRestorePolicyDelay(*delay);
+         },
+-        "xyz.openbmc_project.Settings",
++        "xyz.openbmc_project.Intel_Settings",
+         "/xyz/openbmc_project/control/power_restore_delay",
+         "org.freedesktop.DBus.Properties", "Get",
+         "xyz.openbmc_project.Control.Power.RestoreDelay", "PowerRestoreDelay");
+@@ -1055,7 +1055,7 @@ static void powerRestorePolicyCheck()
+             }
+             acBootMatch.reset();
+         },
+-        "xyz.openbmc_project.Settings",
++        "xyz.openbmc_project.Intel_Settings",
+         "/xyz/openbmc_project/control/host0/ac_boot",
+         "org.freedesktop.DBus.Properties", "Get",
+         "xyz.openbmc_project.Common.ACBoot", "ACBoot");
+@@ -1536,13 +1536,13 @@ static void pohCounterTimerStart()
+                                 "failed to set poh counter");
+                         }
+                     },
+-                    "xyz.openbmc_project.Settings",
++                    "xyz.openbmc_project.Intel_Settings",
+                     "/xyz/openbmc_project/state/chassis0",
+                     "org.freedesktop.DBus.Properties", "Set",
+                     "xyz.openbmc_project.State.PowerOnHours", "POHCounter",
+                     std::variant<uint32_t>(*pohCounter + 1));
+             },
+-            "xyz.openbmc_project.Settings",
++            "xyz.openbmc_project.Intel_Settings",
+             "/xyz/openbmc_project/state/chassis0",
+             "org.freedesktop.DBus.Properties", "Get",
+             "xyz.openbmc_project.State.PowerOnHours", "POHCounter");

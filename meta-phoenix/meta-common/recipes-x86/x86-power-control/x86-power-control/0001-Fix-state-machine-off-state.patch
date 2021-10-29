@@ -1,0 +1,24 @@
+From 268d86a9f8a15503a901658ce364b999330a24a1 Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Thu, 28 Oct 2021 09:59:42 +0000
+Subject: [PATCH] Fix state machine off state.
+
+---
+ power-control-x86/src/power_control.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+ mode change 100644 => 100755 power-control-x86/src/power_control.cpp
+
+diff --git a/power-control-x86/src/power_control.cpp b/power-control-x86/src/power_control.cpp
+old mode 100644
+new mode 100755
+index 776a880..b96e45f
+--- a/power-control-x86/src/power_control.cpp
++++ b/power-control-x86/src/power_control.cpp
+@@ -1802,6 +1802,7 @@ static void powerStateOff(const Event event)
+             break;
+         }
+         case Event::sioS5DeAssert:
++            psPowerOKWatchdogTimerStart();
+             setPowerState(PowerState::waitForPSPowerOK);
+             break;
+         case Event::powerButtonPressed:
