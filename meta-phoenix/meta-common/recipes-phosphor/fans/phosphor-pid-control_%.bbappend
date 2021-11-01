@@ -1,5 +1,5 @@
-FILESEXTRAPATHS:prepend:intel := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 inherit obmc-phosphor-systemd
-SYSTEMD_SERVICE:${PN}:intel = "phosphor-pid-control.service"
-EXTRA_OECONF:intel = "--enable-configure-dbus=yes"
+SYSTEMD_SERVICE:${PN} = "phosphor-pid-control.service"
+EXTRA_OECONF = "--enable-configure-dbus=yes"
