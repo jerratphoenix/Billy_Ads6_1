@@ -1,0 +1,12 @@
+[Unit]
+Description=Verify pending image in /tmp/images
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/usr/bin/fw_verify.sh
+SyslogIdentifier=fw_verify
+
+[Install]
+WantedBy=phosphor-ipmi-flash-bmc-verify.target
+

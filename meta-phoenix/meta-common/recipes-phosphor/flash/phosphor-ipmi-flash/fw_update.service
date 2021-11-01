@@ -1,0 +1,12 @@
+[Unit]
+Description=Flash BMC with first image in /tmp/images 
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/usr/bin/fw_update.sh
+SyslogIdentifier=fw_update
+
+[Install]
+WantedBy=phosphor-ipmi-flash-bmc-update.target
+

@@ -1,0 +1,33 @@
+From beef8254e13e0f5038656bea54a1388cecea411d Mon Sep 17 00:00:00 2001
+From: OpenEmbedded <oe.patch@oe>
+Date: Mon, 1 Nov 2021 06:20:54 +0000
+Subject: [PATCH] Allow-Blob-Cleanup-On-Open.patch
+
+---
+ bmc/firmware-handler/firmware_handler.cpp | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/bmc/firmware-handler/firmware_handler.cpp b/bmc/firmware-handler/firmware_handler.cpp
+index afcfc81..c63c75d 100644
+--- a/bmc/firmware-handler/firmware_handler.cpp
++++ b/bmc/firmware-handler/firmware_handler.cpp
+@@ -298,7 +298,18 @@ bool FirmwareBlobHandler::open(uint16_t session, uint16_t flags,
+      */
+     if (fileOpen())
+     {
+-        return false;
++       // CUSTOM RECOVERY METHOD: If attempting to open the static layout
++       // (first step) and the state is not in active verification or update,
++       // abort the previous process to allow the host tool to start over.
++       if ((path == staticLayoutBlobId) &&
++           (state == UpdateState::uploadInProgress))
++       {
++            abortProcess();
++       }
++       else
++       {
++            return false;
++       }
+     }
+ 
+     /* The active blobs are only meant to indicate status that something has

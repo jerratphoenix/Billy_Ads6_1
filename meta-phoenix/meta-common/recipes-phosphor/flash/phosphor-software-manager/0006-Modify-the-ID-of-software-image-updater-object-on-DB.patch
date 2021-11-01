@@ -1,0 +1,24 @@
+diff --git a/image_manager.cpp b/image_manager.cpp
+index f11d124..12fa0d7 100644
+--- a/image_manager.cpp
++++ b/image_manager.cpp
+@@ -9,6 +9,7 @@
+ #include <stdlib.h>
+ #include <sys/stat.h>
+ #include <sys/wait.h>
++#include <time.h>
+ #include <unistd.h>
+ 
+ #include <elog-errors.hpp>
+@@ -174,6 +175,11 @@ int Manager::processImage(const std::string& tarFilePath)
+     // Compute id
+     auto id = Version::getId(version);
+ 
++    // Append a random number after the original version hash
++    // This will allow forcing image update onto the same version
++    srand(time(NULL));
++    id = id + "_" + std::to_string(rand());
++
+     fs::path imageDirPath = std::string{IMG_UPLOAD_DIR};
+     imageDirPath /= id;
+ 
