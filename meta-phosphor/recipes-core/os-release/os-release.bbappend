@@ -44,7 +44,7 @@ DISTRO_VERSION ??= "${PHOSPHOR_OS_RELEASE_DISTRO_VERSION}"
 
 VERSION_SPLIT := "${@strip_specific_str(d, 'VERSION_ID', '@')}"
 VERSION = "${@'-'.join(d.getVar('VERSION_SPLIT').split('-')[0:2])}"
-VERSION_ID = "${VERSION}"
+VERSION_ID = "${VERSION_SPLIT}"
 
 BUILD_ID_TAG := "${@run_git(d, 'describe --abbrev=0')}"
 BUILD_ID := "${@strip_specific_str(d, 'BUILD_ID_TAG', '@')}"
