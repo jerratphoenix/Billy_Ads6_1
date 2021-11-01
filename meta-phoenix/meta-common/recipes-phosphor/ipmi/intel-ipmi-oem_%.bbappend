@@ -1,0 +1,15 @@
+FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
+PROJECT_SRC_DIR := "${THISDIR}/${PN}"
+
+# Ignore patches for now since they refer to old version above
+SRC_URI += "file://0003-Support-IPMI-Get-and-Add-SEL-Entry-commands.patch \
+			file://0005-Add-Phoenix-OEM-Whitelist.patch \
+			"
+
+
+EXTRA_OECMAKE += "${@bb.utils.contains('EXTRA_IMAGE_FEATURES', 'validation-unsecure', '-DBMC_VALIDATION_UNSECURE_FEATURE=ON', '', d)}"
+EXTRA_OECMAKE += "-DUSING_ENTITY_MANAGER_DECORATORS=OFF"
+
+# Enable MDRv1 commands
+EXTRA_OECMAKE += " -DMDR_V1_SUPPORT=ON"
+

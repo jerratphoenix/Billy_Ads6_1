@@ -1,0 +1,99 @@
+From 0a8927fdc0bb00efd5fd86d5ade261d74dcddfce Mon Sep 17 00:00:00 2001
+From: Leo <cleo@bmc-dev.phoenix.com>
+Date: Fri, 15 Jan 2021 03:35:16 +0000
+Subject: [PATCH] Migrate Redfish factory reset function into restore default
+ IPMI command.
+
+---
+ src/oemcommands.cpp | 53 ++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 38 insertions(+), 15 deletions(-)
+ mode change 100644 => 100755 src/oemcommands.cpp
+
+diff --git a/src/oemcommands.cpp b/src/oemcommands.cpp
+old mode 100644
+new mode 100755
+index d2a1811..6bfe26a
+--- a/src/oemcommands.cpp
++++ b/src/oemcommands.cpp
+@@ -2863,7 +2863,10 @@ ipmi::RspType<> ipmiSetSecurityMode(ipmi::Context::ptr ctx,
+ ipmi::RspType<uint8_t /* restore status */>
+     ipmiRestoreConfiguration(const std::array<uint8_t, 3>& clr, uint8_t cmd)
+ {
++    uint8_t restoreStatus;
+     static constexpr std::array<uint8_t, 3> expClr = {'C', 'L', 'R'};
++    char temp;
++    static unsigned char temp_flag = 0x00;
+ 
+     if (clr != expClr)
+     {
+@@ -2874,8 +2877,6 @@ ipmi::RspType<uint8_t /* restore status */>
+     constexpr uint8_t cmdFullRestore = 0xbb;
+     constexpr uint8_t cmdFormat = 0xcc;
+ 
+-    constexpr const char* restoreOpFname = "/tmp/.rwfs/.restore_op";
+-
+     switch (cmd)
+     {
+         case cmdStatus:
+@@ -2884,26 +2885,48 @@ ipmi::RspType<uint8_t /* restore status */>
+         case cmdFullRestore:
+         case cmdFormat:
+         {
+-            // write file to rwfs root
+-            int value = (cmd - 1) & 0x03; // map aa, bb, cc => 1, 2, 3
+-            std::ofstream restoreFile(restoreOpFname);
+-            if (!restoreFile)
+-            {
+-                return ipmi::responseUnspecifiedError();
+-            }
+-            restoreFile << value << "\n";
++            std::shared_ptr<sdbusplus::asio::connection> bus_restore = getSdBus();
++            bus_restore->async_method_call(
++                [](const boost::system::error_code ec) {
++                if (ec)
++                {
++                    phosphor::logging::log<phosphor::logging::level::ERR>(
++                        "async_method_call error: Restore Default Failed!!");
++                    return;
++                }
++            },
++            "xyz.openbmc_project.Software.BMC.Updater",
++            "/xyz/openbmc_project/software",
++            "xyz.openbmc_project.Common.FactoryReset", "Reset");
++            temp_flag = 0x01; //The "factory-reset" would not be added in the file immediately, use a flag for the workaround solution.
+             break;
+         }
+         default:
+             return ipmi::responseInvalidFieldRequest();
+     }
+ 
+-    constexpr uint8_t restorePending = 0;
+-    constexpr uint8_t restoreComplete = 1;
++    std::ifstream file("/run/initramfs/init-options");
++    std::ostringstream file_data;
++
++    if (file.is_open() == true)
++    {
++        while (file.peek() != EOF)
++        {
++            file.get( temp );
++            file_data << temp;
++        }
++    }
++    file.close();
++
++    std::size_t found = file_data.str().find("factory-reset");
++
++    constexpr uint8_t restorePending = 1;
++    constexpr uint8_t restoreComplete = 0;
++
++    restoreStatus = ((found != std::string::npos) || (0x01 == temp_flag))
++                        ? restorePending
++                        : restoreComplete;
+ 
+-    uint8_t restoreStatus = std::filesystem::exists(restoreOpFname)
+-                                ? restorePending
+-                                : restoreComplete;
+     return ipmi::responseSuccess(restoreStatus);
+ }
+ 

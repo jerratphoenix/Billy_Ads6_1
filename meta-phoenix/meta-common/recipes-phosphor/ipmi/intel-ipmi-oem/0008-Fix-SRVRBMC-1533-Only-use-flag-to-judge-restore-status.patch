@@ -1,0 +1,22 @@
+From bacf63a2a1eeb3af6743925de7e2f4d1c76d187c Mon Sep 17 00:00:00 2001
+From: Leo <cleo@bmc-dev.phoenix.com>
+Date: Mon, 18 Jan 2021 08:46:35 +0000
+Subject: [PATCH] Fix SRVRBMC-1533. Only use flag to judge restore status.
+
+---
+ src/oemcommands.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/oemcommands.cpp b/src/oemcommands.cpp
+index 6bfe26a..75dd4d8 100755
+--- a/src/oemcommands.cpp
++++ b/src/oemcommands.cpp
+@@ -2923,7 +2923,7 @@ ipmi::RspType<uint8_t /* restore status */>
+     constexpr uint8_t restorePending = 1;
+     constexpr uint8_t restoreComplete = 0;
+ 
+-    restoreStatus = ((found != std::string::npos) || (0x01 == temp_flag))
++    restoreStatus = (/*(found != std::string::npos) ||*/ (0x01 == temp_flag))
+                         ? restorePending
+                         : restoreComplete;
+ 

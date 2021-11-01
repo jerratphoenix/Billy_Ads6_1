@@ -1,0 +1,12 @@
+diff --git a/ipmi-whitelist.conf b/ipmi-whitelist.conf
+index 151b06c..6475051 100644
+--- a/ipmi-whitelist.conf
++++ b/ipmi-whitelist.conf
+@@ -166,6 +166,7 @@
+ 0x2c:0x31:0x7f7f   //<Group Extension>:<TPM Configuration Update Complete>
+ 0x2c:0x37:0xff7f   //<Group Extension>:<Read PCIe Cable EEPROM Data>
+ 0x2e:0x04:0xffff   // OEM-IPMI Commands to talk to Phosphor-pid-control
++0x2e:0x80:0xff7f   //<OpenBMC OEM>:<Blob Transfer>
+ 0x2e:0xC0:0x7f7f   //<Intel OEM>:<Enable/Disable Node Manager Policy Control>
+ 0x2e:0xC1:0x7f7f   //<Intel OEM>:<Set Node Manager Policy>
+ 0x2e:0xC2:0xff7f   //<Intel OEM>:<Get Node Manager Policy>
