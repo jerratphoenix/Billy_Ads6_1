@@ -19,17 +19,22 @@ SRC_URI += " file://raw_reading.cpp \
 
 S = "${WORKDIR}"
 
+inherit native
 BBCLASSEXTEND = "native nativesdk"
 
 DEPENDS = "json-c-native"
 
 do_install:append() {
-    install -Dm 0755 ${S}/gensdr ${D}/${bindir}/gensdr
-    install -Dm 0644 ${S}/PtecSensorConfig.json ${D}/${datadir}/phoenix-sensor-config/PtecSensorConfig.json
+    DEST=${D}/${datadir}/phoenix-sensor-config
 
-    install -Dm 0755 ${S}/genraw ${D}/${bindir}/genraw
+    ${S}/gensdr \
+        ${S}/PtecSensorConfig.json \
+        ${DEST}/SDR.active
 
-#    install -Dm 0644 ${S}/raw_reading.hpp ${D}/${datadir}/phoenix-sensor-config/raw_reading.hpp
-    install -Dm 0644 ${S}/raw_reading.cpp ${D}/${datadir}/phoenix-sensor-config/raw_reading.cpp
+    ${S}/genraw \
+        ${S}/PtecSensorConfig.json \
+        ${DEST}/raw_reading.hpp
+
+    install -Dm 0644 ${S}/raw_reading.cpp ${DEST}/raw_reading.cpp
 }
 

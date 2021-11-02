@@ -18,8 +18,8 @@ SRC_URI = " file://CMakeLists.txt \
 
 S = "${WORKDIR}"
 
-DEPENDS = "boost phosphor-ipmi-host phoenix-sensor-config-native"
-inherit cmake obmc-phosphor-ipmiprovider-symlink
+DEPENDS = "boost phosphor-ipmi-host"
+inherit pkgconfig cmake obmc-phosphor-ipmiprovider-symlink
 
 LIBRARY_NAMES = "libptecsdrcmds.so"
 
@@ -29,17 +29,4 @@ NETIPMI_PROVIDER_LIBRARY += "${LIBRARY_NAMES}"
 FILES:${PN}:append = " ${libdir}/ipmid-providers/lib*${SOLIBS}"
 FILES:${PN}:append = " ${libdir}/host-ipmid/lib*${SOLIBS}"
 FILES:${PN}:append = " ${libdir}/net-ipmid/lib*${SOLIBS}"
-FILES:${PN}:append = " ${datadir}/phoenix-sensor-config/SDR.active"
 FILES:${PN}-dev:append = " ${libdir}/ipmid-providers/lib*${SOLIBSDEV}"
-
-export PSEUDO_DISABLED = "1"
-
-do_install:append() {
-    ${STAGING_BINDIR_NATIVE}/gensdr \
-        ${STAGING_DATADIR_NATIVE}/phoenix-sensor-config/PtecSensorConfig.json \
-        ${STAGING_DATADIR_NATIVE}/phoenix-sensor-config/SDR.active
-
-    install -Dm 0644 ${STAGING_DATADIR_NATIVE}/phoenix-sensor-config/SDR.active \
-        ${D}/${datadir}/phoenix-sensor-config/SDR.active
-}
-
