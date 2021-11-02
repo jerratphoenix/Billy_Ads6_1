@@ -202,7 +202,7 @@
 	/*F0-F7*/	"NMI_OUT","","","","CPU_ERR0","CPU_ERR1","PLTRST_N","PRDY_N",
 	/*G0-G7*/	"CPU_ERR2","CPU_CATERR","PCH_BMC_THERMTRIP","LCP_ENTER_BUTTON","LCP_LEFT_BUTTON","FM_BMC_BOARD_SKU_ID5_N","","",
 	/*H0-H7*/	"","","","FM_NODE_ID_1","FM_NODE_ID_2","FM_NODE_ID_3","FM_NODE_ID_4","FM_240VA_STATUS",
-	/*I0-I7*/	"FM_SYS_FAN0_PRSNT_D_N","FM_SYS_FAN1_PRSNT_D_N","FM_SYS_FAN2_PRSNT_D_N","FM_SYS_FAN3_PRSNT_D_N","FM_SYS_FAN4_PRSNT_D_N","FM_SYS_FAN5_PRSNT_D_N","","",
+	/*I0-I7*/	"","","","","","","","",
 	/*J0-J7*/	"","","","","","","","",
 	/*K0-K7*/	"","","","","","","","",
 	/*L0-L7*/	"","","","","","","","",
