@@ -174,16 +174,6 @@ inline static void hard_reset(void)
         "xyz.openbmc_project.State.Host.Transition.ForceWarmReboot"});
 }
 
-inline static void send_alert(void)
-{
-    DPRINT ("%s!!\n", __func__);
-    //TODO:
-
-    return;
-}
-
-//TODO: SNMP Trap
-
 }//monitor
 }//dbus
 }//phoenix

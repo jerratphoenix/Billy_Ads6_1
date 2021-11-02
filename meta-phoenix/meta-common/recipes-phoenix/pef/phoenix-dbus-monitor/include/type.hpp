@@ -25,6 +25,7 @@
 #include <sdbusplus/asio/object_server.hpp>
 #include <sdbusplus/server.hpp>
 
+
 namespace phoenix
 {
 namespace dbus
@@ -32,14 +33,31 @@ namespace dbus
 namespace monitor
 {
 
+#define UNSPECIFIED 0xFF
+#define UNSPECIFIED_WORD 0xFFFF
+
 #define PEF_CTL_EN 0x01
 #define FILTER_TABLE_EN 0x80
-#define UNSPECIFIED 0xFF
 
-#define PEF_ACTION_ALERT	(1 << 0)    //TODO
+#define PEF_ACTION_ALERT	    (1 << 0)    
 #define PEF_ACTION_POWER_DOWN	(1 << 1)
 #define PEF_ACTION_POWER_RESET	(1 << 2)
 #define PEF_ACTION_POWER_CYCLE	(1 << 3)
+
+enum class PolicyRule : uint8_t 
+{
+    AlwaysSend = 0x00,
+    ToNext,
+    NoMore,	
+    ToDiffChannel,
+    ToDiffdestinationType
+};
+
+enum ChannelDestType : bool 
+{
+    IsDestination = false,
+    IsChannel = true
+};
 
 constexpr const char* sevice_chassis = "xyz.openbmc_project.State.Chassis";
 constexpr const char* objpath_chassis = "/xyz/openbmc_project/state/chassis0";
@@ -48,6 +66,10 @@ constexpr const char* interf_chassis = "xyz.openbmc_project.State.Chassis";
 constexpr const char* sevice_host = "xyz.openbmc_project.State.Host";
 constexpr const char* objpath_host = "/xyz/openbmc_project/state/host0";
 constexpr const char* interf_host = "xyz.openbmc_project.State.Host";
+
+constexpr const char* sevice_setting = "xyz.openbmc_project.Intel_Settings";
+constexpr const char* objpath_setting = "/xyz/openbmc_project/state/chassis0";
+constexpr const char* interf_setting = "xyz.openbmc_project.State.PowerOnHours";
 
 constexpr const char* property_interface_name = "org.freedesktop.DBus.Properties";
 

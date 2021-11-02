@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
 namespace phoenix
 {
 namespace dbus
@@ -55,19 +56,66 @@ namespace jsonns {
         v.ED_3_Compare_2 =  STR_TO_HEX("EventData_3_Compare_2");
     }
 
+    void from_json(const nlohmann::json& j, alertPolicyTableInfo& v) {
+        v.policyNumber =        STR_TO_HEX("PolicyNumber");
+        v.enable =              STR_TO_HEX("Enable");
+        v.policy =              STR_TO_HEX("Policy");
+        v.channel =             STR_TO_HEX("Channel");
+        v.destination =         STR_TO_HEX("Destination");
+        v.is_event_specific =   STR_TO_HEX("Is_Event_Specific");
+        v.alertSrtingKey =      STR_TO_HEX("AlertStringKey");
+    }
+
+    void from_json(const nlohmann::json& j, alertStringTableInfo& v) {
+        v.selector =        STR_TO_HEX("Selector");
+        v.eventFilterNum =  STR_TO_HEX("EventFilterNumber");
+        v.alertStringSet =  STR_TO_HEX("AlertStringSet");
+        v.alertString =     j["String"].get<std::string>();
+    }
+
     void from_json(const nlohmann::json& j, globalTableinfo& v) {
         v.control =             STR_TO_HEX("PEF_control");
         v.actionGlobalControl = STR_TO_HEX("PEF_Action_global_control");
         v.startupDelay =        STR_TO_HEX("PEF_Startup_Delay");
         v.alertstartupDelay =   STR_TO_HEX("PEF_Alert_Startup_Delay");
     }
+
+    void from_json(const nlohmann::json& j, emailTableInfo& v) {
+        v.smtpIP =     j["Service_IP"].get<std::string>();
+        v.recipient =  j["Recipient"].get<std::string>();
+    }
 }//jsonns
 
 struct jsonns::tableinfo pef_table[MAX_PEF_EVENT_ENTRIES];
+struct jsonns::alertPolicyTableInfo alert_policy_table[MAX_PEF_ALERT_POLICY_ENTRIES];
+struct jsonns::alertStringTableInfo string_table[MAX_PEF_ALERT_STRING_ENTRIES];
 struct jsonns::globalTableinfo global_pef_table;
+struct jsonns::emailTableInfo mail_table;
 
-void display_table_info(int size, int globalSize)
+void display_table_info(int size, int globalSize, int alertSize, int strSize)
 {
+    for ( int i = 0; i < strSize; i++ ) {
+        DPRINT ("%s, %d, selector = %x, eventFilterNum = %x, AlertStringSet = %x, Str = %s\n"
+            , __func__, __LINE__
+            , string_table[i].selector
+            , string_table[i].eventFilterNum
+            , string_table[i].alertStringSet
+            , string_table[i].alertString.c_str());
+    }
+
+    for ( int i = 0; i < alertSize; i++ ) {
+        DPRINT ("%s, %d, policyNumber = %x, enable = %x, policy = %x, channel = %x "
+                "destination = %x, is_event_specific = %x, alertSrtingKey = %x\n"
+            , __func__, __LINE__
+            , alert_policy_table[i].policyNumber
+            , alert_policy_table[i].enable
+            , alert_policy_table[i].policy
+            , alert_policy_table[i].channel
+            , alert_policy_table[i].destination
+            , alert_policy_table[i].is_event_specific
+            , alert_policy_table[i].alertSrtingKey);
+    }
+
     for ( int i = 0; i < globalSize; i++ ) {
         DPRINT ("%s, %d, ctrl = %x, actionCtrl = %x, startupDelay = %x, alertStartdelay = %x\n"
             , __func__, __LINE__
@@ -107,6 +155,9 @@ void display_table_info(int size, int globalSize)
             , pef_table[i].ED_3_Compare_1
             , pef_table[i].ED_3_Compare_2);
     }
+
+    DPRINT ("%s, %d, smtpIP = %s, recipient = %s", __func__, __LINE__
+            , mail_table.smtpIP.c_str(), mail_table.recipient.c_str());
 }
 
 int getJsonSize()
@@ -126,6 +177,28 @@ int getJsonSize()
 
     length = j[TABLE_NAME].size();
     return length;
+}
+
+void initMailFile()
+{
+    nlohmann::json j;
+    std::ifstream jfileEmail( emailConfigFile );
+    if( !jfileEmail )
+    {
+        std::cerr << "Open email json file fail!!\n";
+        return;
+    }
+
+    jfileEmail >> j;
+    jfileEmail.close();
+
+#if DEBUG
+    std::cout << "json j = " << j << std::endl;
+#endif
+
+    /* Callback to from_json funciotn */
+    mail_table.smtpIP = j[SERVER_STRING_NAME];
+    mail_table.recipient = j[REC_STRING_NAME];
 }
 
 void initJsonfile()
@@ -151,6 +224,8 @@ void initJsonfile()
     /* Get table size*/
     int peflength = j[TABLE_NAME].size();
     int globalpeflength = j[GLOBAL_TABLE_NAME].size();
+    int alertlength = j[ALERT_TABLE_NAME].size();
+    int alertStrLength = j[ALERT_STRING_NAME].size();
 
     DPRINT ("%s, %d, PEF table size is %d, Globla table size is %d\n"
         , __func__, __LINE__
@@ -175,8 +250,20 @@ void initJsonfile()
         global_pef_table = j[GLOBAL_TABLE_NAME][i];
     }
 
+    for ( int i = 0; i < alertlength; i++ ) {
+        /* Callback to from_json funciotn */
+        alert_policy_table[i] = j[ALERT_TABLE_NAME][i];
+    }
+
+    for ( int i = 0; i < alertStrLength; i++ ) {
+        /* Callback to from_json funciotn */
+        string_table[i] = j[ALERT_STRING_NAME][i];
+    }
+
+    initMailFile();
+
 #if DEBUG
-    display_table_info(peflength, globalpeflength);
+    display_table_info(peflength, globalpeflength, alertlength, alertStrLength);
 #endif
 
     return;

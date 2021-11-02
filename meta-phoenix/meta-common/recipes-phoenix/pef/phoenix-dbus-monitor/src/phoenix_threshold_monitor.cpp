@@ -209,6 +209,7 @@ void ThresholdSensorMonitor::getMsgData(sdbusplus::message::message& m)
         , eventData[0]
         , eventData[1]
         , eventData[2]);
+    DPRINT("%s!!\n", m.get_path());
 
     if( !checkEventfilterTable(eventData) )
     {   

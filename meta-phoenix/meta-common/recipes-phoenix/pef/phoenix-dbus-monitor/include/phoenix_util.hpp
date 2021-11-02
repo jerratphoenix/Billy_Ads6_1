@@ -17,6 +17,8 @@
 #pragma once
 
 #include "type.hpp"
+#include "debug.hpp"
+#include "json_parser.hpp"
 #include "phoenix_action.hpp"
 
 namespace phoenix
@@ -25,21 +27,17 @@ namespace dbus
 {
 namespace monitor
 {
+#define MAX_SEQ_NUMBER 0xFFFF
+#define BMC_SRC 0x20
 
-
-class DiscreteSensorMonitor
-{
-    public:
-        DiscreteSensorMonitor() = default;
-        DiscreteSensorMonitor(const DiscreteSensorMonitor&) = delete;
-        DiscreteSensorMonitor& operator=(const DiscreteSensorMonitor&) = delete;
-        DiscreteSensorMonitor(DiscreteSensorMonitor&&) = default;
-        DiscreteSensorMonitor& operator=(DiscreteSensorMonitor&&) = default;
-        virtual ~DiscreteSensorMonitor() = default;
-
-        void getMsgData(sdbusplus::message::message& m);
-        sdbusplus::bus::match::match listenMatch(std::shared_ptr<sdbusplus::asio::connection> conn);
-};
+std::string getSensorNameFromPath(std::string path);
+void applyAlertAction(uint8_t policyNumber, std::vector<uint8_t> ed, uint8_t eventFilterNum);
+void applyAction(uint8_t action, uint8_t global_action);
+uint8_t checkEventData(uint8_t ed, uint8_t and_mask, uint8_t cmp_1, uint8_t cmp_2);
+uint8_t checkMatch(std::vector<uint8_t> ed, int index);
+int checkEventfilterTable(std::vector<uint8_t> ed);
+int findAlertString(uint8_t is_event_specific, uint8_t stringKey, uint8_t eventNum);
+int findNextEntry(int index, uint8_t policy_num, uint8_t pre_des_channel, bool is_channel);
 
 }//monitor
 }//dbus
