@@ -2,9 +2,10 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 PROJECT_SRC_DIR := "${THISDIR}/${PN}"
 
 # Ignore patches for now since they refer to old version above
-SRC_URI += "file://0003-Support-IPMI-Get-and-Add-SEL-Entry-commands.patch \
-			file://0005-Add-Phoenix-OEM-Whitelist.patch \
-			"
+SRC_URI += "file://0002-Parse-PhoenixBMC-FirmwareRevision-GetDeviceID.patch \
+            file://0003-Support-IPMI-Get-and-Add-SEL-Entry-commands.patch \
+            file://0005-Add-Phoenix-OEM-Whitelist.patch \
+           "
 
 
 EXTRA_OECMAKE += "${@bb.utils.contains('EXTRA_IMAGE_FEATURES', 'validation-unsecure', '-DBMC_VALIDATION_UNSECURE_FEATURE=ON', '', d)}"
