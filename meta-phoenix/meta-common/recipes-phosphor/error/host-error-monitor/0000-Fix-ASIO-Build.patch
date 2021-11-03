@@ -1,0 +1,12 @@
+diff --git a/src/host_error_monitor.cpp b/src/host_error_monitor.cpp
+index 313ef29..ccd3e7e 100644
+--- a/src/host_error_monitor.cpp
++++ b/src/host_error_monitor.cpp
+@@ -16,6 +16,7 @@
+ #include <peci.h>
+ #include <systemd/sd-journal.h>
+ 
++#include <boost/asio.hpp>
+ #include <boost/asio/posix/stream_descriptor.hpp>
+ #include <gpiod.hpp>
+ #include <sdbusplus/asio/object_server.hpp>

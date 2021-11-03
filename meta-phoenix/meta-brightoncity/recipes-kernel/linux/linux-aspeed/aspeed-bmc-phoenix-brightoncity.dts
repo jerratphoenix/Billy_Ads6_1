@@ -226,6 +226,7 @@
 };
 
 &sgpio {
+	ngpios = <80>;
 	status = "okay";
 	/* Enable GPIOE0 and GPIOE2 pass-through by default */
 	pinctrl-names = "pass-through";
