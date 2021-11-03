@@ -20,7 +20,6 @@ SRC_URI += " file://raw_reading.cpp \
 S = "${WORKDIR}"
 
 inherit native
-BBCLASSEXTEND = "native nativesdk"
 
 DEPENDS = "json-c-native"
 
