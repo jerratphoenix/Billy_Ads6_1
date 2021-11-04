@@ -1,0 +1,33 @@
+From 6df67a2d316c763597e09b35c4ed3e8ff241638a Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Tue, 2 Nov 2021 08:34:45 +0000
+Subject: [PATCH] Add CPU PPIN and version.
+
+---
+ redfish-core/lib/processor.hpp | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+ mode change 100644 => 100755 redfish-core/lib/processor.hpp
+
+diff --git a/redfish-core/lib/processor.hpp b/redfish-core/lib/processor.hpp
+old mode 100644
+new mode 100755
+index d976264..bb77a32
+--- a/redfish-core/lib/processor.hpp
++++ b/redfish-core/lib/processor.hpp
+@@ -180,6 +180,16 @@ inline void
+                         boost::lexical_cast<std::string>(*value);
+                 }
+             }
++            else if (property.first == "PPIN")
++            {
++                const std::string* value =
++                    std::get_if<std::string>(&property.second);
++                if (value != nullptr)
++                {
++                    aResp->res.jsonValue["ProtectedIdentificationNumber"] =
++                        *value;
++                }
++            }
+         }
+     }
+ 

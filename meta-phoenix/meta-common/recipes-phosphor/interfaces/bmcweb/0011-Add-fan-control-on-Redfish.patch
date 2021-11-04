@@ -1,0 +1,227 @@
+From 3bfd709e28b19468fcea201f86492eb1f7e11925 Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Thu, 4 Nov 2021 08:19:25 +0000
+Subject: [PATCH] Add fan control on Redfish.
+
+---
+ meson.build                                   |   1 +
+ meson_options.txt                             |   1 +
+ redfish-core/include/redfish.hpp              |   4 +
+ .../include/registries/privilege_registry.hpp |   8 +
+ redfish-core/lib/oem_fan_module.hpp           | 141 ++++++++++++++++++
+ 5 files changed, 155 insertions(+)
+ create mode 100755 redfish-core/lib/oem_fan_module.hpp
+
+diff --git a/meson.build b/meson.build
+index 84cebdf..96e179b 100755
+--- a/meson.build
++++ b/meson.build
+@@ -86,6 +86,7 @@ feature_map = {
+   #'vm-nbdproxy'                     : '-DBMCWEB_ENABLE_VM_NBDPROXY',
+   'vm-websocket'                    : '-DBMCWEB_ENABLE_VM_WEBSOCKET',
+   'imgxfer-interface'               : '-DBMCWEB_ENABLE_IMGXFER',
++  'oem-fan-module'                  : '-DBMCWEB_ENABLE_OEM_FAN_MODULE',
+ }
+ 
+ # Get the options status and build a project summary to show which flags are
+diff --git a/meson_options.txt b/meson_options.txt
+index e2f9a3b..626ac8e 100755
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -34,6 +34,7 @@ option('redfish-new-powersubsystem-thermalsubsystem', type : 'feature', value :
+ option('redfish-allow-deprecated-power-thermal', type : 'feature', value : 'enabled', description : 'Enable/disable the old Power / Thermal. The default condition is allowing the old Power / Thermal.')
+ option ('https_port', type : 'integer', min : 1, max : 65535, value : 443, description : 'HTTPS Port number.')
+ option('imgxfer-interface', type : 'feature', value : 'disabled', description : 'Enable ImgXfer interface.')
++option('oem-fan-module', type : 'feature', value : 'enabled', description : 'Enable OEM fan module.')
+ 
+ # Insecure options. Every option that starts with a `insecure` flag should
+ # not be enabled by default for any platform, unless the author fully comprehends
+diff --git a/redfish-core/include/redfish.hpp b/redfish-core/include/redfish.hpp
+index 54a7609..69efa70 100755
+--- a/redfish-core/include/redfish.hpp
++++ b/redfish-core/include/redfish.hpp
+@@ -30,6 +30,7 @@
+ #include "../lib/metric_report.hpp"
+ #include "../lib/metric_report_definition.hpp"
+ #include "../lib/network_protocol.hpp"
++#include "../lib/oem_fan_module.hpp"
+ #include "../lib/pcie.hpp"
+ #include "../lib/power.hpp"
+ #include "../lib/processor.hpp"
+@@ -206,6 +207,9 @@ class RedfishService
+         requestRoutesImgXfer(app);
+         //requestRoutesImgXferInventoryCollection(app);
+         //requestRoutesImgXferInventory(app);
++
++//Phoenix fan control
++        requestRoutesOEMFanPWM(app);
+     }
+ };
+ 
+diff --git a/redfish-core/include/registries/privilege_registry.hpp b/redfish-core/include/registries/privilege_registry.hpp
+index 8e43f5c..8b6fd52 100755
+--- a/redfish-core/include/registries/privilege_registry.hpp
++++ b/redfish-core/include/registries/privilege_registry.hpp
+@@ -474,6 +474,14 @@ const static auto& putFacilityCollection = privilegeSetConfigureComponents;
+ const static auto& deleteFacilityCollection = privilegeSetConfigureComponents;
+ const static auto& postFacilityCollection = privilegeSetConfigureComponents;
+ 
++//FanPWM
++const static auto& getFanPWM = privilegeSetLogin;
++const static auto& headFanPWM = privilegeSetLogin;
++const static auto& patchFanPWM = privilegeSetLogin;
++const static auto& putFanPWM = privilegeSetConfigureManager;
++const static auto& deleteFanPWM = privilegeSetConfigureManager;
++const static auto& postFanPWM = privilegeSetConfigureManager;
++
+ // HostInterface
+ const static auto& getHostInterface = privilegeSetLogin;
+ const static auto& headHostInterface = privilegeSetLogin;
+diff --git a/redfish-core/lib/oem_fan_module.hpp b/redfish-core/lib/oem_fan_module.hpp
+new file mode 100755
+index 0000000..a2b6504
+--- /dev/null
++++ b/redfish-core/lib/oem_fan_module.hpp
+@@ -0,0 +1,141 @@
++#pragma once
++
++#include "registries.hpp"
++#include "registries/base_message_registry.hpp"
++#include "registries/openbmc_message_registry.hpp"
++#include "task.hpp"
++
++#include <systemd/sd-journal.h>
++
++#include <boost/algorithm/string/split.hpp>
++#include <boost/beast/core/span.hpp>
++#include <boost/container/flat_map.hpp>
++#include <boost/system/linux_error.hpp>
++#include <error_messages.hpp>
++#include <registries/privilege_registry.hpp>
++
++#include <filesystem>
++#include <string_view>
++#include <variant>
++#include <cctype>
++#include <stdlib.h>
++
++namespace redfish
++{
++
++inline void requestRoutesOEMFanPWM(App& app)
++{
++    BMCWEB_ROUTE(app, "/redfish/v1/Managers/bmc/Oem/FanPWM/")
++        .privileges(redfish::privileges::getFanPWM)
++        .methods(boost::beast::http::verb::get)(
++            [](const crow::Request&/* req */, 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)-> void{
++                asyncResp->res.jsonValue = {
++                    //{"@Redfish.Copyright", "Copyright 2021 Distributed Management Task Force, Inc. (DMTF). All rights reserved."},
++                    {"@odata.context", "/redfish/v1/$metadata#Manager"},
++                    {"@odata.id", "/redfish/v1/Managers/bmc/Oem/FanPWM"},
++                    {"@odata.type", "#OEMFanModule.OEMFanModule"},
++                    {"Name", "Fan PWM"},
++                };
++
++                std::ifstream fin ("/sys/class/hwmon/hwmon0/pwm1");
++                std::string buffer;
++                getline (fin, buffer);
++                if (!fin.good()){
++                    fin.close();
++                    asyncResp->res.jsonValue["PWM"] = "N/A";
++                    asyncResp->res.end();
++                    return;
++                }
++
++                int pwm;
++                pwm = std::stoi(buffer) * 100 / 255;
++                asyncResp->res.jsonValue["PWM"] = pwm;
++                fin.close();
++                asyncResp->res.end();
++                return;
++            }
++        );
++
++
++    BMCWEB_ROUTE(app, "/redfish/v1/Managers/bmc/Oem/FanPWM/")
++        .privileges(redfish::privileges::patchFanPWM)
++        .methods(boost::beast::http::verb::patch)(
++            [](const crow::Request& req, 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)-> void{
++                std::optional<uint8_t> pwm;
++                std::mutex fan_pwm_mtx;
++
++                if (!json_util::readJson(req, asyncResp->res, "PWM", pwm))
++                {
++                    asyncResp->res.end();
++                    return;
++                }
++
++                std::string pwm_set;
++                if (pwm)
++                {
++                    // Supported range [10-100]
++                    if ((*pwm < 10) || (*pwm > 100))
++                    {
++                        messages::queryParameterOutOfRange(
++                            asyncResp->res, std::to_string(*pwm),
++                            "PWM", "[10-100]");
++                    }
++                    else
++                    {
++                        pwm_set = std::to_string((*pwm) * 255 / 100);
++                    }
++                }
++
++                fan_pwm_mtx.lock();
++                std::string cmd("echo " + pwm_set + " > /sys/class/hwmon/hwmon0/pwm1");
++                int ret = system(cmd.c_str());
++                if (ret < 0)
++                {
++                    std::cout << "failed to write pwm error = " << strerror(-ret) << std::endl;
++                    messages::internalError(asyncResp->res);
++                    asyncResp->res.end();
++                    fan_pwm_mtx.unlock();
++                    return;
++                }
++
++                std::ifstream fin("/proc/cmdline");
++                std::string cmdline;
++                getline(fin, cmdline);
++                std::size_t found = cmdline.find("pwm=");
++                if (found == std::string::npos) {
++                    cmdline = cmdline + " pwm=" + std::to_string(*pwm);
++                } else {
++                    cmdline = cmdline.substr(0, found);
++                    cmdline = cmdline + " pwm=" + std::to_string(*pwm);
++                }
++
++                cmd = "fw_setenv bootargs " + cmdline;
++                ret = system(cmd.c_str());
++                if (ret < 0)
++                {
++                    std::cout << "failed to write set env error = " << strerror(-ret) << std::endl;
++
++                    //
++                    // Retry once to avoid bad CRC case
++                    //
++                    ret = system(cmd.c_str());
++                    if (ret < 0)
++                    {
++                        std::cout << "failed to write set env error = " << strerror(-ret) << std::endl;
++                        messages::internalError(asyncResp->res);
++                        asyncResp->res.end();
++                        fan_pwm_mtx.unlock();
++                        return;
++                    }
++                }
++
++                fan_pwm_mtx.unlock();
++                asyncResp->res.end();
++                return ;
++
++            }
++        );
++}
++}// namespace redfish
+\ No newline at end of file
