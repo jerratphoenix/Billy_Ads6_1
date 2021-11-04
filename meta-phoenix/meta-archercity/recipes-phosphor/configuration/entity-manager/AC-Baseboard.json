@@ -344,13 +344,13 @@
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
-                    "Value": 1.19
+                    "Value": 1.29
                 },
                 {
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
-                    "Value": 1.155
+                    "Value": 1.255
                 },
                 {
                     "Direction": "less than",
@@ -378,13 +378,13 @@
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
-                    "Value": 1.19
+                    "Value": 1.29
                 },
                 {
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
-                    "Value": 1.155
+                    "Value": 1.255
                 },
                 {
                     "Direction": "less than",
@@ -1028,6 +1028,9 @@
             "ARPOwnerSupport": false,
             "BMCReceiverAddress": 18,
             "BindingType": "MctpSMBus",
+            "SupportedEndpointSlaveAddress": [
+                29
+            ],
             "Bus": "/dev/i2c-4",
             "DefaultEID": 21,
             "EIDPool": [
@@ -1072,6 +1075,271 @@
             ],
             "Name": "M2 Mux",
             "Type": "PCA9543Mux"
+        },
+        {
+            "Interface": [
+                "peci"
+            ],
+            "Name": "PMEM",
+            "Pmem": [
+                {
+                    "DeviceID": 1,
+                    "Imc": 0,
+                    "Channel": 0,
+                    "Slot": 0,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 2,
+                    "Imc": 0,
+                    "Channel": 0,
+                    "Slot": 1,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 3,
+                    "Imc": 0,
+                    "Channel": 1,
+                    "Slot": 0,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 4,
+                    "Imc": 0,
+                    "Channel": 1,
+                    "Slot": 1,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 5,
+                    "Imc": 1,
+                    "Channel": 0,
+                    "Slot": 0,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 6,
+                    "Imc": 1,
+                    "Channel": 0,
+                    "Slot": 1,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 7,
+                    "Imc": 1,
+                    "Channel": 1,
+                    "Slot": 0,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 8,
+                    "Imc": 1,
+                    "Channel": 1,
+                    "Slot": 1,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 9,
+                    "Imc": 2,
+                    "Channel": 0,
+                    "Slot": 0,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 10,
+                    "Imc": 2,
+                    "Channel": 0,
+                    "Slot": 1,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 11,
+                    "Imc": 2,
+                    "Channel": 1,
+                    "Slot": 0,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 12,
+                    "Imc": 2,
+                    "Channel": 1,
+                    "Slot": 1,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 13,
+                    "Imc": 3,
+                    "Channel": 0,
+                    "Slot": 0,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 14,
+                    "Imc": 3,
+                    "Channel": 0,
+                    "Slot": 1,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 15,
+                    "Imc": 3,
+                    "Channel": 1,
+                    "Slot": 0,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 16,
+                    "Imc": 3,
+                    "Channel": 1,
+                    "Slot": 1,
+                    "Pecibus": "0x30",
+                    "Socket": 0
+                },
+                {
+                    "DeviceID": 17,
+                    "Imc": 0,
+                    "Channel": 0,
+                    "Slot": 0,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                },
+                {
+                    "DeviceID": 18,
+                    "Imc": 0,
+                    "Channel": 0,
+                    "Slot": 1,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                },
+                {
+                    "DeviceID": 19,
+                    "Imc": 0,
+                    "Channel": 1,
+                    "Slot": 0,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                },
+                {
+                    "DeviceID": 20,
+                    "Imc": 0,
+                    "Channel": 1,
+                    "Slot": 1,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                },
+                {
+                    "DeviceID": 21,
+                    "Imc": 1,
+                    "Channel": 0,
+                    "Slot": 0,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                },
+                {
+                    "DeviceID": 22,
+                    "Imc": 1,
+                    "Channel": 0,
+                    "Slot": 1,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                },
+                {
+                    "DeviceID": 23,
+                    "Imc": 1,
+                    "Channel": 1,
+                    "Slot": 0,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                },
+                {
+                    "DeviceID": 24,
+                    "Imc": 1,
+                    "Channel": 1,
+                    "Slot": 1,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                },
+                {
+                    "DeviceID": 25,
+                    "Imc": 2,
+                    "Channel": 0,
+                    "Slot": 0,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                },
+                {
+                    "DeviceID": 26,
+                    "Imc": 2,
+                    "Channel": 0,
+                    "Slot": 1,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                },
+                {
+                    "DeviceID": 27,
+                    "Imc": 2,
+                    "Channel": 1,
+                    "Slot": 0,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                },
+                {
+                    "DeviceID": 28,
+                    "Imc": 2,
+                    "Channel": 1,
+                    "Slot": 1,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                },
+                {
+                    "DeviceID": 29,
+                    "Imc": 3,
+                    "Channel": 0,
+                    "Slot": 0,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                },
+                {
+                    "DeviceID": 30,
+                    "Imc": 3,
+                    "Channel": 0,
+                    "Slot": 1,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                },
+                {
+                    "DeviceID": 31,
+                    "Imc": 3,
+                    "Channel": 1,
+                    "Slot": 0,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                },
+                {
+                    "DeviceID": 32,
+                    "Imc": 3,
+                    "Channel": 1,
+                    "Slot": 1,
+                    "Pecibus": "0x31",
+                    "Socket": 1
+                }
+            ],
+            "Type": "PMEM"
         },
         {
             "Address": "0x72",
