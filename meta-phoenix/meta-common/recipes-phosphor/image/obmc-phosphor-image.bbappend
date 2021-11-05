@@ -13,7 +13,6 @@ IMAGE_INSTALL:append = " phoenix-ipmi-oem"
 # Intel recipe 
 IMAGE_INSTALL:append = " smbios-mdrv2"
 IMAGE_INSTALL:append = " phosphor-node-manager-proxy"
-IMAGE_INSTALL:append = " at-scale-debug"
 IMAGE_INSTALL:append = " settings"
 
 #meta-ptec-tp only

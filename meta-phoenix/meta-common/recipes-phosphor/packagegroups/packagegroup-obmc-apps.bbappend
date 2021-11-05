@@ -3,7 +3,6 @@ RDEPENDS:${PN}-extras:append:wolfpass = " \
 	phosphor-hostlogger \
 	phosphor-host-postd \
 	phosphor-post-code-manager \
-	at-scale-debug \
 	"
 
 RDEPENDS:${PN}-extras:append:brightoncity = " \
