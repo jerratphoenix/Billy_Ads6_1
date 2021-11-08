@@ -42,6 +42,7 @@ namespace ipmi
 namespace pef
 {
 #define MAX_PEF_EVENT_ENTRIES 20
+#define MAX_PEF_ALERT_POLICY_ENTRIES 127
 
 constexpr Cc ccParamNotSupported = 0x80;
 constexpr Cc ccParamSetLocked = 0x81;
@@ -54,6 +55,8 @@ enum class PefParam : uint8_t
     PEFCtrl = 1,
     EventFilterTable = 6,
     EventFilterTableData1 = 7,
+    NumberOfAlertPolicyEntries = 8,
+    AlertPolicyTable = 9,
 };
 
 enum class Progress : uint8_t
@@ -69,6 +72,7 @@ namespace jsonns
     constexpr const char* configFile = "/usr/share/phoenix-dbus-monitor/PtecPEFConfig.json";
     constexpr const char* TABLE_NAME = "PEF_TABLE";
     constexpr const char* GLOBAL_TABLE_NAME = "PEF_GLOBAL";
+    constexpr const char* ALERT_TABLE_NAME = "ALERT_POLICY";
 
     /* Event filter table */
     struct eventFilter {
@@ -100,6 +104,18 @@ namespace jsonns
         uint8_t actionGlobalControl;    //#2
         uint8_t startupDelay;           //#3
         uint8_t alertstartupDelay;      //#4
+    } __attribute__ ((packed));
+
+    /* Alert policy table */
+    struct alertPolicyTableInfo
+    {
+        uint8_t policyNumber;  
+        uint8_t enable;        
+        uint8_t policy;        
+        uint8_t channel;       
+        uint8_t destination;   
+        uint8_t is_event_specific;
+        uint8_t alertSrtingKey;
     } __attribute__ ((packed));
 }//jsonns
 

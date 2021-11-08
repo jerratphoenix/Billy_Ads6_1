@@ -95,10 +95,104 @@ namespace jsonns {
             };
     }
 
+    void from_json(const nlohmann::json& j, alertPolicyTableInfo& v) {
+        v.policyNumber =        STR_TO_HEX("PolicyNumber");
+        v.enable =              STR_TO_HEX("Enable");
+        v.policy =              STR_TO_HEX("Policy");
+        v.channel =             STR_TO_HEX("Channel");
+        v.destination =         STR_TO_HEX("Destination");
+        v.is_event_specific =   STR_TO_HEX("Is_Event_Specific");
+        v.alertSrtingKey =      STR_TO_HEX("AlertStringKey");
+    }
 
+    void to_json(json& j, const alertPolicyTableInfo& v) {
+        j = json{
+                    {"PolicyNumber", HEX_TO_STR(v.policyNumber)}, 
+                    {"Enable", HEX_TO_STR(v.enable)}, 
+                    {"Policy", HEX_TO_STR(v.policy)},
+                    {"Channel", HEX_TO_STR(v.channel)}, 
+                    {"Destination", HEX_TO_STR(v.destination)}, 
+                    {"Is_Event_Specific", HEX_TO_STR(v.is_event_specific)},
+                    {"AlertStringKey", HEX_TO_STR(v.alertSrtingKey)}
+            };
+    }
 }//jsonns
 struct jsonns::eventFilter eventFilterTable[MAX_PEF_EVENT_ENTRIES];
 struct jsonns::globalConfig globalConfigTable;
+struct jsonns::alertPolicyTableInfo alert_policy_table[MAX_PEF_ALERT_POLICY_ENTRIES];
+
+uint8_t getNumberOfAlertPolicyEntries()
+{
+    uint8_t size = 0;
+    std::ifstream jsonFile( jsonns::configFile );
+    nlohmann::json data = nlohmann::json::parse(jsonFile, nullptr, false);
+    if (!data.is_discarded())
+    {
+        size = data[jsonns::ALERT_TABLE_NAME].size();
+    }
+
+    return size;
+}
+
+int setPefAlertPolicyTable(uint8_t set)
+{
+    nlohmann::json j;
+
+    std::ifstream jfile( jsonns::configFile );
+
+    if( !jfile )
+    {
+        std::cerr << "Open PEF json file fail!!\n";
+        return -1;
+    }
+
+    jfile >> j;
+    jfile.close();
+
+
+    int alertPolicyEntries = set + 1;
+
+    // struct back to json
+    for ( int i = 0; i < alertPolicyEntries; i++ ) {
+        j[jsonns::ALERT_TABLE_NAME][i] = alert_policy_table[i];
+    }
+
+    std::ofstream ojfile( jsonns::configFile );
+
+    ojfile << std::setw(4) << j << "\n";
+    ojfile.close();
+
+    return 0;
+}
+
+int getPefAlertPolicyTable()
+{
+    nlohmann::json j;
+
+    std::ifstream jfile( jsonns::configFile );
+
+    if( !jfile )
+    {
+        std::cerr << "Open PEF json file fail!!\n";
+        return -1;
+    }
+
+    jfile >> j;
+    jfile.close();
+
+    int alertPolicyNum = getNumberOfAlertPolicyEntries();
+    if( alertPolicyNum > MAX_PEF_ALERT_POLICY_ENTRIES )
+    {
+        alertPolicyNum = MAX_PEF_ALERT_POLICY_ENTRIES;
+    }
+
+    for ( int i = 0; i < alertPolicyNum; i++ ) {
+        // Callback to from_json funciotn
+        alert_policy_table[i] = j[jsonns::ALERT_TABLE_NAME][i];
+    }
+
+    return 0;
+}
 
 int getPefGlobalConfigure()
 {
@@ -425,6 +519,49 @@ ipmi::RspType<>
 
             return responseSuccess();
         }
+
+        case PefParam::AlertPolicyTable:
+        {
+            uint8_t selector, dest_channel;
+            uint4_t policyNum;
+            uint1_t enable, eventSpecific;
+            uint3_t policy;
+            uint7_t alertStringSet;
+            if (req.unpack(selector, policy, enable, policyNum
+                    , dest_channel, alertStringSet, eventSpecific) != 0 || !req.fullyUnpacked())
+            {
+                return responseReqDataLenInvalid();
+            }
+
+            if (selector < 1 || 
+                selector > MAX_PEF_ALERT_POLICY_ENTRIES)
+            {
+                return responseInvalidFieldRequest();
+            }
+            
+            int existEntriesSize = getNumberOfAlertPolicyEntries();
+            if (selector > existEntriesSize)
+            {
+                return responseInvalidFieldRequest();
+            }
+
+            if (getPefAlertPolicyTable() != 0)
+            {
+                return responseCommandNotAvailable();
+            }
+
+            alert_policy_table[selector].policyNumber = static_cast<uint8_t>(policyNum);
+            alert_policy_table[selector].enable = static_cast<uint8_t>(enable);
+            alert_policy_table[selector].policy = static_cast<uint8_t>(policy);
+            alert_policy_table[selector].channel = (dest_channel & 0xf0) >> 4;
+            alert_policy_table[selector].destination = (dest_channel & 0x0f);
+            alert_policy_table[selector].is_event_specific = static_cast<uint8_t>(eventSpecific);
+            alert_policy_table[selector].alertSrtingKey = static_cast<uint8_t>(alertStringSet);
+
+            setPefAlertPolicyTable(selector);
+
+            return responseSuccess();
+        }
     }
 
     return response(ccParamNotSupported);
@@ -519,6 +656,44 @@ ipmi::RspType<message::Payload>
                 return responseSuccess(std::move(resp));
             }
             return responseInvalidFieldRequest();
+        }
+
+        case PefParam::NumberOfAlertPolicyEntries:
+        {
+            /* Skip 0 reserved to Alert Immediate command */
+            uint8_t size = getNumberOfAlertPolicyEntries()-1;
+            resp.pack(size);
+            return responseSuccess(std::move(resp));
+        }
+
+        case PefParam::AlertPolicyTable:
+        {
+            /* Skip 0 reserved to Alert Immediate command */
+            if (set < 1 || 
+                set > getNumberOfAlertPolicyEntries()-1 || 
+                block != 0)
+            {
+                return responseInvalidFieldRequest();
+            }
+            if (getPefAlertPolicyTable() != 0)
+            {
+                return responseCommandNotAvailable();
+            }
+
+            uint8_t policyNum = (alert_policy_table[set].policyNumber << 4) & 0xf0;
+            policyNum |= (alert_policy_table[set].enable << 3);
+            policyNum |= alert_policy_table[set].policy;
+            resp.pack(policyNum);
+
+            uint8_t channnlDest = (alert_policy_table[set].channel << 4) & 0xf0;
+            channnlDest |= (alert_policy_table[set].destination & 0x0f);
+            resp.pack(channnlDest);
+
+            uint8_t alertStringKey = (alert_policy_table[set].is_event_specific << 7);
+            alertStringKey |= (alert_policy_table[set].alertSrtingKey & 0x7f);
+            resp.pack(alertStringKey);
+
+            return responseSuccess(std::move(resp));
         }
     }
 
