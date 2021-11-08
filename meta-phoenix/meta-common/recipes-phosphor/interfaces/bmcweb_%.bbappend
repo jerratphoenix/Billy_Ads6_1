@@ -9,5 +9,6 @@ SRC_URI += "file://0001-Merge-from-ptec-bmcweb.patch \
 			file://0005-ssl_key_handler.patch \
 			file://0008-Fix-sensor-functional-flag.patch \
 			file://0010-Add-CPU-PPIN-and-version.patch \
-			file://0011-Add-fan-control-on-Redfish.patch"
+			file://0011-Add-fan-control-on-Redfish.patch \
+			file://0012-Add-I2C-diagonstic-tool-on-Redfish.patch"
 
