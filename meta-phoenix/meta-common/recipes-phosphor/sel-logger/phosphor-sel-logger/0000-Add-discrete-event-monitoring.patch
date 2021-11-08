@@ -1,48 +1,20 @@
-From 53c8c6416d9eb615a88519b0fadf3c35ba720ea2 Mon Sep 17 00:00:00 2001
-From: Patrick Voelker <patrick_voelker@phoenix.com>
-Date: Tue, 13 Oct 2020 15:23:11 -0700
-Subject: [PATCH] * Setup host-error-monitor dbus signals and discrete event
+From 21839f0ba630dbaa492c1728374403dfcd444717 Mon Sep 17 00:00:00 2001
+From: Chris Yeh <chris_yeh@phoenix.com>
+Date: Mon, 8 Nov 2021 14:39:45 +0800
+Subject: [PATCH] Add discrete event monitoring
 
 ---
- CMakeLists.txt                     |   8 +++
  include/discrete_event_monitor.hpp | 110 +++++++++++++++++++++++++++++
+ meson.build                        |   3 +
+ meson_options.txt                  |   2 +
  src/sel_logger.cpp                 |   6 ++
- 3 files changed, 124 insertions(+)
- mode change 100644 => 100755 CMakeLists.txt
+ 4 files changed, 121 insertions(+)
  create mode 100755 include/discrete_event_monitor.hpp
  mode change 100644 => 100755 src/sel_logger.cpp
 
-diff --git a/CMakeLists.txt b/CMakeLists.txt
-old mode 100644
-new mode 100755
-index 779093b..c61fb11
---- a/CMakeLists.txt
-+++ b/CMakeLists.txt
-@@ -12,6 +12,13 @@ option (
-     OFF
- )
- 
-+option (
-+    SEL_LOGGER_MONITOR_DISCRETE_EVENTS
-+    "Enable SEL Logger to monitor and automatically
-+     log SEL records for discrete sensor events"
-+    OFF
-+)
-+
- option (
-     REDFISH_LOG_MONITOR_PULSE_EVENTS
-     "Enable logger to monitor and automatically
-@@ -35,6 +42,7 @@ option (
- target_compile_definitions (
-     sel-logger PRIVATE
-     $<$<BOOL:${SEL_LOGGER_MONITOR_THRESHOLD_EVENTS}>: -DSEL_LOGGER_MONITOR_THRESHOLD_EVENTS>
-+    $<$<BOOL:${SEL_LOGGER_MONITOR_DISCRETE_EVENTS}>: -DSEL_LOGGER_MONITOR_DISCRETE_EVENTS>
-     $<$<BOOL:${REDFISH_LOG_MONITOR_PULSE_EVENTS}>: -DREDFISH_LOG_MONITOR_PULSE_EVENTS>
-     $<$<BOOL:${SEL_LOGGER_MONITOR_WATCHDOG_EVENTS}>: -DSEL_LOGGER_MONITOR_WATCHDOG_EVENTS>
-     $<$<BOOL:${SEL_LOGGER_SEND_TO_LOGGING_SERVICE}>: -DSEL_LOGGER_SEND_TO_LOGGING_SERVICE>
 diff --git a/include/discrete_event_monitor.hpp b/include/discrete_event_monitor.hpp
 new file mode 100755
-index 0000000..0e76e21
+index 0000000..3ec3e77
 --- /dev/null
 +++ b/include/discrete_event_monitor.hpp
 @@ -0,0 +1,110 @@
@@ -156,13 +128,37 @@ index 0000000..0e76e21
 +        std::move(discreteEventMatcherCallback));
 +    return discreteEventMatcher;
 +}
+diff --git a/meson.build b/meson.build
+index dc663d2..077e8c6 100644
+--- a/meson.build
++++ b/meson.build
+@@ -19,6 +19,9 @@ deps = [
+ if get_option('log-threshold')
+   cpp_args += '-DSEL_LOGGER_MONITOR_THRESHOLD_EVENTS'
+ endif
++if get_option('log-discrete')
++  cpp_args += '-DSEL_LOGGER_MONITOR_DISCRETE_EVENTS'
++endif
+ if get_option('log-pulse')
+   cpp_args += '-DREDFISH_LOG_MONITOR_PULSE_EVENTS'
+ endif
+diff --git a/meson_options.txt b/meson_options.txt
+index 1a1cd51..b36d3a4 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -10,3 +10,5 @@ option('send-to-logger', type: 'boolean',
+        description: 'Automatically log events to Redfish for pulse type assert-deassert sensor events')
+ option('clears-sel', type: 'boolean',
+        description: 'Expose method for SEL Logger to clear the SEL records stored in ipmi_sel')
++option('log-discrete', type: 'boolean',
++       description: 'Automatically log SEL records for discrete sensor events')
 diff --git a/src/sel_logger.cpp b/src/sel_logger.cpp
 old mode 100644
 new mode 100755
-index 99527b1..e23d4f8
+index 5aa28ae..6aa3efa
 --- a/src/sel_logger.cpp
 +++ b/src/sel_logger.cpp
-@@ -30,6 +30,7 @@
+@@ -33,6 +33,7 @@
  #include <iomanip>
  #include <iostream>
  #include <sstream>
@@ -170,7 +166,7 @@ index 99527b1..e23d4f8
  
  #ifdef SEL_LOGGER_SEND_TO_LOGGING_SERVICE
  #include <phosphor-logging/elog-errors.hpp>
-@@ -239,6 +240,11 @@ int main(int argc, char* argv[])
+@@ -293,6 +294,11 @@ int main(int, char*[])
          startThresholdAssertMonitor(conn);
  #endif
  
@@ -182,3 +178,6 @@ index 99527b1..e23d4f8
  #ifdef REDFISH_LOG_MONITOR_PULSE_EVENTS
      sdbusplus::bus::match::match pulseEventMonitor =
          startPulseEventMonitor(conn);
+-- 
+2.17.1
+
