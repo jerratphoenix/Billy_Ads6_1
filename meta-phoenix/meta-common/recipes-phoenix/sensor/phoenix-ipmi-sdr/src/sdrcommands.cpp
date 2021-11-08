@@ -55,8 +55,6 @@ static uint8_t *sdrRawCachePtr;
 constexpr static const uint32_t sdrRawCachePtrSize = MAX_SDR_RECORD_SIZE *
         MAX_SDR_MAP_ENTRIES;
 
-
-
 SensorSubTree sensorTree;
 
 static constexpr int sensorMapUpdatePeriod = 10;
@@ -284,15 +282,9 @@ static int mappingSdrRec(int sdrRepositorySize,
             memcpy(sdrMapEntry[sdrIndex].sensor_name, sdrRepositoryPtr + offset + 17, nameLength);
             break;
         }
-        std::cerr << "Sensor Num: " << sdrMapEntry[sdrIndex].sensor_number << "\n";
-        std::cerr << "Sensor Name: " << sdrMapEntry[sdrIndex].sensor_name << "\n";
-
         getPathfromName(sdrMapEntry[sdrIndex].sensor_name,
                         sdrMapEntry[sdrIndex].obj_connect,
                         sdrMapEntry[sdrIndex].obj_path);
-
-        std::cerr << "Sensor obj_path: " << sdrMapEntry[sdrIndex].obj_path << "\n";
-        std::cerr << "Sensor obj_connect: " << sdrMapEntry[sdrIndex].obj_connect << "\n";
 
         // Reocrd offset on sdrRepositoryPtr
         sdrMapEntry[sdrIndex].offset = offset;
