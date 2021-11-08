@@ -7,6 +7,7 @@
 #
 IMAGE_INSTALL:append = " ipmitool"
 IMAGE_INSTALL:append = " phoenix-ipmi-oem"
+IMAGE_INSTALL:append = " phosphor-sel-logger"
 
 # Sensor and fan control related
 
