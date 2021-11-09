@@ -88,6 +88,7 @@ int findNextEntry(int index, uint8_t policy_num, uint8_t pre_des_channel, bool i
     return found_next_entry;
 }
 
+/* Not use at snmp trap */
 int findAlertString(uint8_t is_event_specific, uint8_t stringKey, uint8_t eventNum)
 {
     DPRINT ("%s!!\n", __func__);
@@ -196,17 +197,11 @@ void applyAlertAction(uint8_t policyNumber, std::vector<uint8_t> ed, uint8_t eve
             }
         }
 
-        int strIndex = findAlertString(alert_policy_table[i].is_event_specific
-                            , alert_policy_table[i].alertSrtingKey, eventFilterNum);
-
         DPRINT ("Previous_alert: %d\n", previous_alert);
 
-        if(strIndex < MAX_PEF_ALERT_STRING_ENTRIES)
+        /* Alert action */
         {
             DPRINT ("%s, PEF_ACTION_ALERT!!\n", __func__);
-            DPRINT ("String table index: %x, alert string is \"%s\"\n"
-                , strIndex, string_table[strIndex].alertString.c_str());
-
             if( seqNumber <= MAX_SEQ_NUMBER )
             {
                 seqNumber += 1;
@@ -222,7 +217,7 @@ void applyAlertAction(uint8_t policyNumber, std::vector<uint8_t> ed, uint8_t eve
 
             //TODO: eventType, eventOffset, guid, sensorDevice, entity, entityInstance, mftID, systemID
             /* SNMP alert action */
-            previous_alert = phoenixSendTrap<PhoenixErrorNotification>(seqNumber    //seqNum
+            phoenixSendTrap<PhoenixErrorNotification>(seqNumber                     //seqNum
                                            , pef_table[eventFilterNum-1].sensorType //sensorType
                                            , 0                                      //eventType
                                            , 0                                      //eventOffset
@@ -242,8 +237,8 @@ void applyAlertAction(uint8_t policyNumber, std::vector<uint8_t> ed, uint8_t eve
                                            , UNSPECIFIED                            //languageCode
                                            , 0                                      //mftID
                                            , 0                                      //systemID
-                                           , string_table[strIndex].alertString     //msg
-                                           , alert_policy_table[i].destination);    //destination
+                                           , alert_policy_table[i].destination      //destination
+                                           , &previous_alert);    
 
             DPRINT ("previous_channel: %x, pre_destination: %x\n", pre_channel, pre_destination);
 
