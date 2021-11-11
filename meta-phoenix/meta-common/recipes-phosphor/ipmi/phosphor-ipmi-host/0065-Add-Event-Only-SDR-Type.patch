@@ -1,0 +1,53 @@
+From 1317de3910c8c58c0b863e383270e736aa3d8e2d Mon Sep 17 00:00:00 2001
+From: Chris Yeh <chris_yeh@phoenix.com>
+Date: Thu, 11 Nov 2021 19:09:06 +0800
+Subject: [PATCH] Add Event Only SDR Type
+
+---
+ sensorhandler.hpp | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+ mode change 100644 => 100755 sensorhandler.hpp
+
+diff --git a/sensorhandler.hpp b/sensorhandler.hpp
+old mode 100644
+new mode 100755
+index ea9fa3c..3c9f306
+--- a/sensorhandler.hpp
++++ b/sensorhandler.hpp
+@@ -358,6 +358,19 @@ struct SensorDataEventRecordBody
+     char id_string[FULL_RECORD_ID_STR_MAX_LENGTH];
+ } __attribute__((packed));
+ 
++struct SensorDataEventOnlyRecordBody
++{
++    uint8_t entity_id;
++    uint8_t entity_instance;
++    uint8_t sensor_type;
++    uint8_t event_reading_type;
++    uint8_t sharing_and_sensor_direction;
++    uint16_t reserved;
++    uint8_t oem_reserved;
++    uint8_t id_string_info;
++    char id_string[FULL_RECORD_ID_STR_MAX_LENGTH];
++} __attribute__((packed));
++
+ /** @struct SensorDataFruRecordBody
+  *
+  *  FRU Device Locator Record(body) - SDR Type 11
+@@ -624,6 +637,13 @@ struct SensorDataFullRecord
+     SensorDataFullRecordBody body;
+ } __attribute__((packed));
+ 
++struct SensorDataEventOnlyRecord
++{
++    SensorDataRecordHeader header;
++    SensorDataRecordKey key;
++    SensorDataEventOnlyRecordBody body;
++} __attribute__((packed));
++
+ /** @struct SensorDataEventRecord
+  *
+  *  Event Only Sensor Record - SDR Type 3
+-- 
+2.17.1
+
