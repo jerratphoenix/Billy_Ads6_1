@@ -23,97 +23,57 @@
 #include <stdlib.h>
 #include <string.h>
 #include <gpiod.hpp>
-#include <peci.h>
+
 #include <boost/algorithm/string.hpp>
-
 #include "phoenix-dbus-sensors.hpp"
-#include "adc.hpp"
-#include "gpio.hpp"
-#include "sel.hpp"
+#include "sensorapi.hpp"
 
-#include "debug.hpp"
-
-struct VariantToStrVisitor {
-    template <typename T> std::string operator()(const T& t) const
-    {
-        return static_cast<std::string>(t);
-    }
-};
-
-enum CPU_INDEX {
-    CPU_ID1 = 0,
-    MAX_CPU_ID,
-};
-
-bool cpu_present[MAX_CPU_ID] = { false };
-
-static bool last_power_good;
-static struct timespec last_poweron_ts;
-static struct timespec last_poweroff_ts;
-
-int get_system_timespec(struct timespec *ts);
-
-struct timespec get_last_poweron_ts(void)
-{
-    return last_poweron_ts;
-}
-
-struct timespec get_last_poweroff_ts(void)
-{
-    return last_poweroff_ts;
-}
-
+// User may implement their own "is_power_on" function to get power state.
+// Or use our api_get_power_on to get from OpenBMC chassis dbus
 bool is_power_on(void)
 {
-//FIXME: debug only
-    return true;
+    bool system_power_good = api_get_power_on();
 
-    boost::asio::io_context io;
-    auto conn = std::make_shared<sdbusplus::asio::connection>(io);
-    bool powerGood = false;
+    return system_power_good;
+}
+
+// ArcherCity CPU is not SOC
+static constexpr const bool cpu_is_soc = false;
+
+static bool is_cpu_present(int cpu_index)
+{
+    if (cpu_is_soc == true) {
+        return true;
+    }
+
+    return api_peci_ping(cpu_index);
+}
+
+int32_t get_system_crash (double *reading)
+{
+    int max_cpu_count = 2;
+    int cpu;
+    bool cpu_err = false;
     
-    auto method = conn->new_method_call(
-                      "xyz.openbmc_project.State.Chassis",
-                      "/xyz/openbmc_project/state/chassis0",
-                      property_interface_name,
-                      "GetAll");
+    for (cpu = CPU_ID1; cpu < (CPU_ID1 + max_cpu_count) ; cpu++) {
+        if (cpu > MAX_CPU_ID) {
+            DPRINT("Invalid CPU numbers\n");
+            break;
+        }
 
-    method.append("xyz.openbmc_project.State.Chassis");
-    boost::container::flat_map<std::string, std::variant<std::string>> chassisStatus;
-    try {
-        sdbusplus::message::message getChassisStatusResp = conn->call(method);
-        getChassisStatusResp.read(chassisStatus);
-    } 
-
-    catch (sdbusplus::exception::SdBusError& e) {
-        DPRINT ( "Get chassisStatus error\n");
-        return false;
-    }
-
-    auto findVal = chassisStatus.find("CurrentPowerState");
-    std::string powerState;
-    if (findVal != chassisStatus.end()) {
-        powerState = std::visit(VariantToStrVisitor(), findVal->second);
-    }
-    
-    if (powerState == "xyz.openbmc_project.State.Chassis.PowerState.On")
-    {
-        powerGood = true;
-    } else {
-        powerGood = false;
-    }
-
-    if (last_power_good != powerGood) {
-        last_power_good = powerGood;
-
-        if (powerGood == true) {
-            get_system_timespec(&last_poweron_ts);
-        } else {
-            get_system_timespec(&last_poweroff_ts);
+        if ((is_cpu_present(cpu) == true && 
+             api_is_cpu_err(cpu) == true)) {
+             cpu_err = true;
         }
     }
 
-    return powerGood;
+    if (cpu_err == true) {
+        *reading = BIT(1); // offset 01h: State Asserted
+    } else {
+        *reading = 0;
+    }
+
+    return SENSOR_STATUS::NORMAL;
 }
 
 int32_t get_sys_pwr_state (double *reading)
@@ -127,73 +87,64 @@ int32_t get_sys_pwr_state (double *reading)
     return SENSOR_STATUS::NORMAL;
 }
 
-void update_cpu_present(int cpu_index)
+int32_t get_bmc_reset (double *reading)
 {
-    // BrightonCity is SOC
-    cpu_present[CPU_ID1] = true;
+    int bmc_reset_cause;
+    static bool assert_event = false;
+    uint8_t event_data[3];
+
+    enum BMC_RESET_CAUSE_EVENT_DATA2 {
+        BMC_RESET_CAUSE_UNSPECIFIED = 0x00,
+        BMC_RESET_CAUSE_BY_IPMI_COLD_RESET_CMD = 0x01, // Currently only implement this for example
+    };
+
+    if (assert_event == true) {
+        return SENSOR_STATUS::NORMAL_AND_EVENT_HANDLED;
+    }
+
+    // Get BMC reset cause
+    bmc_reset_cause = api_get_bmc_last_reboot_cause();
+
+    event_data[0] = 0x82; // Event Data 1
+
+    // Assign OEM Event Data2
+    switch (bmc_reset_cause) {
+        case STATEMANAGER_BMC_REBOOT_CAUSE_UNKNOW:
+        case STATEMANAGER_BMC_REBOOT_CAUSE_ERROR:
+        case PHOENIX_BMC_REBOOT_CAUSE_UNKNOW:
+        case PHOENIX_BMC_REBOOT_CAUSE_ERROR:
+            event_data[1] = BMC_RESET_CAUSE_UNSPECIFIED; // TODO: define your event data2
+            break;
+        case PHOENIX_BMC_REBOOT_CAUSE_IPMI_COLD_RESET_CMD:
+            event_data[1] = BMC_RESET_CAUSE_BY_IPMI_COLD_RESET_CMD; // TODO: define your event data2
+            break;
+        case STATEMANAGER_BMC_REBOOT_CAUSE_POWER_ON_RESET:
+            event_data[1] = BMC_RESET_CAUSE_UNSPECIFIED; // TODO: define your event data2
+            break;
+        case STATEMANAGER_BMC_REBOOT_CAUSE_WATCHDOG:
+            event_data[1] = BMC_RESET_CAUSE_UNSPECIFIED; // TODO: define your event data2
+            break; 
+        default:
+            event_data[1] = BMC_RESET_CAUSE_UNSPECIFIED; // TODO: define your event data2
+            break; 
+    }
+
+    event_data[2] = 0xff; // Event Data 3, un-used
+
+    std::vector<uint8_t> vector_event_data(event_data, event_data + 3);
+
+    // Because sensor value don't have information for event data1~3, 
+    // we assert SEL / REDFISH log at here.
+    int ret = add_ipmi_std_sel_entry("BmcResetCause",
+                                "/xyz/openbmc_project/sensors/specific/BMC_Reset", //FIXME: not hard code sensor path
+                                vector_event_data, 
+                                true,
+                                0x20);
+    if (ret == 0) {
+        assert_event = true;
+    }
+
+    // Notify sensor daemon we already handled event in here.    
+    return SENSOR_STATUS::NORMAL_AND_EVENT_HANDLED;
 }
 
-bool is_cpu_err(uint8_t cpu_index)
-{
-    EPECIStatus ret;
-    uint8_t completion_code = 0;
-    uint8_t addr = 0x30 + cpu_index;
-    uint32_t mca_err_log;
-    uint8_t PkgIndex = 0x00;
-    uint16_t PkgParam = 0x0005;
-
-    ret = peci_RdPkgConfig(addr,
-                           PkgIndex,
-                           PkgParam,
-                           sizeof(uint32_t),
-                           (uint8_t *)&mca_err_log,
-                           &completion_code);
-/*
-    DPRINT("ret = 0x%x, completion_code = 0x%x, MCA ERROR SOURCE LOG: 0x%x\n", 
-            ret, 
-            completion_code, 
-            mca_err_log);
-*/
-#define MCA_ERR_MSMI_MCERR_INTERNAL BIT(18)
-#define MCA_ERR_MSMI_IERR_INTERNAL  BIT(19)
-#define MCA_ERR_MSMI_INTERNAL       BIT(20)
-#define MCA_ERR_MSMI_MCERR          BIT(21)
-#define MCA_ERR_MSMI_IERR           BIT(22)
-#define MCA_ERR_MSMI                BIT(23)
-#define MCA_ERR_MCERR_INTERNAL      BIT(26)
-#define MCA_ERR_IERR_INTERNAL       BIT(27)
-#define MCA_ERR_CATERR_INTERNAL     BIT(28)
-#define MCA_ERR_MCERR               BIT(29)
-#define MCA_ERR_IERR                BIT(30)
-#define MCA_ERR_CATERR              BIT(31)
-
-    if (ret != 0) {
-        return false;
-    }
-
-    if (completion_code == 0x91) {
-        return true;
-    }
-
-    if ((mca_err_log & MCA_ERR_MSMI_INTERNAL) ||
-        (mca_err_log & MCA_ERR_MSMI) ||
-        (mca_err_log & MCA_ERR_CATERR_INTERNAL) ||
-        (mca_err_log & MCA_ERR_CATERR)) {
-        return true;
-    }
-
-    return false;
-}
-
-int32_t get_system_crash (double *reading)
-{
-    update_cpu_present(CPU_ID1);
-
-    if ((cpu_present[CPU_ID1] == true && is_cpu_err(CPU_ID1) == true)) {
-        *reading = BIT(1); // offset 01h: State Asserted
-    } else {
-        *reading = 0;
-    }
-
-    return SENSOR_STATUS::NORMAL;
-}

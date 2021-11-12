@@ -67,8 +67,20 @@ constexpr const int defaultPowerOnDelay = 0; //ms
 constexpr const int defaultPowerOffDelay = 0; //ms
 
 extern bool is_power_on(void);
-extern struct timespec get_last_poweron_ts(void);
-extern struct timespec get_last_poweroff_ts(void);
+
+static bool last_power_good;
+static struct timespec last_poweron_ts;
+static struct timespec last_poweroff_ts;
+
+struct timespec get_last_poweron_ts(void)
+{
+    return last_poweron_ts;
+}
+
+struct timespec get_last_poweroff_ts(void)
+{
+    return last_poweroff_ts;
+}
 
 struct VariantToBoolVisitor {
     template <typename T> bool operator()(const T& t) const
@@ -83,6 +95,39 @@ struct VariantToDoubleVisitor {
         return static_cast<double>(t);
     }
 };
+
+int add_ipmi_std_sel_entry(std::string ipmiSELAddMessage,
+                           std::string sensorPath,
+                           std::vector<uint8_t> eventData,
+                           bool assert,
+                           uint16_t generatorID)
+{
+    boost::asio::io_context io;
+    auto conn = std::make_shared<sdbusplus::asio::connection>(io);
+
+    auto method = conn->new_method_call(
+                      "xyz.openbmc_project.Logging.IPMI",
+                      "/xyz/openbmc_project/Logging/IPMI",
+                      "xyz.openbmc_project.Logging.IPMI",
+                      "IpmiSelAdd");
+
+    method.append(ipmiSELAddMessage, 
+                    sensorPath, 
+                    eventData,
+                    assert,
+                    generatorID);
+
+    try {
+        conn->call(method);
+    }
+
+    catch (sdbusplus::exception::SdBusError& e) {
+        DPRINT ( "add_ipmi_std_sel_entry error\n");
+        return -1;
+    }
+    
+    return 0;
+}
 
 /**
  * @brief   Display backtrace dump
@@ -132,6 +177,23 @@ int get_system_timespec(struct timespec *ts)
     FUNC_END();
     
     return ret;
+}
+
+void update_last_power_change_ts(void)
+{
+    bool power_good = is_power_on();
+
+    if (last_power_good == power_good) {
+        return;
+    }
+
+    last_power_good = power_good;
+
+    if (power_good == true) {
+        get_system_timespec(&last_poweron_ts);
+    } else {
+        get_system_timespec(&last_poweroff_ts);
+    }
 }
 
 /**
@@ -756,6 +818,14 @@ int sensor_value_callback(struct sensor_var_t *sensor)
     sensor->value_intf->set_property("Value", reading_cache);
     sensor->value = reading_cache;
 
+    if (status == SENSOR_STATUS::NORMAL_AND_EVENT_HANDLED) {
+        if (DEBUG_ALL_SENSOR_VALUE == true) {
+            DPRINT ( "%s doesn't need to handle events\n", sensor->name);
+        }
+        FUNC_END();
+        return STATUS_OK;
+    }
+
     if (sensor->is_discrete_sensor == true) {
         if (DEBUG_ALL_SENSOR_VALUE == true) {
             int64_t discrete = static_cast<int64_t>(reading_cache);
@@ -818,6 +888,9 @@ int sensor_scan_service(void)
 
             // Update Sensor last scan time spec for scan period
             get_system_timespec(&sensor->last_scan_ts);
+
+            // Update last Power On/Off time spec for power on/off scan delay
+            update_last_power_change_ts();
         
             usleep(30000);
         }

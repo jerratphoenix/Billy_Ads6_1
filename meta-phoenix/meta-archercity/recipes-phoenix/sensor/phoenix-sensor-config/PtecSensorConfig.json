@@ -10,6 +10,11 @@
             "Function"  : "get_system_crash",
             "ReadingState": "BOTH",
             "RetryOffset1": "3",
+        },
+        {
+            "SensorName": "BMC Reset",
+            "Function"  : "get_bmc_reset",
+            "ReadingState": "BOTH",
         }
     ],
     "SDRRepository": [

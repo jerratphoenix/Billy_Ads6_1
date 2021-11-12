@@ -17,29 +17,15 @@
 #include <stdlib.h>
 #include "debug.hpp"
 
-enum ADC_CONTROLLER {
-    AST2500_ADC,
-    AST2600_ADC,
+enum POWER_STATE {
+    POWER_STATE_UNKNOW,
+    POWER_STATE_ON,
+    POWER_STATE_OFF,
+    POWER_STATE_TRANSITIONING_TO_OFF,
+    POWER_STATE_TRANSITIONING_TO_ON
 };
 
-enum AST_ADC {
-    ADC_CHANNEL_0 = 0,
-    ADC_CHANNEL_1,
-    ADC_CHANNEL_2,
-    ADC_CHANNEL_3,
-    ADC_CHANNEL_4,
-    ADC_CHANNEL_5,
-    ADC_CHANNEL_6,
-    ADC_CHANNEL_7,
-    ADC_CHANNEL_8,
-    ADC_CHANNEL_9,
-    ADC_CHANNEL_10,
-    ADC_CHANNEL_11,
-    ADC_CHANNEL_12,
-    ADC_CHANNEL_13,
-    ADC_CHANNEL_14,
-    ADC_CHANNEL_15,
-};
+bool api_get_power_on (void);
 
-int32_t api_get_adc(uint8_t controller, uint8_t channel, double *value, int r1, int r2);
+
 

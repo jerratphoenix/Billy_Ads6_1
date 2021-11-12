@@ -21,6 +21,20 @@
 #include "sysfs.hpp"
 #include "debug.hpp"
 
+double convert_aspeed_adc_raw_to_real(double adc_raw, int r1, int r2)
+{
+    double value;
+    
+    if (r2 <= 0) {
+        r1 = 0;
+        r2 = 1;
+    }
+
+    value = adc_raw / 1000 * (r1 + r2) / r2;
+
+    return value;
+}
+/*
 int32_t api_get_adc_from_sysfs(const std::string file, double *value, int r1, int r2)
 {
     double adc_raw;
@@ -28,17 +42,16 @@ int32_t api_get_adc_from_sysfs(const std::string file, double *value, int r1, in
 
     status = api_read_first_line_to_value(file, &adc_raw);
 
-    if (r2 <= 0) {
-        r1 = 0;
-        r2 = 1;
+    if (status == 0) {
+        *value = convert_aspeed_adc_raw_to_real(adc_raw, r1, r2);
+    } else {
+        std::cerr << "read " << file << " error\n";
     }
-
-    *value = adc_raw / 1000 * (r1 + r2) / r2;
 
     return status;
 }
-
-static bool is_adc_hwmon(const std::filesystem::path& parent_path)
+*/
+static bool is_aspeed_adc_hwmon(const std::filesystem::path& parent_path)
 {
     std::filesystem::path name_path = parent_path / "name";
 
@@ -53,7 +66,7 @@ static bool is_adc_hwmon(const std::filesystem::path& parent_path)
     return name == "iio_hwmon";
 }
 
-int32_t api_get_adc(uint8_t channel, double *value, int r1, int r2)
+int32_t get_aspeed_adc_from_sysfs(uint8_t channel, double *value, int r1, int r2)
 {
     std::vector<std::filesystem::path> paths;
     std::string hwmon_path;
@@ -68,7 +81,7 @@ int32_t api_get_adc(uint8_t channel, double *value, int r1, int r2)
 
     for (auto& path : paths)
     {
-        if (is_adc_hwmon(path.parent_path())) {
+        if (is_aspeed_adc_hwmon(path.parent_path())) {
             hwmon_path = path.parent_path().string();
             adc_file_find = true;
             break;
@@ -76,6 +89,9 @@ int32_t api_get_adc(uint8_t channel, double *value, int r1, int r2)
     }
 
     if (adc_file_find == true) {
+        double adc_raw;
+        int ret;
+        
         //DPRINT("ADC hwmon path %s\n", hwmon_path.c_str());
 
         file.append(hwmon_path);
@@ -85,16 +101,38 @@ int32_t api_get_adc(uint8_t channel, double *value, int r1, int r2)
 
         DPRINT("ADC%d file path %s\n", channel, file.c_str());
 
-        return api_get_adc_from_sysfs(file, value, r1, r2);
+//        ret = api_get_adc_from_sysfs(file, &adc_raw, r1, r2);
+        ret = api_read_first_line_to_value(file, &adc_raw);
+        
+        if (ret == 0) {
+            *value = convert_aspeed_adc_raw_to_real(adc_raw, r1, r2);
+        } else {
+            std::cerr << "read " << file << " error\n";
+        }
+        
+        return ret;
     }
-
-    // TODO: if no sysfs device for adc, try to find driver device to access
 
     return 0;
 };
 
+int32_t api_get_adc(uint8_t controller, uint8_t channel, double *value, int r1, int r2)
+{
+    int32_t ret = -1;
+
+    if (controller == AST2500_ADC || 
+        controller == AST2600_ADC) {
+        ret = get_aspeed_adc_from_sysfs(channel, value, r1, r2);
+    }
+
+    // TODO: if no sysfs device for adc, try other way to access
+    if (ret != 0)
+    {
+        std::cerr << "cannot get adc.\n";
+    }
+    
+    return ret;
+}
 
 // TODO: Create more API here
-
-
 

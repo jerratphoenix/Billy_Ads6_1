@@ -20,6 +20,12 @@ set(SENSOR_API_SRCS
     SensorAPIs/gpio.cpp
     SensorAPIs/sel.hpp
     SensorAPIs/sel.cpp
+    SensorAPIs/bmc_state.hpp
+    SensorAPIs/bmc_state.cpp
+    SensorAPIs/chassis_state.hpp
+    SensorAPIs/chassis_state.cpp
+    SensorAPIs/host_cpu.hpp
+    SensorAPIs/host_cpu.cpp
 )
 
 set(SRCS

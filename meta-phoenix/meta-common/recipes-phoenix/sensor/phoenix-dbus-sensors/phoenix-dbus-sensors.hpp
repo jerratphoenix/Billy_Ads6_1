@@ -94,6 +94,7 @@ using Association = std::tuple<std::string, std::string, std::string>;
 
 enum SENSOR_STATUS {
     NORMAL,
+    NORMAL_AND_EVENT_HANDLED,
     ABSENT,
     UNAVAILABLE,
     ERROR,
@@ -585,4 +586,17 @@ struct sdr_record_eventonly_sensor {
     uint8_t id_string[16];	/* sensor ID string bytes, only if id_code != 0 */
 
 } __attribute__ ((packed));
+
+struct VariantToStrVisitor {
+    template <typename T> std::string operator()(const T& t) const
+    {
+        return static_cast<std::string>(t);
+    }
+};
+
+int add_ipmi_std_sel_entry(std::string ipmiSELAddMessage,
+                           std::string sensorPath,
+                           std::vector<uint8_t> eventData,
+                           bool assert,
+                           uint16_t generatorID);
 
