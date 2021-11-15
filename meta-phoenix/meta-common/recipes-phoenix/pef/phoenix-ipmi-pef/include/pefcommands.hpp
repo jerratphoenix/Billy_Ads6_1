@@ -53,6 +53,7 @@ enum class PefParam : uint8_t
 {
     SetInProgress = 0,
     PEFCtrl = 1,
+    PEFActionGlobalCtrl = 2, 
     EventFilterTable = 6,
     EventFilterTableData1 = 7,
     NumberOfAlertPolicyEntries = 8,

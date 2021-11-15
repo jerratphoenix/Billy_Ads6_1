@@ -424,6 +424,25 @@ ipmi::RspType<>
 
             return responseSuccess();
         }
+        case PefParam::PEFActionGlobalCtrl:
+        {
+            uint8_t globlaCtrl;
+            if (req.unpack(globlaCtrl) != 0 || !req.fullyUnpacked())
+            {
+                return responseReqDataLenInvalid();
+            }
+
+            if (getPefGlobalConfigure() != 0)
+            {
+                return responseCommandNotAvailable();
+            }
+
+            globalConfigTable.actionGlobalControl = globlaCtrl;
+
+            setPefGlobalConfigure();
+
+            return responseSuccess();
+        }
         case PefParam::EventFilterTable:
         {
             uint8_t selector;
@@ -607,6 +626,16 @@ ipmi::RspType<message::Payload>
             }
 
             resp.pack(globalConfigTable.control);
+            return responseSuccess(std::move(resp));
+        }
+        case PefParam::PEFActionGlobalCtrl:
+        {
+            if (getPefGlobalConfigure() != 0)
+            {
+                return responseCommandNotAvailable();
+            }
+
+            resp.pack(globalConfigTable.actionGlobalControl);
             return responseSuccess(std::move(resp));
         }
         case PefParam::EventFilterTable:
