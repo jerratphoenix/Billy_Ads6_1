@@ -6,6 +6,7 @@ SRC_URI += "file://0001-Add-OEMDiscrete-Sensor-Type-And-SDR.patch \
             file://0002-Parse-PhoenixBMC-FirmwareRevision-GetDeviceID.patch \
             file://0003-Support-IPMI-Get-and-Add-SEL-Entry-commands.patch \
             file://0005-Add-Phoenix-OEM-Whitelist.patch \
+	    file://0010-Enable-intel-ipmi-oem-command-and-add-to-whitelist.patch \
            "
 
 

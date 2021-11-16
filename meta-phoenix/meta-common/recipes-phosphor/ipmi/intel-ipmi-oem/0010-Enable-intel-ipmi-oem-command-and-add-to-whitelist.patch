@@ -1,0 +1,24 @@
+From 868e4e8594625113a969477c1efa1d62bb286215 Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Mon, 15 Nov 2021 09:06:34 +0000
+Subject: [PATCH] Enable intel-ipmi-oem command and add to whitelist.
+
+---
+ ipmi-whitelist.conf | 1 +
+ 1 file changed, 1 insertion(+)
+ mode change 100644 => 100755 ipmi-whitelist.conf
+
+diff --git a/ipmi-whitelist.conf b/ipmi-whitelist.conf
+old mode 100644
+new mode 100755
+index 4e8976f..74d3231
+--- a/ipmi-whitelist.conf
++++ b/ipmi-whitelist.conf
+@@ -160,6 +160,7 @@
+ 0x2c:0x30:0x7f7f   //<Group Extension>:<Set TPM Configuration>
+ 0x2c:0x31:0x7f7f   //<Group Extension>:<TPM Configuration Update Complete>
+ 0x2c:0x37:0xff7f   //<Group Extension>:<Read PCIe Cable EEPROM Data>
++0x2e:0x04:0xffff // OEM-IPMI Commands to talk to Phosphor-pid-control
+ 0x2e:0xC0:0x7f7f   //<Intel OEM>:<Enable/Disable Node Manager Policy Control>
+ 0x2e:0xC1:0x7f7f   //<Intel OEM>:<Set Node Manager Policy>
+ 0x2e:0xC2:0xff7f   //<Intel OEM>:<Get Node Manager Policy>
