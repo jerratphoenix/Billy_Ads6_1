@@ -5,31 +5,13 @@ PR = "r1.1"
 LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/Apache-2.0;md5=89aea4e17d99a7cacdbeed46a0096b10"
 
-SRC_URI = " file://bootstrap.sh \
-            file://configure.ac \ 
-            file://Makefile.am \ 
-            file://phoenix-dbus-monitor.service \
-            file://config/PtecPEFConfig.json \
-            file://config/PtecEmailConfig.json \
-            file://src/Makefile.am \
-            file://src/main.cpp \
-            file://src/phoenix_discrete_monitor.cpp \
-            file://src/phoenix_threshold_monitor.cpp \
-            file://src/json_parser.cpp \
-            file://src/phoenix_util.cpp \
-            file://src/sendmail.cpp \
-            file://include/phoenix_discrete_monitor.hpp \
-            file://include/phoenix_threshold_monitor.hpp \
-            file://include/json_parser.hpp \
-            file://include/phoenix_action.hpp \
-            file://include/phoenix_util.hpp \
-            file://include/sendmail.hpp \
-            file://include/sensorutils.hpp \
-            file://include/type.hpp \
-            file://include/debug.hpp \
+SRC_URI = "git://git@github.com/pteceng/phoenix-dbus-monitor.git;protocol=ssh \
+           file://phoenix-dbus-monitor.service \
           "
+SRCREV = "a247b458adc24a38d648a194ca67e6674c8ac86e"
 
-S = "${WORKDIR}"
+S = "${WORKDIR}/git"
+PV = "0.1+git${SRCPV}"
 
 inherit autotools \
         pkgconfig \

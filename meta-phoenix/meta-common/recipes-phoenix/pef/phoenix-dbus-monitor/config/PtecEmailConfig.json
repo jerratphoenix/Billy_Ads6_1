@@ -1,5 +1,0 @@
-{
-    "_comment": "Send email configuration",
-    "Service_IP": "192.168.122.1:25",
-    "Recipient": "root@ubuntu"
-}
