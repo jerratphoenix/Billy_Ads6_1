@@ -1,0 +1,317 @@
+From ec85fb460d9f66c78935cd8a3635949500d7f3c7 Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Wed, 17 Nov 2021 06:29:52 +0000
+Subject: [PATCH] Add dbus service for multi GPIO monitor
+
+---
+ gpioMon.cpp     |  38 +++++++++++++++-
+ gpioMon.hpp     |  37 ++++++++++++++++
+ gpioMonMain.cpp | 115 +++++++++++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 186 insertions(+), 4 deletions(-)
+
+diff --git a/gpioMon.cpp b/gpioMon.cpp
+index 2ab079a..e0151c7 100644
+--- a/gpioMon.cpp
++++ b/gpioMon.cpp
+@@ -18,6 +18,21 @@
+ 
+ #include <phosphor-logging/log.hpp>
+ #include <sdbusplus/bus.hpp>
++#include <sdbusplus/asio/connection.hpp>
++#include <sdbusplus/asio/object_server.hpp>
++#include <sdbusplus/server.hpp>
++
++
++/**
++ * @brief    Set GPIO properties
++ *
++ * @param    gpio        GPIO struct
++ *
++ */
++void gpio_set_properties(gpio_var_t gpio) {
++    gpio.gpio_mon_intf->set_property("Value", (uint8_t)(gpio.value));
++    gpio.gpio_mon_intf->set_property("Direction", (std::string)gpio.direction);
++}
+ 
+ namespace phosphor
+ {
+@@ -51,6 +66,7 @@ void GpioMonitor::scheduleEventHandler()
+ void GpioMonitor::gpioEventHandler()
+ {
+     gpiod_line_event gpioLineEvent;
++    int index = 0;
+ 
+     if (gpiod_line_event_read_fd(gpioEventDescriptor.native_handle(),
+                                  &gpioLineEvent) < 0)
+@@ -62,11 +78,28 @@ void GpioMonitor::gpioEventHandler()
+ 
+     std::string logMessage =
+         gpioLineMsg + (gpioLineEvent.event_type == GPIOD_LINE_EVENT_RISING_EDGE
+-                           ? " Asserted"
+-                           : " Deasserted");
++                           ? " Rising Edge Triggered"
++                           : " Falling Edge Triggered");
+ 
+     log<level::INFO>(logMessage.c_str());
+ 
++    /* sync statuses to dbus */
++    for (index = 0; index < g_gpioCount; index++) {
++        if (gpio_table[index].fd == gpioEventDescriptor.native_handle()) {
++            break;
++        }
++
++    }
++    if (index < g_gpioCount) {
++        gpio_table[index].value =  gpiod_line_get_value(gpioLine);
++        gpio_table[index].direction = (gpiod_line_direction(gpioLine) == GPIOD_LINE_DIRECTION_INPUT
++                                        ? "input" : "output");
++        gpio_set_properties(gpio_table[index]);
++    } else {
++        std::string errMsg = "Failed to set properties due to not finding GPIO line fd.";
++        log<level::ERR>(errMsg.c_str());
++    }
++
+     /* Execute the target if it is defined. */
+     if (!target.empty())
+     {
+@@ -113,6 +146,7 @@ int GpioMonitor::requestGPIOEvents()
+ 
+     /* Assign line fd to descriptor for monitoring */
+     gpioEventDescriptor.assign(gpioLineFd);
++    gpio_table[g_gpioCount].fd = gpioLineFd;
+ 
+     /* Schedule a wait event */
+     scheduleEventHandler();
+diff --git a/gpioMon.hpp b/gpioMon.hpp
+index b07bb40..8a5bbe8 100644
+--- a/gpioMon.hpp
++++ b/gpioMon.hpp
+@@ -4,6 +4,43 @@
+ 
+ #include <boost/asio/io_service.hpp>
+ #include <boost/asio/posix/stream_descriptor.hpp>
++#include <boost/algorithm/string.hpp>
++#include <sdbusplus/asio/connection.hpp>
++#include <sdbusplus/asio/object_server.hpp>
++#include <sdbusplus/server.hpp>
++
++#define MAX_GPIO_COUNT 512
++inline int32_t g_gpioCount = 0;
++
++/* Multi GPIO dbus service */
++constexpr auto MULTI_GPIO_SERVICE = "xyz.openbmc_project.MultiGpioMonitor";
++constexpr auto MULTI_GPIO_OBJPATH_PREFIX = "/xyz/openbmc_project/MultiGpioMonitor/";
++constexpr auto MULTI_GPIO_INTERFACE = "xyz.openbmc_project.GpioMonitor";
++
++struct gpio_var_t {
++    std::shared_ptr<sdbusplus::asio::dbus_interface> gpio_mon_intf;
++
++    int fd;
++    uint8_t value;
++    uint32_t offset;
++    std::string name;
++    std::string obj_path;
++    std::string direction;
++    std::string trigger_mode;
++
++    // constructor
++    gpio_var_t () {
++        fd = 0;
++        value = 0;
++        offset = 0;
++        name = "";
++        obj_path = "";
++        direction = "";
++        trigger_mode = "";
++    }
++};
++
++inline gpio_var_t gpio_table[MAX_GPIO_COUNT];
+ 
+ namespace phosphor
+ {
+diff --git a/gpioMonMain.cpp b/gpioMonMain.cpp
+index 4b8b052..8f4c886 100644
+--- a/gpioMonMain.cpp
++++ b/gpioMonMain.cpp
+@@ -21,9 +21,100 @@
+ #include <fstream>
+ #include <nlohmann/json.hpp>
+ #include <phosphor-logging/log.hpp>
++#include <sdbusplus/asio/connection.hpp>
++#include <sdbusplus/asio/object_server.hpp>
++#include <sdbusplus/server.hpp>
++#include <boost/algorithm/string/replace.hpp>
++#include <boost/asio.hpp>
+ 
+ using namespace phosphor::logging;
+ 
++
++/**
++ * @brief    Initial all GPIO information
++ *
++ * @param    index        GPIO index
++ * @param    gpioName     GPIO name
++ * @param    gpioLine     GPIO line point
++ * @param    triggerMode  GPIO trigger mode: FALLING, RISING, BOTH
++ *
++ */
++void initial_gpio_capability_info(int index, std::string gpioName, gpiod_line* gpioLine, std::string triggerMode) {
++    std::string gpioName_nospace;
++    std::string logMsg = "Initial GPIO Capabilities: index " + std::to_string(g_gpioCount);
++    log<level::INFO>(logMsg.c_str());
++
++    /* the dbus object path should not include spaces, replace the char of " " by "_" */
++    gpioName_nospace.assign(gpioName.c_str(), strlen(gpioName.c_str()));
++    gpioName_nospace = boost::replace_all_copy(gpioName_nospace, " ", "_");
++    gpio_table[index].name += gpioName_nospace;
++
++    /* set object path with GPIO name */
++    gpio_table[index].obj_path = MULTI_GPIO_OBJPATH_PREFIX;
++    gpio_table[index].obj_path += gpioName_nospace;
++
++    /* get the current GPIO value and set it into the table */
++    gpio_table[index].value = gpiod_line_get_value(gpioLine);
++
++    /* get the GPIO offset and set it into the table */
++    gpio_table[index].offset = gpiod_line_offset(gpioLine);
++
++    /* get the current GPIO direction and set it into the table */
++    gpio_table[index].direction = (gpiod_line_direction(gpioLine) == GPIOD_LINE_DIRECTION_INPUT
++                                ? "input" : "output");
++
++    /* set the trigger mode */
++    gpio_table[index].trigger_mode = triggerMode + "-EDGE";
++}
++
++/**
++ * @brief    Initial multi GPIO dbus
++ *
++ */
++void multi_gpio_dbus_service(void) {
++    boost::asio::io_context io;
++    auto conn = std::make_shared<sdbusplus::asio::connection>(io);
++
++    /* Init Service and Object */
++    std::string logMsg = "Register Multi GPIO Dbus Service";
++    log<level::INFO>(logMsg.c_str());
++
++    conn->request_name(MULTI_GPIO_SERVICE);
++    auto server = sdbusplus::asio::object_server(conn);
++
++    for (int index = 0; index < g_gpioCount; index++) {
++        if (gpio_table[index].obj_path.length() == 0) {
++            continue;
++        }
++
++        logMsg = "Object Path: " + gpio_table[index].obj_path;
++        log<level::INFO>(logMsg.c_str());
++
++        gpio_table[index].gpio_mon_intf = server.add_interface(
++                                            gpio_table[index].obj_path,
++                                            MULTI_GPIO_INTERFACE);
++        gpio_table[index].gpio_mon_intf->register_property("Name",
++                (std::string)gpio_table[index].name,
++                sdbusplus::asio::PropertyPermission::readOnly);
++        gpio_table[index].gpio_mon_intf->register_property("Value",
++                (uint8_t)gpio_table[index].value,
++                sdbusplus::asio::PropertyPermission::readWrite);
++        gpio_table[index].gpio_mon_intf->register_property("Offset",
++                (uint32_t)gpio_table[index].offset,
++                sdbusplus::asio::PropertyPermission::readOnly);
++        gpio_table[index].gpio_mon_intf->register_property("Direction",
++                (std::string)gpio_table[index].direction,
++                sdbusplus::asio::PropertyPermission::readWrite);
++        gpio_table[index].gpio_mon_intf->register_property("TriggerMode",
++                (std::string)gpio_table[index].trigger_mode,
++                sdbusplus::asio::PropertyPermission::readWrite);
++
++        gpio_table[index].gpio_mon_intf->initialize();
++    }
++
++    io.run();
++}
++
+ namespace phosphor
+ {
+ namespace gpio
+@@ -48,6 +139,7 @@ int main(int argc, char** argv)
+     CLI::App app{"Monitor GPIO line for requested state change"};
+ 
+     std::string gpioFileName;
++    std::string gpioName;
+ 
+     /* Add an input option */
+     app.add_option("-c,--config", gpioFileName, "Name of config json file")
+@@ -59,7 +151,7 @@ int main(int argc, char** argv)
+     {
+         app.parse(argc, argv);
+     }
+-    catch (CLI::Error& e)
++    catch (const CLI::Error& e)
+     {
+         return app.exit(e);
+     }
+@@ -79,6 +171,7 @@ int main(int argc, char** argv)
+ 
+     std::vector<std::unique_ptr<phosphor::gpio::GpioMonitor>> gpios;
+ 
++    g_gpioCount = 0;
+     for (auto& obj : gpioMonObj)
+     {
+ 
+@@ -125,6 +218,12 @@ int main(int argc, char** argv)
+ 
+             /* Get the GPIO line */
+             line = gpiod_line_get(chipIdStr.c_str(), gpioNum);
++
++            if (obj.find("Name") == obj.end()) {
++                gpioName = "Line" + std::to_string(gpioNum);
++            } else {
++                gpioName = obj["Name"];
++            }
+         }
+         else
+         {
+@@ -132,6 +231,8 @@ int main(int argc, char** argv)
+             std::string lineName = obj["LineName"];
+             lineMsg += lineName;
+             line = gpiod_line_find(lineName.c_str());
++
++            gpioName = lineName;
+         }
+ 
+         if (line == NULL)
+@@ -144,9 +245,10 @@ int main(int argc, char** argv)
+         /* Get event to be monitored, if it is not defined then
+          * Both rising falling edge will be monitored.
+          */
++        std::string eventStr;
+         if (obj.find("EventMon") != obj.end())
+         {
+-            std::string eventStr = obj["EventMon"];
++            eventStr = obj["EventMon"];
+             auto findEvent = phosphor::gpio::polarityMap.find(eventStr);
+             if (findEvent == phosphor::gpio::polarityMap.end())
+             {
+@@ -176,8 +278,17 @@ int main(int argc, char** argv)
+         /* Create a monitor object and let it do all the rest */
+         gpios.push_back(std::make_unique<phosphor::gpio::GpioMonitor>(
+             line, config, io, target, lineMsg, flag));
++
++        /* Initial all GPIO information */
++        initial_gpio_capability_info(g_gpioCount, gpioName, line, eventStr);
++        g_gpioCount++;
+     }
++
++    /* Enable dbus service for monitoring GPIOs */
++    std::thread phoenix_multi_gpio_dbus_service(multi_gpio_dbus_service);
++
+     io.run();
++    phoenix_multi_gpio_dbus_service.join();
+ 
+     return 0;
+ }
+-- 
+2.17.1
+
