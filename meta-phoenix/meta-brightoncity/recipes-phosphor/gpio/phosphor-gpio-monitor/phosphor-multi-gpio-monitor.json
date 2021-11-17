@@ -1,0 +1,23 @@
+[
+    {
+        "Name": "TP_BMC_GPIOB2",
+        "LineName": "TP_BMC_GPIOB2",
+        "ChipId": "0",
+        "GpioNum": 10,
+        "EventMon": "BOTH",
+        "Continue": true
+    },
+    {
+        "Name": "TP_BMC_GPIOB3",
+        "ChipId": "0",
+        "GpioNum": 11,
+        "EventMon": "RISING",
+        "Continue": true
+    },
+    {
+        "ChipId": "0",
+        "GpioNum": 15,
+        "EventMon": "FALLING",
+        "Continue": true
+    }
+]
