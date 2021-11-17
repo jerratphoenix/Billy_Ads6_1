@@ -1,8 +1,8 @@
-From 0a8927fdc0bb00efd5fd86d5ade261d74dcddfce Mon Sep 17 00:00:00 2001
-From: Leo <cleo@bmc-dev.phoenix.com>
-Date: Fri, 15 Jan 2021 03:35:16 +0000
-Subject: [PATCH] Migrate Redfish factory reset function into restore default
- IPMI command.
+From 8961292b81fec305cdef8669c2a4c38171a9e77c Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Tue, 16 Nov 2021 09:24:39 +0000
+Subject: [PATCH] Redfish factory reset function into restore default IPMI
+ command and fix SRVRBMC-1533.
 
 ---
  src/oemcommands.cpp | 53 ++++++++++++++++++++++++++++++++-------------
@@ -12,10 +12,10 @@ Subject: [PATCH] Migrate Redfish factory reset function into restore default
 diff --git a/src/oemcommands.cpp b/src/oemcommands.cpp
 old mode 100644
 new mode 100755
-index d2a1811..6bfe26a
+index e25e40d..3d5faf6
 --- a/src/oemcommands.cpp
 +++ b/src/oemcommands.cpp
-@@ -2863,7 +2863,10 @@ ipmi::RspType<> ipmiSetSecurityMode(ipmi::Context::ptr ctx,
+@@ -2912,7 +2912,10 @@ ipmi::RspType<> ipmiSetSecurityMode(ipmi::Context::ptr ctx,
  ipmi::RspType<uint8_t /* restore status */>
      ipmiRestoreConfiguration(const std::array<uint8_t, 3>& clr, uint8_t cmd)
  {
@@ -26,7 +26,7 @@ index d2a1811..6bfe26a
  
      if (clr != expClr)
      {
-@@ -2874,8 +2877,6 @@ ipmi::RspType<uint8_t /* restore status */>
+@@ -2923,8 +2926,6 @@ ipmi::RspType<uint8_t /* restore status */>
      constexpr uint8_t cmdFullRestore = 0xbb;
      constexpr uint8_t cmdFormat = 0xcc;
  
@@ -35,7 +35,7 @@ index d2a1811..6bfe26a
      switch (cmd)
      {
          case cmdStatus:
-@@ -2884,26 +2885,48 @@ ipmi::RspType<uint8_t /* restore status */>
+@@ -2933,14 +2934,20 @@ ipmi::RspType<uint8_t /* restore status */>
          case cmdFullRestore:
          case cmdFormat:
          {
@@ -61,9 +61,10 @@ index d2a1811..6bfe26a
 +            "/xyz/openbmc_project/software",
 +            "xyz.openbmc_project.Common.FactoryReset", "Reset");
 +            temp_flag = 0x01; //The "factory-reset" would not be added in the file immediately, use a flag for the workaround solution.
-             break;
-         }
-         default:
+ 
+             phosphor::logging::log<phosphor::logging::level::WARNING>(
+                 "Restore to default will be performed on next BMC boot",
+@@ -2952,12 +2959,28 @@ ipmi::RspType<uint8_t /* restore status */>
              return ipmi::responseInvalidFieldRequest();
      }
  
@@ -86,14 +87,14 @@ index d2a1811..6bfe26a
 +
 +    constexpr uint8_t restorePending = 1;
 +    constexpr uint8_t restoreComplete = 0;
-+
-+    restoreStatus = ((found != std::string::npos) || (0x01 == temp_flag))
-+                        ? restorePending
-+                        : restoreComplete;
  
 -    uint8_t restoreStatus = std::filesystem::exists(restoreOpFname)
 -                                ? restorePending
 -                                : restoreComplete;
++    restoreStatus = (/*(found != std::string::npos) ||*/ (0x01 == temp_flag))
++                        ? restorePending
++                        : restoreComplete;
++    
      return ipmi::responseSuccess(restoreStatus);
  }
  

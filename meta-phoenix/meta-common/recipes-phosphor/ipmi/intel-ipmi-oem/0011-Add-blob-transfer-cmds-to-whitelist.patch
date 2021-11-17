@@ -1,11 +1,20 @@
+From 9f1dea15f2ba9c5a5752bb94a60fa49ea6e408fb Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Tue, 16 Nov 2021 08:12:17 +0000
+Subject: [PATCH] Add blob transfer cmds to whitelist.
+
+---
+ ipmi-whitelist.conf | 1 +
+ 1 file changed, 1 insertion(+)
+
 diff --git a/ipmi-whitelist.conf b/ipmi-whitelist.conf
-index 151b06c..6475051 100644
+index 74d3231..9c28db0 100755
 --- a/ipmi-whitelist.conf
 +++ b/ipmi-whitelist.conf
-@@ -166,6 +166,7 @@
+@@ -161,6 +161,7 @@
  0x2c:0x31:0x7f7f   //<Group Extension>:<TPM Configuration Update Complete>
  0x2c:0x37:0xff7f   //<Group Extension>:<Read PCIe Cable EEPROM Data>
- 0x2e:0x04:0xffff   // OEM-IPMI Commands to talk to Phosphor-pid-control
+ 0x2e:0x04:0xffff // OEM-IPMI Commands to talk to Phosphor-pid-control
 +0x2e:0x80:0xff7f   //<OpenBMC OEM>:<Blob Transfer>
  0x2e:0xC0:0x7f7f   //<Intel OEM>:<Enable/Disable Node Manager Policy Control>
  0x2e:0xC1:0x7f7f   //<Intel OEM>:<Set Node Manager Policy>
