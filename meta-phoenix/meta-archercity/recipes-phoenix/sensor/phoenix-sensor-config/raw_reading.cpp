@@ -148,3 +148,42 @@ int32_t get_bmc_reset (double *reading)
     return SENSOR_STATUS::NORMAL_AND_EVENT_HANDLED;
 }
 
+int32_t get_bmc_fw_update (double *reading)
+{
+    bool bmc_fw_updated = false;    
+    static bool assert_event = false;
+    uint8_t event_data[3];
+    
+    if (assert_event == true) {
+        return SENSOR_STATUS::NORMAL_AND_EVENT_HANDLED;
+    }
+    
+    // Get last BMC fw updated
+    bmc_fw_updated = api_is_last_bmc_updated();
+
+    if (bmc_fw_updated == false) {
+        assert_event = true;
+        return SENSOR_STATUS::NORMAL_AND_EVENT_HANDLED;
+    }
+    
+    event_data[0] = 0xC1; // Event Data 1
+    event_data[1] = 0x01; // Event Data 2
+    event_data[2] = 0xff; // Event Data 3
+    
+    std::vector<uint8_t> vector_event_data(event_data, event_data + 3);
+    
+    // Because sensor value don't have information for event data1~3, 
+    // we assert SEL / REDFISH log at here.
+    int ret = add_ipmi_std_sel_entry("BmcFwUpdate",
+                                    "/xyz/openbmc_project/sensors/specific/BMC_FW_update", 
+                                    vector_event_data, 
+                                    true,
+                                    0x20);
+    if (ret == 0) {
+        assert_event = true;
+    }
+    
+    // Notify sensor daemon we already handled event in here.    
+    return SENSOR_STATUS::NORMAL_AND_EVENT_HANDLED;
+}
+

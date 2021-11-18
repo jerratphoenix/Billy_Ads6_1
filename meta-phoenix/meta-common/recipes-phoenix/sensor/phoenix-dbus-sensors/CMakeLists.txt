@@ -26,6 +26,8 @@ set(SENSOR_API_SRCS
     SensorAPIs/chassis_state.cpp
     SensorAPIs/host_cpu.hpp
     SensorAPIs/host_cpu.cpp
+    SensorAPIs/bmc_update.hpp
+    SensorAPIs/bmc_update.cpp
 )
 
 set(SRCS

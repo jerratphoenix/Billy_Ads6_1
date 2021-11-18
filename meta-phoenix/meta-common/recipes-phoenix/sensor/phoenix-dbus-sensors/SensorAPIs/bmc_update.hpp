@@ -14,16 +14,16 @@
 // limitations under the License.
 */
 
+#include <stdlib.h>
 #include "debug.hpp"
 
-#include "adc.hpp"
-#include "gpio.hpp"
-#include "sel.hpp"
-#include "bmc_state.hpp"
-#include "chassis_state.hpp"
-#include "sysfs.hpp"
-#include "host_cpu.hpp"
-#include "bmc_update.hpp"
+enum BMC_UPDATE_STATE {
+    PHOENIX_BMC_UPDATE_STATE_NOT_INITIALIZED,
+    PHOENIX_BMC_UPDATE_STATE_NONE,
+    PHOENIX_BMC_UPDATE_STATE_COMPLETED,
+};
+
+bool api_is_last_bmc_updated (void);
 
 
 

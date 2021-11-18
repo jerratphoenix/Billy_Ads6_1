@@ -15,6 +15,11 @@
             "SensorName": "BMC Reset",
             "Function"  : "get_bmc_reset",
             "ReadingState": "BOTH",
+        },
+        {
+            "SensorName": "BMC FW update",
+            "Function"  : "get_bmc_fw_update",
+            "ReadingState": "BOTH",
         }
     ],
     "SDRRepository": [
