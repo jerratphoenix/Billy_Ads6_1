@@ -749,7 +749,7 @@
         {
             "Address": "0x60",
             "Class": "PxeBridgeTemp",
-	    "HostSMbusIndex": 2,
+            "HostSMbusIndex": 2,
             "Name": "CPU1 P12V PVCCIN VR Temp",
             "Thresholds": [
                 {
@@ -782,7 +782,7 @@
         {
             "Address": "0x70",
             "Class": "PxeBridgeTemp",
-	    "HostSMbusIndex": 2,
+            "HostSMbusIndex": 2,
             "Name": "CPU1 VR Mem ABCD Temp",
             "Thresholds": [
                 {
@@ -876,14 +876,14 @@
                     "Value": 0
                 }
             ],
-	    "Type": "IpmbSensor"
-	},
-	{
-	    "Address": "0x84",
+            "Type": "IpmbSensor"
+        },
+        {
+            "Address": "0x84",
             "Class": "IRBridgeTemp",
             "HostSMbusIndex": 2,
             "Name": "CPU1 P12V PVCCIO VR Temp",
-	    "Thresholds": [
+            "Thresholds": [
                 {
                     "Direction": "greater than",
                     "Name": "upper critical",
@@ -909,9 +909,9 @@
                     "Value": 0
                 }
             ],
-	    "Type": "IpmbSensor"
-	},
-	{
+            "Type": "IpmbSensor"
+        },
+        {
             "EthIndex": 0,
             "Name": "Dedicated Management NIC",
             "Type": "NIC"
@@ -947,15 +947,15 @@
         },
         {
             "Address": [
-		"0x50",
+                "0x50",
                 "0x51"
-			],
+            ],
             "Bus": 7,
             "Name": "PSU address",
             "Type": "PSUPresence"
         },
 	{
-	    "Name": "PCH SMBUS Slave",
+            "Name": "PCH SMBUS Slave",
             "PchSmbusSlaveI2cAddress": "0x44",
             "PchSmbusSlaveI2cBus": 3,
             "Type": "PchSmbusSlave"
