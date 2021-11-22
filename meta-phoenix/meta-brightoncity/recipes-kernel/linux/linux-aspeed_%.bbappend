@@ -34,6 +34,7 @@ SRC_URI += " \
         file://brightoncity.cfg \
         file://aspeed-bmc-phoenix-brightoncity.dts \
         file://aspeed-g5.dtsi \
+        file://0070-gpio-aspeed-temporary-fix-for-gpiochip-range-setting.patch  \
         "
 
 
