@@ -1,0 +1,11 @@
+[Unit]
+Description=BMC Firmware Update Event Log
+After=phoenix-dbus-sensors.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=bmc-update-log.sh
+
+[Install]
+WantedBy=multi-user.target
