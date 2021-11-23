@@ -8,7 +8,7 @@ LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/Apache-2.0;md5
 SRC_URI = "git://git@github.com/pteceng/phoenix-dbus-monitor.git;protocol=ssh \
            file://phoenix-dbus-monitor.service \
           "
-SRCREV = "a247b458adc24a38d648a194ca67e6674c8ac86e"
+SRCREV = "8f2d4f6a873a2d1ef1d9b4c62565316285eb8fcf"
 
 S = "${WORKDIR}/git"
 PV = "0.1+git${SRCPV}"
