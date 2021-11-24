@@ -6,6 +6,3 @@ IMAGE_INSTALL:append = " phosphor-ipmi-ipmb"
 # Phoenix sensor module
 IMAGE_INSTALL:append += " phoenix-ipmi-sdr"
 IMAGE_INSTALL:append += " phoenix-dbus-sensors"
-
-# Phoenix bmc update log
-IMAGE_INSTALL:append += " bmc-update-log"
