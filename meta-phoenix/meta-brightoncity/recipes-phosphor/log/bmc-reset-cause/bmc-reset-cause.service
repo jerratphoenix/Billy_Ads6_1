@@ -1,0 +1,11 @@
+[Unit]
+Description=BMC Reset Cause Event Log
+After=phoenix-dbus-sensors.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=bmc-reset-cause.sh
+
+[Install]
+WantedBy=multi-user.target
