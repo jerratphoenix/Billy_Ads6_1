@@ -9,6 +9,7 @@ SRC_URI += "file://0001-Add-OEMDiscrete-Sensor-Type-And-SDR.patch \
 	    file://0010-Enable-intel-ipmi-oem-command-and-add-to-whitelist.patch \
 		file://0011-Add-blob-transfer-cmds-to-whitelist.patch \
 		file://0012-Redfish-factory-reset-function-into-restore-default-IPMI-command-and-fix-SRVRBMC-1533.patch \
+            file://0013-Add-DCMI-commands-to-whitelist.patch \
            "
 
 
