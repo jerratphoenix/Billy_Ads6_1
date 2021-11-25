@@ -6,3 +6,6 @@ IMAGE_INSTALL:append = " phosphor-ipmi-ipmb"
 # Phoenix sensor module
 IMAGE_INSTALL:append += " phoenix-ipmi-sdr"
 IMAGE_INSTALL:append += " phoenix-dbus-sensors"
+
+# Phoenix gpio module
+IMAGE_INSTALL:append += " phoenix-gpio-monitor"
