@@ -1,4 +1,4 @@
-PACKAGECONFIG:append:intel = " log-threshold"
+PACKAGECONFIG:append = " log-threshold"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 PROJECT_SRC_DIR := "${THISDIR}/${PN}"
