@@ -1,0 +1,269 @@
+From 9cde6fff97ab2694b90a98c779b585bd5501e6c9 Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Mon, 29 Nov 2021 03:35:19 +0000
+Subject: [PATCH] Add ADC diagnostic tool on redfish.
+
+---
+ meson.build                                   |   1 +
+ meson_options.txt                             |   1 +
+ redfish-core/include/redfish.hpp              |   3 +
+ .../include/registries/privilege_registry.hpp |  16 ++
+ redfish-core/lib/oem_adc_module.hpp           | 177 ++++++++++++++++++
+ 5 files changed, 198 insertions(+)
+ create mode 100755 redfish-core/lib/oem_adc_module.hpp
+
+diff --git a/meson.build b/meson.build
+index 3d5059f..29d30a6 100755
+--- a/meson.build
++++ b/meson.build
+@@ -89,6 +89,7 @@ feature_map = {
+   'oem-fan-module'                  : '-DBMCWEB_ENABLE_OEM_FAN_MODULE',
+   'oem-i2c-module'                  : '-DBMCWEB_ENABLE_OEM_I2C_MODULE',
+   'oem-gpio-module'                 : '-DBMCWEB_ENABLE_OEM_GPIO_MODULE',
++  'oem-adc-module'                  : '-DBMCWEB_ENABLE_OEM_ADC_MODULE',
+ }
+ 
+ # Get the options status and build a project summary to show which flags are
+diff --git a/meson_options.txt b/meson_options.txt
+index 03d6bc1..4e2c144 100755
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -37,6 +37,7 @@ option('imgxfer-interface', type : 'feature', value : 'disabled', description :
+ option('oem-fan-module', type : 'feature', value : 'enabled', description : 'Enable OEM fan module.')
+ option('oem-i2c-module', type : 'feature', value : 'enabled', description : 'Enable OEM I2C module.')
+ option('oem-gpio-module', type : 'feature', value : 'enabled', description : 'Enable OEM GPIO module.')
++option('oem-adc-module', type : 'feature', value : 'enabled', description : 'Enable OEM ADC module.')
+ 
+ # Insecure options. Every option that starts with a `insecure` flag should
+ # not be enabled by default for any platform, unless the author fully comprehends
+diff --git a/redfish-core/include/redfish.hpp b/redfish-core/include/redfish.hpp
+index 409a1b5..ce7e6fd 100755
+--- a/redfish-core/include/redfish.hpp
++++ b/redfish-core/include/redfish.hpp
+@@ -30,6 +30,7 @@
+ #include "../lib/metric_report.hpp"
+ #include "../lib/metric_report_definition.hpp"
+ #include "../lib/network_protocol.hpp"
++#include "../lib/oem_adc_module.hpp"
+ #include "../lib/oem_gpio_module.hpp"
+ #include "../lib/oem_fan_module.hpp"
+ #include "../lib/oem_i2c_module.hpp"
+@@ -218,6 +219,8 @@ class RedfishService
+         requestRoutesOEMI2CGet(app);
+         requestRoutesOEMGPIOSet(app);
+         requestRoutesOEMGPIOGet(app);
++        requestRoutesOEMADCSet(app);
++        requestRoutesOEMADCGet(app);
+     }
+ };
+ 
+diff --git a/redfish-core/include/registries/privilege_registry.hpp b/redfish-core/include/registries/privilege_registry.hpp
+index c05ef37..5fe5c7a 100755
+--- a/redfish-core/include/registries/privilege_registry.hpp
++++ b/redfish-core/include/registries/privilege_registry.hpp
+@@ -72,6 +72,22 @@ const static auto& putActionInfo = privilegeSetConfigureManager;
+ const static auto& deleteActionInfo = privilegeSetConfigureManager;
+ const static auto& postActionInfo = privilegeSetConfigureManager;
+ 
++//ADCSet
++const static auto& getADCSet = privilegeSetLogin;
++const static auto& headADCSet = privilegeSetLogin;
++const static auto& patchADCSet = privilegeSetLogin;
++const static auto& putADCSet = privilegeSetConfigureManager;
++const static auto& deleteADCSet = privilegeSetConfigureManager;
++const static auto& postADCSet = privilegeSetConfigureManager;
++
++//ADCGet
++const static auto& getADCGet = privilegeSetLogin;
++const static auto& headADCGet = privilegeSetLogin;
++const static auto& patchADCGet = privilegeSetLogin;
++const static auto& putADCGet = privilegeSetConfigureManager;
++const static auto& deleteADCGet = privilegeSetConfigureManager;
++const static auto& postADCGet = privilegeSetConfigureManager;
++
+ // AddressPool
+ const static auto& getAddressPool = privilegeSetLogin;
+ const static auto& headAddressPool = privilegeSetLogin;
+diff --git a/redfish-core/lib/oem_adc_module.hpp b/redfish-core/lib/oem_adc_module.hpp
+new file mode 100755
+index 0000000..55af464
+--- /dev/null
++++ b/redfish-core/lib/oem_adc_module.hpp
+@@ -0,0 +1,177 @@
++#pragma once
++
++#include "registries.hpp"
++#include "registries/base_message_registry.hpp"
++#include "registries/openbmc_message_registry.hpp"
++#include "task.hpp"
++
++#include <systemd/sd-journal.h>
++
++#include <boost/algorithm/string/split.hpp>
++#include <boost/beast/core/span.hpp>
++#include <boost/container/flat_map.hpp>
++#include <boost/system/linux_error.hpp>
++#include <error_messages.hpp>
++
++#include <filesystem>
++#include <string_view>
++#include <variant>
++#include <cctype>
++#include <stdlib.h>
++#include <iostream>
++#include <string>
++
++namespace redfish
++{
++
++inline void requestRoutesOEMADCSet(App& app)
++{
++    BMCWEB_ROUTE(app, "/redfish/v1/Managers/bmc/Oem/ADCSet")
++        .privileges(redfish::privileges::getADCSet)
++        .methods(boost::beast::http::verb::get)(
++            [](const crow::Request&/* req */, 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)-> void{
++                    asyncResp->res.jsonValue = {
++                        {"@odata.context", "/redfish/v1/$metadata#Manager"},
++                        {"@odata.id", "/redfish/v1/Managers/bmc/Oem/ADCSet"},
++                        {"@odata.type", "#OEMADCModule.OEMADCModule"},
++                        {"Name", "ADC Set"},
++                        {"Describe", "Use PATCH { OFFSET:\"Addr\", DATA:\"data\" } to Set register, Reference ASPEED SPEC ADC Controller"},
++                    };
++                    asyncResp->res.end();
++                    return;
++                }
++        );
++
++    BMCWEB_ROUTE(app, "/redfish/v1/Managers/bmc/Oem/ADCSet")
++        .privileges(redfish::privileges::patchADCSet)
++        .methods(boost::beast::http::verb::patch)(
++            [](const crow::Request& req , 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)-> void{
++                    std::optional<std::string> offset;
++                    std::optional<std::string> data;
++                    if (!json_util::readJson(req, asyncResp->res, "OFFSET", offset, "DATA", data))
++                    {
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    std::size_t len_offset;
++                    std::string set_offset;
++                    std::size_t len_data;
++                    std::string set_data;
++
++                    set_offset = *offset;
++                    len_offset = strlen(set_offset.c_str());
++                    if ( len_offset != 3)
++                    {
++                        messages::queryParameterOutOfRange(
++                            asyncResp->res, *offset,
++                            "OFFSET", "It should be 3 digits offset,Example: ADC01C: Data of Channel 7 and 6, It will be [01C]");
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    set_data = *data;
++                    len_data = strlen(set_data.c_str());
++                    if ( len_data != 10)
++                    {
++                        messages::queryParameterOutOfRange(
++                            asyncResp->res, *data,
++                            "DATA", "It should be 32 bit and Hex format [0xFFFFFFFF]");
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    std::string cmd("devmem 0x1E6E9" + *offset + " 32 " + *data );
++                    int ret = system(cmd.c_str());
++                    if (ret < 0)
++                    {
++                        std::cout << "failed to write ,error = " << strerror(-ret) << std::endl;
++                        messages::internalError(asyncResp->res);
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    asyncResp->res.end();
++                    return ;
++                }
++        );
++}
++
++inline void requestRoutesOEMADCGet(App& app)
++{
++    BMCWEB_ROUTE(app, "/redfish/v1/Managers/bmc/Oem/ADCGet")
++        .privileges(redfish::privileges::getADCGet)
++        .methods(boost::beast::http::verb::get)(
++            [](const crow::Request&/* req */, 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)-> void{
++                    asyncResp->res.jsonValue = {
++                        {"@odata.context", "/redfish/v1/$metadata#Manager"},
++                        {"@odata.id", "/redfish/v1/Managers/bmc/Oem/ADCGet"},
++                        {"@odata.type", "#OEMADCModule.OEMADCModule"},
++                        {"Name", "ADC Get"},
++                        {"Describe", "Use PATCH { OFFSET: \"addr\" } to get register, Reference ASPEED SPEC ADC Controller,Example: Get ADC01C, The Offset should be 01C"},
++                    };
++                    asyncResp->res.end();
++                    return;
++                }
++        );
++    
++    BMCWEB_ROUTE(app, "/redfish/v1/Managers/bmc/Oem/ADCGet")
++        .privileges(redfish::privileges::patchADCGet)
++        .methods(boost::beast::http::verb::patch)(
++            [](const crow::Request& req , 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)-> void{
++                    std::optional<std::string> offset;
++                    if (!json_util::readJson(req, asyncResp->res, "OFFSET", offset))
++                    {
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    std::size_t len_offset;
++                    std::string set_offset;
++                    set_offset = *offset;
++                    len_offset = strlen(set_offset.c_str());
++                    if ( len_offset != 3)
++                    {
++                        messages::queryParameterOutOfRange(
++                            asyncResp->res, *offset,
++                            "OFFSET", "It should be 3 digits offset,example: ADC01C: Data of Channel 7 and 6, It will be 01C");
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    std::string cmd("devmem 0x1E6E9" + *offset + " 32 > /mnt/ADCGET");
++                    int ret = system(cmd.c_str());
++                    if (ret < 0)
++                    {
++                        std::cout << "failed to write ,error = " << strerror(-ret) << std::endl;
++                        messages::internalError(asyncResp->res);
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    std::ifstream fin ("/mnt/ADCGET");
++                    std::string buffer;
++                    std::string ADC_GET;
++                    int i = 0 ;
++                    while(getline(fin,buffer))
++                    {
++                        ADC_GET=buffer;
++                        i++;
++                    }
++
++                    asyncResp->res.jsonValue["DATA"] = ADC_GET;
++                    fin.close();
++                    if (system("rm -rf /mnt/ADCGET") < 0){
++                        return;
++                    }
++                    asyncResp->res.end();
++                    return ;
++                }
++        );
++
++}
++}
