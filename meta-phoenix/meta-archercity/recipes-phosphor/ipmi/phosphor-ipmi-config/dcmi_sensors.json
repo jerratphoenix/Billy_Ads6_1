@@ -1,0 +1,15 @@
+{
+    "inlet": [
+        {"instance": 1, "dbus": "/xyz/openbmc_project/sensors/temperature/Inlet_BRD_Temp", "record_id": 178 }
+        
+    ],
+    "baseboard": [
+        {"instance": 1, "dbus": "/xyz/openbmc_project/sensors/temperature/BMC_Temp", "record_id": 43 }
+    ],
+    "cpu": [
+        { "instance": 1, "dbus": "/xyz/openbmc_project/sensors/temperature/DTS_CPU1", "record_id": 174 },
+        { "instance": 1, "dbus": "/xyz/openbmc_project/sensors/temperature/DTS_CPU2", "record_id": 175 },
+        { "instance": 1, "dbus": "/xyz/openbmc_project/sensors/temperature/Die_CPU1", "record_id": 176 },
+        { "instance": 1, "dbus": "/xyz/openbmc_project/sensors/temperature/Die_CPU2", "record_id": 177 }
+    ]
+}
