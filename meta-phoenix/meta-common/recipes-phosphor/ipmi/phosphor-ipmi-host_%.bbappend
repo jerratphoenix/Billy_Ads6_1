@@ -4,6 +4,7 @@ SRC_URI += "file://PtecLanConfig.json \
             file://phosphor-ipmi-host.service \
             file://0001-GetSelfTest_isImplemented_0x55.patch \
             file://0002-Add-BMC-Reset-Cause-for-cold-reset-command.patch \
+            file://0003-Fix-DCMI-Get-Power-reading-command-always-report-zer.patch \
             file://0065-Add-Event-Only-SDR-Type.patch \
             file://0066-Fix-System-GUID.patch \
             file://0067-Fixed-Forced-Power-Off.patch \

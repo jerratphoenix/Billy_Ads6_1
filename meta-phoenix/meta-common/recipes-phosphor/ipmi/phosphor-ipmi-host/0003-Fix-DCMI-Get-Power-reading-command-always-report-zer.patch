@@ -1,0 +1,46 @@
+From e21418fef6703cc844b000c369ba1e1533e72882 Mon Sep 17 00:00:00 2001
+From: Adeli Yeh <Adeli_Yeh@phoenix.com>
+Date: Mon, 29 Nov 2021 11:00:42 +0800
+Subject: [PATCH] Fix DCMI Get Power reading command always report zero watt.
+
+---
+ dcmihandler.cpp | 23 +++++++++++++++++++++--
+ 1 file changed, 21 insertions(+), 2 deletions(-)
+ mode change 100644 => 100755 dcmihandler.cpp
+
+diff --git a/dcmihandler.cpp b/dcmihandler.cpp
+old mode 100644
+new mode 100755
+index cc8b6d0..30043f3
+--- a/dcmihandler.cpp
++++ b/dcmihandler.cpp
+@@ -1014,8 +1014,27 @@ int64_t getPowerReading(sdbusplus::bus::bus& bus)
+         // Read the sensor value and scale properties
+         auto properties = ipmi::getAllDbusProperties(bus, service, objectPath,
+                                                      SENSOR_VALUE_INTF);
+-        auto value = std::get<int64_t>(properties[SENSOR_VALUE_PROP]);
+-        auto scale = std::get<int64_t>(properties[SENSOR_SCALE_PROP]);
++        double value = 0;
++        try
++        {
++            value = std::get<double>(properties[SENSOR_VALUE_PROP]);
++        }
++        catch (std::exception& e)
++        {
++            log<level::INFO>("Failure to read value property from sensor value interface",
++                             entry("OBJECT_PATH=%s", objectPath.c_str()));
++        }
++
++        double scale = 0;
++        try
++        {
++            scale = std::get<double>(properties[SENSOR_SCALE_PROP]);
++        }
++        catch (std::exception& e)
++        {
++            log<level::INFO>("Failure to read scale property from sensor value interface",
++                             entry("OBJECT_PATH=%s", objectPath.c_str()));
++        }
+ 
+         // Power reading needs to be scaled with the Scale value using the
+         // formula Value * 10^Scale.
