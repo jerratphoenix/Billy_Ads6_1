@@ -1,0 +1,25 @@
+From 665f3c77feadb498790784a07b1c700389021468 Mon Sep 17 00:00:00 2001
+From: Kian_Lee <Kian_Lee@phoenix.com>
+Date: Mon, 29 Nov 2021 02:46:22 -0500
+Subject: [PATCH] Disable_Set_Sel_Time_Cmd_for_intel-ipmi-oem
+
+---
+ src/storagecommands.cpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/storagecommands.cpp b/src/storagecommands.cpp
+index 3d1eaae..c815286 100644
+--- a/src/storagecommands.cpp
++++ b/src/storagecommands.cpp
+@@ -1384,9 +1384,11 @@ void registerStorageFunctions()
+                           ipmiStorageGetSELTime);
+ 
+     // <Set SEL Time>
++    /* The ipmiStorageSetSELTime implemented to phosphor-ipmi-host
+     ipmi::registerHandler(ipmi::prioOpenBmcBase, ipmi::netFnStorage,
+                           ipmi::storage::cmdSetSelTime,
+                           ipmi::Privilege::Operator, ipmiStorageSetSELTime);
++    */
+ }
+ } // namespace storage
+ } // namespace ipmi

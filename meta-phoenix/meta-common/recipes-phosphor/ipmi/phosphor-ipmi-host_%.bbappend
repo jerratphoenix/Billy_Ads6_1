@@ -10,6 +10,7 @@ SRC_URI += "file://PtecLanConfig.json \
             file://0067-Fixed-Forced-Power-Off.patch \
             file://0069-Support-LAN-Configuration-Parameters.patch \
             file://0070-Fixed-ipmi-set-lan-config-parameter-fail.patch \
+            file://0071-Before_Send_Set_SEL_Time_probe_NTP_Status.patch \
             "
 
 do_install:append() {
