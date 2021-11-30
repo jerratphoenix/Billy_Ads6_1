@@ -1,6 +1,6 @@
 EXTRA_OEMESON += "-Dredfish-cpu-log=enabled \
                   -Dredfish-bmc-journal=enabled \
-                  -Drest=disabled"
+                  -Drest=enabled"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
