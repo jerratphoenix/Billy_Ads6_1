@@ -480,10 +480,6 @@
             },
             "Index": 0,
             "Name": "Fan_tach_1",
-            "Presence": {
-                "PinName": "FM_SYS_FAN0_PRSNT_D_N",
-                "Polarity": "Low"
-            },
 	    "Type": "AspeedFan"
         },
         {
@@ -496,10 +492,6 @@
 	    },
 	    "Index": 1,
             "Name": "Fan_tach_2",
-            "Presence": {
-                "PinName": "FM_SYS_FAN1_PRSNT_D_N",
-                "Polarity": "Low"
-            },
             "Type": "AspeedFan"
         },
         {
@@ -512,10 +504,6 @@
             },
             "Index": 2,
             "Name": "Fan_tach_3",
-            "Presence": {
-                "PinName": "FM_SYS_FAN2_PRSNT_D_N",
-                "Polarity": "Low"
-            },
             "Type": "AspeedFan"
 	},
 	{
@@ -528,10 +516,6 @@
 	    },
 	    "Index": 3,
             "Name": "Fan_tach_4",
-            "Presence": {
-                "PinName": "FM_SYS_FAN3_PRSNT_D_N",
-                "Polarity": "Low"
-            },
             "Type": "AspeedFan"
 	},
 	{
@@ -544,10 +528,6 @@
 	    },
 	    "Index": 4,
 	    "Name": "Fan_tach_5",
-            "Presence": {
-                "PinName": "FM_SYS_FAN4_PRSNT_D_N",
-                "Polarity": "Low"
-            },
             "Type": "AspeedFan"
 	},
 	{
@@ -560,10 +540,6 @@
 	    },
 	    "Index": 5,
 	    "Name": "Fan_tach_6",
-            "Presence": {
-                "PinName": "FM_SYS_FAN5_PRSNT_D_N",
-                "Polarity": "Low"
-            },
 	    "Type": "AspeedFan"
 	},
         {
