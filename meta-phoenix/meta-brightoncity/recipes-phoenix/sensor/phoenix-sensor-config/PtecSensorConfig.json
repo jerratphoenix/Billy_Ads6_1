@@ -406,7 +406,7 @@
             "RecordLength": "0x3b",
             "SensorOwnerID": "0x20",
             "SensorOwnerLUN": "0x00",
-            "SensorNumber": "0x08",
+            "SensorNumber": "0x09",
             "EntityID": "0x00",
             "EntityInstance": "0x01",
             "SensorInitialization": "0x00",
@@ -584,8 +584,8 @@
             "Reserved": "0x00",
             "Reserved": "0x00",
             "OEM": "0x00",
-            "LengthCode": "0x05",
-            "SensorName": "Fan 1"
+            "LengthCode": "0xca",
+            "SensorName": "Fan tach 1"
         },
         {
             "RecordID": "0x0011",
@@ -631,8 +631,8 @@
             "Reserved": "0x00",
             "Reserved": "0x00",
             "OEM": "0x00",
-            "LengthCode": "0x05",
-            "SensorName": "Fan 2"
+            "LengthCode": "0xca",
+            "SensorName": "Fan tach 2"
         },
         {
             "RecordID": "0x0012",
@@ -678,8 +678,8 @@
             "Reserved": "0x00",
             "Reserved": "0x00",
             "OEM": "0x00",
-            "LengthCode": "0x05",
-            "SensorName": "Fan 3"
+            "LengthCode": "0xca",
+            "SensorName": "Fan tach 3"
         },
         {
             "RecordID": "0x0013",
@@ -725,8 +725,8 @@
             "Reserved": "0x00",
             "Reserved": "0x00",
             "OEM": "0x00",
-            "LengthCode": "0x05",
-            "SensorName": "Fan 4"
+            "LengthCode": "0xca",
+            "SensorName": "Fan tach 4"
         },
         {
             "RecordID": "0x0014",
@@ -772,8 +772,8 @@
             "Reserved": "0x00",
             "Reserved": "0x00",
             "OEM": "0x00",
-            "LengthCode": "0x05",
-            "SensorName": "Fan 5"
+            "LengthCode": "0xca",
+            "SensorName": "Fan tach 5"
         },
         {
             "RecordID": "0x0015",
@@ -819,8 +819,8 @@
             "Reserved": "0x00",
             "Reserved": "0x00",
             "OEM": "0x00",
-            "LengthCode": "0x05",
-            "SensorName": "Fan 6"
+            "LengthCode": "0xca",
+            "SensorName": "Fan tach 6"
         },
         {
             "RecordID": "0x001a",
