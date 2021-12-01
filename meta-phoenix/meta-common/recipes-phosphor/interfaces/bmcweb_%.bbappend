@@ -12,5 +12,7 @@ SRC_URI += "file://0001-Merge-from-ptec-bmcweb.patch \
 			file://0011-Add-fan-control-on-Redfish.patch \
 			file://0012-Add-I2C-diagonstic-tool-on-Redfish.patch \
 			file://0013-Add-GPIO-diagnostic-tool-on-redfish.patch \
-			file://0014-Add-ADC-diagnostic-tool-on-redfish.patch"
+			file://0014-Add-ADC-diagnostic-tool-on-redfish.patch \
+			file://0015-Change-watchdog-severity-to-critical.patch \
+           "
 
