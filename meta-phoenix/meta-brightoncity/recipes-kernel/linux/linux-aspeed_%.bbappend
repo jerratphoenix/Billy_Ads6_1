@@ -24,6 +24,7 @@ SRC_URI += " \
         file://0007-peci-cputemp-filter-the-first-zero-from-RdPkgConfig-.patch \
         file://0008-vegman-kernel-add-RTC-driver-for-PCHC620.patch \
         file://0009-ARM-dts-add-rtc-pch-node-into-aspeed-bmc-intel-ast2x.patch \
+        file://0010-Sync-intel-peci-patches.patch \
         "
 
 SRC_URI += "${@bb.utils.contains('IMAGE_FSTYPES', 'intel-pfr', 'file://1000-128MB-flashmap-for-PFR.patch', '', d)}"

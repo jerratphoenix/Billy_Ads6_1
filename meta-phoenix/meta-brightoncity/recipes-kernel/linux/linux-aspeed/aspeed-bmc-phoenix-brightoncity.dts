@@ -151,7 +151,13 @@
 
 &peci0 {
 	status = "okay";
-	gpios = <&gpio ASPEED_GPIO(F, 6) 0>;
+        clock-frequency =  <2000000>;
+
+        peci-client@30 {
+              compatible = "intel,peci-client";
+              reg = <0x30>;
+        };
+
 };
 
 &syscon {
