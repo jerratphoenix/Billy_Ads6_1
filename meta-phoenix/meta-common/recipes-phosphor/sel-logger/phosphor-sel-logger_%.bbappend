@@ -4,6 +4,7 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 PROJECT_SRC_DIR := "${THISDIR}/${PN}"
 
 SRC_URI += "file://0000-Add-discrete-event-monitoring.patch \
+            file://0001-Improve-sel-log-condition.patch \
             "
 
 # Enable sensor event monitoring
