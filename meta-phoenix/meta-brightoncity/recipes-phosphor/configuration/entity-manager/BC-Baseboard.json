@@ -376,7 +376,7 @@
         },
         {
             "CPURequired": 1,
-            "Index": 12,
+            "Index": 11,
             "Name": "PVPP_CPU0_ABC",
             "PowerState": "On",
 			"ScaleFactor": 0.5348,
@@ -409,7 +409,7 @@
             "Type": "ADC"
         },
         {
-            "Index": 14,
+            "Index": 12,
             "Name": "PVNN_NAC",
             "Thresholds": [
                 {
@@ -440,7 +440,7 @@
             "Type": "ADC"
         },
 		{
-            "Index": 15,
+            "Index": 13,
             "Name": "P1V05_NAC",
             "Thresholds": [
                 {
@@ -1125,7 +1125,23 @@
                 }
             ],
             "Type": "TMP75"
-        }
+        },
+	{
+	    "Address": "0x30",
+            "Bus": 0,
+            "CpuID": 1,
+            "Name": "CPU 1",
+            "PiromI2cAddress": "0x50",
+            "PiromI2cBus": 12,
+            "PresenceGpio": [
+                {
+                    "Name": "CPU1_PRESENCE",
+                    "Polarity": "Low"
+                }
+            ],
+            "RequiredTempSensor": "DTS",
+            "Type": "XeonCPU"
+	}
     ],
     "Name": "BC Baseboard",
     "Probe": "xyz.openbmc_project.FruDevice({'PRODUCT_PRODUCT_NAME': 'BRIGHTONCITY'})",
