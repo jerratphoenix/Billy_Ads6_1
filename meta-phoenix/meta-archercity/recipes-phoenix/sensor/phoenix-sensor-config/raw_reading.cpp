@@ -37,39 +37,28 @@ bool is_power_on(void)
     return system_power_good;
 }
 
-// ArcherCity CPU is not SOC
-static constexpr const bool cpu_is_soc = false;
-
-static bool is_cpu_present(int cpu_index)
+int32_t get_system_crash(double* reading)
 {
-    if (cpu_is_soc == true) {
-        return true;
-    }
-
-    return api_peci_ping(cpu_index);
-}
-
-int32_t get_system_crash (double *reading)
-{
-    int max_cpu_count = 2;
-    int cpu;
     bool cpu_err = false;
-    
-    for (cpu = CPU_ID1; cpu < (CPU_ID1 + max_cpu_count) ; cpu++) {
-        if (cpu > MAX_CPU_ID) {
-            DPRINT("Invalid CPU numbers\n");
-            break;
-        }
+    int gpio_caterr, gpio_err0, gpio_err1, gpio_err2;
 
-        if ((is_cpu_present(cpu) == true && 
-             api_is_cpu_err(cpu) == true)) {
-             cpu_err = true;
-        }
+    // Read from GPIO
+    api_get_gpio("CPU_CATERR", &gpio_caterr, gpiod::line::ACTIVE_LOW);
+    api_get_gpio("CPU_ERR0", &gpio_err0, gpiod::line::ACTIVE_LOW);
+    api_get_gpio("CPU_ERR1", &gpio_err1, gpiod::line::ACTIVE_LOW);
+    api_get_gpio("CPU_ERR2", &gpio_err2, gpiod::line::ACTIVE_LOW);
+
+    if (gpio_caterr == 1 || gpio_err0 == 1 || gpio_err1 == 1 || gpio_err2 == 1)
+    {
+        cpu_err = true;
     }
 
-    if (cpu_err == true) {
+    if (cpu_err == true)
+    {
         *reading = BIT(1); // offset 01h: State Asserted
-    } else {
+    }
+    else
+    {
         *reading = 0;
     }
 
@@ -79,9 +68,9 @@ int32_t get_system_crash (double *reading)
 int32_t get_sys_pwr_state (double *reading)
 {
     if (is_power_on()) {
-        *reading = BIT(0);  // SensorType 22h, offset 00h: S0 / G0 “working”
+        *reading = BIT(0);  // SensorType 22h, offset 00h: S0 / G0 "working"
     } else {
-        *reading = BIT(5);  // SensorType 22h, offset 05h: S5 / G2 “soft-off”
+        *reading = BIT(5);  // SensorType 22h, offset 05h: S5 / G2 "soft-off"
     }
     
     return SENSOR_STATUS::NORMAL;
