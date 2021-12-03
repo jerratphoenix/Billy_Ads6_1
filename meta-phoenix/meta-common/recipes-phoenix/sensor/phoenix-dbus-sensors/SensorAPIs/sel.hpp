@@ -14,9 +14,8 @@
 // limitations under the License.
 */
 
-#include <stdlib.h>
 #include "debug.hpp"
 
-bool api_is_bmc_sel_empty (void);
+#include <stdlib.h>
 
-
+bool api_is_bmc_sel_empty(void);

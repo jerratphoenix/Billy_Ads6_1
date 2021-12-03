@@ -20,6 +20,11 @@
             "SensorName": "BMC FW update",
             "Function"  : "get_bmc_fw_update",
             "ReadingState": "BOTH",
+        },
+        {
+            "SensorName": "IPMI SEL",
+            "Function"  : "get_ipmi_sel",
+            "ReadingState": "BOTH",
         }
     ],
     "SDRRepository": [
@@ -4715,6 +4720,24 @@
 			"OEM": "0x00",
 			"LengthCode": "0xc9",
 			"SensorName": "BMC Reset"
+		},
+        {
+			"RecordID": "0x00d5",
+			"SDRVersion": "0x51",
+			"RecordType": "0x03",
+			"RecordLength": "0x14",
+			"SensorOwnerID": "0x20",
+			"SensorOwnerLUN": "0x00",
+			"SensorNumber": "0xd5",
+			"EntityID": "0x06",
+			"EntityInstance": "0x01",
+			"SensorType": "0x10",
+			"Event/ReadingType": "0x6f",
+			"SensorRecordSharing": "0x8100",
+			"Reserved": "0x00",
+			"OEM": "0x00",
+			"LengthCode": "0xc8",
+			"SensorName": "IPMI SEL"
 		}
     ]
 }

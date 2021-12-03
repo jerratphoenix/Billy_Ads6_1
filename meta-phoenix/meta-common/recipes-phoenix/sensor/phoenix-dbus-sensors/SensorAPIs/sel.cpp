@@ -14,48 +14,30 @@
 // limitations under the License.
 */
 
-#include <filesystem>
-#include <fstream>
-#include <stdlib.h>
-#include <string.h>
-#include <boost/algorithm/string.hpp>
-
 #include "debug.hpp"
 
-static bool get_sel_log_files(std::vector<std::filesystem::path>& sel_log_files)
-{
-    static const std::filesystem::path sel_log_dir = "/var/log";
-    static const std::string sel_log_filename = "ipmi_sel";
+#include <stdlib.h>
+#include <string.h>
 
-    for (const std::filesystem::directory_entry& dirent :
-         std::filesystem::directory_iterator(sel_log_dir)) {
-        std::string filename = dirent.path().filename();
-        if (boost::starts_with(filename, sel_log_filename)) {
-            sel_log_files.emplace_back(sel_log_dir /
-                                     filename);
-        }
-    }
-
-    std::sort(sel_log_files.begin(), sel_log_files.end());
-
-    return !sel_log_files.empty();
-}
+#include <boost/algorithm/string.hpp>
+#include <filesystem>
+#include <fstream>
 
 static bool sel_empty(void)
 {
-    std::vector<std::filesystem::path> sel_log_files;
-    if (!get_sel_log_files(sel_log_files)) {
+    std::filesystem::path selLogFile("/var/log/ipmi_sel");
+
+    if (!std::filesystem::exists(selLogFile))
+    {
         return true;
     }
 
     return false;
 }
 
-bool api_is_bmc_sel_empty (void)
+bool api_is_bmc_sel_empty(void)
 {
     return sel_empty();
 }
 
 // TODO: Create more API here
-
-
