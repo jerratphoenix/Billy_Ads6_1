@@ -2323,7 +2323,7 @@
             "Reserved": "0x00",
             "Reserved": "0x00",
             "OEM": "0x00",
-            "LengthCode": "0x04",
+            "LengthCode": "0xca",
             "SensorName": "P3V3 AUX"
         },
 		{
@@ -2511,7 +2511,7 @@
             "Reserved": "0x00",
             "Reserved": "0x00",
             "OEM": "0x00",
-            "LengthCode": "0x03",
+            "LengthCode": "0xca",
             "SensorName": "P5V STBY"
         },
         {
