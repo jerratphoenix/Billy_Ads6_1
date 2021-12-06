@@ -71,6 +71,7 @@ pipeline {
 		          source setup ${params.target}; \
 			  devtool modify nativesdk-phosphor-dbus-interfaces; \
 			  devtool modify nativesdk-phosphor-logging; \
+			 "
 		    }
 		}
 	        script {
