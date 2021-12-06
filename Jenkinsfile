@@ -49,17 +49,30 @@ pipeline {
                     devtool modify libpeci; \
                     devtool modify mrw-patch-native; \
                     devtool modify mrw-perl-tools-native; \
-                    devtool modify nativesdk-phosphor-dbus-interfaces; \
-                    devtool modify nativesdk-phosphor-logging; \
                     devtool modify nativesdk-python3-sdbus++; \
                     devtool modify phosphor-ipmi-fru-hostfw-config-example-native; \
                     devtool modify phosphor-ipmi-fru-inventory-example-native; \
                     devtool modify phosphor-ipmi-fru-read-inventory-example-native; \
+//		    devtool modify archercity-led-manager-config-native; \
                     devtool modify phosphor-led-manager-config-example-native; \
                     devtool modify phosphor-led-manager-error-native; \
                     devtool modify phosphor-software-manager-error-native; \
                     devtool modify webui-vue; \
 		   "
+		script {
+		    if (${params.target} == 'archercity') {
+		      sh "cd ${WORKSPACE}; \
+		          source setup ${params.target}; \
+			  devtool modify archercity-led-manager-config-native; \
+			 "
+		    }
+		    else {
+		      sh "cd ${WORKSPACE}; \
+		          source setup ${params.target}; \
+			  devtool modify nativesdk-phosphor-dbus-interfaces; \
+			  devtool modify nativesdk-phosphor-logging; \
+		    }
+		}
 	        script {
                     if (params.linux_kernel == true) {
                        sh "cd ${WORKSPACE}; \
