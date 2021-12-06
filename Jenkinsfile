@@ -53,7 +53,6 @@ pipeline {
                     devtool modify phosphor-ipmi-fru-hostfw-config-example-native; \
                     devtool modify phosphor-ipmi-fru-inventory-example-native; \
                     devtool modify phosphor-ipmi-fru-read-inventory-example-native; \
-//		    devtool modify archercity-led-manager-config-native; \
                     devtool modify phosphor-led-manager-config-example-native; \
                     devtool modify phosphor-led-manager-error-native; \
                     devtool modify phosphor-software-manager-error-native; \
