@@ -53,7 +53,6 @@ pipeline {
                     devtool modify phosphor-ipmi-fru-hostfw-config-example-native; \
                     devtool modify phosphor-ipmi-fru-inventory-example-native; \
                     devtool modify phosphor-ipmi-fru-read-inventory-example-native; \
-                    devtool modify phosphor-led-manager-config-example-native; \
                     devtool modify phosphor-led-manager-error-native; \
                     devtool modify phosphor-software-manager-error-native; \
                     devtool modify webui-vue; \
@@ -68,6 +67,7 @@ pipeline {
 		    else {
 		      sh "cd ${WORKSPACE}; \
 		          source setup ${params.target}; \
+			  devtool modify phosphor-led-manager-config-example-native; \
 			  devtool modify nativesdk-phosphor-dbus-interfaces; \
 			  devtool modify nativesdk-phosphor-logging; \
 			 "
