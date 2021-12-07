@@ -27,6 +27,8 @@ SRC_URI = " \
     file://SensorAPIs/host_cpu.hpp \
     file://SensorAPIs/bmc_update.cpp \
     file://SensorAPIs/bmc_update.hpp \
+    file://SensorAPIs/bmc_factory_reset.cpp \
+    file://SensorAPIs/bmc_factory_reset.hpp \
 "
 
 S = "${WORKDIR}"

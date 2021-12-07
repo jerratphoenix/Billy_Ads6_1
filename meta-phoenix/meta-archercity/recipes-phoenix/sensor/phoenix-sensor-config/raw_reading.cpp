@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+
 #include <boost/algorithm/string.hpp>
 #include <filesystem>
 #include <fstream>
@@ -67,10 +68,13 @@ int32_t get_system_crash(double* reading)
 
 int32_t get_sys_pwr_state(double* reading)
 {
-    if (is_power_on()) {
-        *reading = BIT(0);  // SensorType 22h, offset 00h: S0 / G0 "working"
-    } else {
-        *reading = BIT(5);  // SensorType 22h, offset 05h: S5 / G2 "soft-off"
+    if (is_power_on())
+    {
+        *reading = BIT(0); // SensorType 22h, offset 00h: S0 / G0 "working"
+    }
+    else
+    {
+        *reading = BIT(5); // SensorType 22h, offset 05h: S5 / G2 "soft-off"
     }
 
     return SENSOR_STATUS::NORMAL;
@@ -233,4 +237,22 @@ int32_t get_ipmi_sel(double* reading)
 
     // Notify sensor daemon we already handled event in here.
     return SENSOR_STATUS::NORMAL_AND_EVENT_HANDLED;
+}
+
+int32_t get_bmc_factory_reset(double* reading)
+{
+    bool factory_reset = false;
+
+    factory_reset = api_is_last_bmc_factory_reset();
+
+    if (factory_reset == true)
+    {
+        *reading = BIT(1); // offset 01h: State Asserted
+    }
+    else
+    {
+        *reading = 0;
+    }
+
+    return SENSOR_STATUS::NORMAL;
 }

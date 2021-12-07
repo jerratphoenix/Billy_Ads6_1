@@ -14,15 +14,10 @@
 // limitations under the License.
 */
 
+#include <stdlib.h>
 #include "debug.hpp"
 
-#include "adc.hpp"
-#include "gpio.hpp"
-#include "sel.hpp"
-#include "bmc_state.hpp"
-#include "chassis_state.hpp"
-#include "sysfs.hpp"
-#include "host_cpu.hpp"
-#include "bmc_update.hpp"
-#include "bmc_factory_reset.hpp"
+bool api_is_last_bmc_factory_reset (void);
+
+
 

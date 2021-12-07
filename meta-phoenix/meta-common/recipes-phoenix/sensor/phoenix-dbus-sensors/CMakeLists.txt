@@ -28,6 +28,8 @@ set(SENSOR_API_SRCS
     SensorAPIs/host_cpu.cpp
     SensorAPIs/bmc_update.hpp
     SensorAPIs/bmc_update.cpp
+    SensorAPIs/bmc_factory_reset.hpp
+    SensorAPIs/bmc_factory_reset.cpp
 )
 
 set(SRCS
