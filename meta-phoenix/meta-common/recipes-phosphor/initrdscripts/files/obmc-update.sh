@@ -231,7 +231,7 @@ do
 done
 
 phoenix_bmc_update_complete() {
-    echo "Phoenix BMC update complete"
+    echo "Phoenix BMC update $1 complete"
     odir=$rwdir
     rwdir=/run/rw
     upper=$rwdir${upper#$odir}
@@ -259,8 +259,12 @@ then
 		m=$(findmtd ${f#$image})
 		echo "Updating ${f#$image}..."
 		flashcp -v $f /dev/$m && rm $f
+
+        if [ "${f#$image}" = "bmc" ] || [ "${f#$image}" = "u-boot" ] || \
+           [ "${f#$image}" = "rofs" ] || [ "${f#$image}" = "kernel" ] ; then
+            phoenix_bmc_update_complete "${f#$image}"
+        fi
 	done
-    phoenix_bmc_update_complete
 fi
 
 if test -d $save -a "x$toram" = xy
