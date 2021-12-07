@@ -14,29 +14,53 @@
 // limitations under the License.
 */
 
-#define DEBUG true
-
 #define DEBUG_FUNC_START_END false
 
 #define DEBUG_SENSOR_INFO false
 
 #define DEBUG_ALL_SENSOR_VALUE false
 
+#include <string.h>
+#include <syslog.h>
 
 #include <iostream>
-#include <string.h>
 
-#if (DEBUG == true)
-#define DPRINT(fmt, ...) fprintf(stderr,fmt,##__VA_ARGS__)
-#else
-#define DPRINT(fmt, ...) if (0) { ; }
-#endif
+/*
+#define LOG_EMERG    0
+#define LOG_ALERT    1
+#define LOG_CRIT     2
+#define LOG_ERR      3
+#define LOG_WARNING  4
+#define LOG_NOTICE   5
+#define LOG_INFO     6
+#define LOG_DEBUG    7
+*/
+
+#define DSYS_LOG(level, fmt, ...) ({ syslog(level, fmt, ##__VA_ARGS__); })
+
+#define DPRINT_EMERG(fmt, ...) DSYS_LOG(LOG_EMERG, fmt, ##__VA_ARGS__)
+#define DPRINT_ALERT(fmt, ...) DSYS_LOG(LOG_ALERT, fmt, ##__VA_ARGS__)
+#define DPRINT_CRIT(fmt, ...) DSYS_LOG(LOG_CRIT, fmt, ##__VA_ARGS__)
+#define DPRINT_ERR(fmt, ...) DSYS_LOG(LOG_ERR, fmt, ##__VA_ARGS__)
+#define DPRINT_WARN(fmt, ...) DSYS_LOG(LOG_WARNING, fmt, ##__VA_ARGS__)
+#define DPRINT_NOTICE(fmt, ...) DSYS_LOG(LOG_NOTICE, fmt, ##__VA_ARGS__)
+#define DPRINT_INFO(fmt, ...) DSYS_LOG(LOG_INFO, fmt, ##__VA_ARGS__)
+#define DPRINT_DEBUG(fmt, ...) DSYS_LOG(LOG_DEBUG, fmt, ##__VA_ARGS__)
+
+#define DPRINT(fmt, ...) DPRINT_ERR(fmt, ##__VA_ARGS__)
 
 #if (DEBUG_FUNC_START_END == true)
-#define FUNC_START()     DPRINT("%s Start\n",__FUNCTION__)
-#define FUNC_END()       DPRINT("%s End\n",__FUNCTION__)
+#define FUNC_START() DPRINT_DEBUG("%s Start\n", __FUNCTION__)
+#define FUNC_END() DPRINT_DEBUG("%s End\n", __FUNCTION__)
 #else
-#define FUNC_START()     if (0) { ; }
-#define FUNC_END()       if (0) { ; }
+#define FUNC_START()                                                           \
+    if (0)                                                                     \
+    {                                                                          \
+        ;                                                                      \
+    }
+#define FUNC_END()                                                             \
+    if (0)                                                                     \
+    {                                                                          \
+        ;                                                                      \
+    }
 #endif
-
