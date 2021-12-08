@@ -58,7 +58,7 @@ pipeline {
                     devtool modify webui-vue; \
 		   "
 		script {
-		    if ("${params.target}" == "archercity" {
+		    if ("${params.target}" == "archercity") {
 		      sh "cd ${WORKSPACE}; \
 		          source setup ${params.target}; \
 			  devtool modify archercity-led-manager-config-native; \
