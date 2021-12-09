@@ -1,0 +1,41 @@
+From 9f1ed374c6665e45196a5a48cbe643f99e32773f Mon Sep 17 00:00:00 2001
+From: Brad Ho <Brad_Ho@phoenix.com>
+Date: Wed, 8 Dec 2021 18:13:02 -0800
+Subject: [PATCH] Correct WDT sensor object path and remove WDT redfish log
+
+Note:
+       WDT redfish log is control by phosphor-watchdog
+---
+ include/watchdog_event_monitor.hpp | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/include/watchdog_event_monitor.hpp b/include/watchdog_event_monitor.hpp
+index 7dd9673..7202bab 100644
+--- a/include/watchdog_event_monitor.hpp
++++ b/include/watchdog_event_monitor.hpp
+@@ -50,6 +50,12 @@ enum class watchdogInterruptTypeOffsets : uint8_t
+     unspecified = 0x0f,
+ };
+ 
++namespace WDT
++{
++    constexpr auto SensorObj =
++        "/xyz/openbmc_project/sensors/specific/IPMI_Watchdog";
++};
++
+ static constexpr const uint8_t wdtNologBit = (1 << 7);
+ static constexpr int interruptTypeBits = 4;
+ 
+@@ -227,10 +233,8 @@ inline static void sendWatchdogEventLog(
+ 
+         std::string redfishMessageID = "OpenBMC.0.1.IPMIWatchdog";
+ 
+-        selAddSystemRecord(journalMsg, std::string(msg.get_path()), eventData,
+-                           assert, selBMCGenID, "REDFISH_MESSAGE_ID=%s",
+-                           redfishMessageID.c_str(), "REDFISH_MESSAGE_ARGS=%s",
+-                           eventMessageArgs.c_str(), NULL);
++        selAddSystemRecord(journalMsg, WDT::SensorObj, eventData,
++                           assert, selBMCGenID, NULL);
+     }
+ }
+ 

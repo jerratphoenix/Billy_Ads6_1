@@ -256,3 +256,14 @@ int32_t get_bmc_factory_reset(double* reading)
 
     return SENSOR_STATUS::NORMAL;
 }
+
+int32_t get_ipmi_wdt(double* reading)
+{
+    /*
+        WDT evnet watch handler at the phosphor-sel-logger
+        Not thing to do at here.
+    */
+
+    // Notify sensor daemon we already handled event in here.
+    return SENSOR_STATUS::NORMAL_AND_EVENT_HANDLED;
+}
