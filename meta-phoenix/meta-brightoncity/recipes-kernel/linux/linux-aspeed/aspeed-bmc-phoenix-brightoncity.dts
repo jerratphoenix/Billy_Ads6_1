@@ -329,18 +329,6 @@
 			&pinctrl_nri1_default>;
 };
 
-&uart2 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_txd2_default
-			&pinctrl_rxd2_default
-			&pinctrl_nrts2_default
-			&pinctrl_ndtr2_default
-			&pinctrl_ndsr2_default
-			&pinctrl_ncts2_default
-			&pinctrl_ndcd2_default
-			&pinctrl_nri2_default>;
-};
 
 &uart3 {
 	status = "okay";
@@ -348,8 +336,6 @@
 
 &uart4 {
 	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <>;
 };
 
 &uart5 {
@@ -456,9 +442,9 @@
 	memory-region = <&gfx_memory>;
 };
 
-&vuart {
-	status = "okay";
-};
+//&vuart {
+//	status = "okay";
+//};
 
 &pwm_tacho {
 	status = "okay";
