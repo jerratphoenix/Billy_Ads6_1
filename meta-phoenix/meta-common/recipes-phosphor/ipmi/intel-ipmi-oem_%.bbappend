@@ -11,6 +11,7 @@ SRC_URI += "file://0001-Add-OEMDiscrete-Sensor-Type-And-SDR.patch \
     		file://0012-Redfish-factory-reset-function-into-restore-default-IPMI-command-and-fix-SRVRBMC-1533.patch \
             file://0013-Add-DCMI-commands-to-whitelist.patch \
             file://0014-Disable_Set_Sel_Time_Cmd_for_intel-ipmi-oem.patch \
+            file://0015-Add-OEM-command-0x2e-0x03-to-white-list.patch \
            "
 
 
