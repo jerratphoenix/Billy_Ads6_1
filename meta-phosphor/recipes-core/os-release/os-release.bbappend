@@ -33,20 +33,60 @@ def strip_specific_str(d, target, key):
         bb.warn("Unexpected exception to strip specific string: %s" % e)
         pass
 
+def find_target_tag(d, branch_tmp, machine_tmp):
+    try:
+        branch = d.getVar(branch_tmp, True)
+        machine = d.getVar(machine_tmp, True)
+
+        # search the correct tag name with branch name
+        while True:
+            tag_desc = run_git(d, 'describe --tags --abbrev=0')
+            if tag_desc:
+                if tag_desc in branch:
+                    return True
+                else:
+                    # delete the local tag temporary to find the next tag
+                    run_git(d, 'tag -d ' + tag_desc)
+            else:
+                break
+
+        # sync remote tags
+        run_git(d, 'fetch --tags')
+
+        # if the HEAD is in other branches, use the machine name to choose the latest tag
+        while True:
+            tag_desc = run_git(d, 'describe --tags --abbrev=0')
+            if tag_desc:
+                if machine in tag_desc.lower():
+                    return True
+                else:
+                    run_git(d, 'tag -d ' + tag_desc)
+            else:
+                break
+
+        return False
+    except Exception as e:
+        bb.warn("Unexpected exception to find the target tag: %s" % e)
+        pass
+
 # DISTRO_VERSION can be overridden by a bbappend or config, so it must be a
 # weak override.  But, when a variable is weakly overridden the definition
 # and not the contents are used in the task-hash (for sstate reuse).  We need
 # a strong variable in the vardeps chain for do_compile so that we get the
 # contents of the 'git describe --dirty' call.  Create a strong/immediate
 # indirection via PHOSPHOR_OS_RELEASE_DISTRO_VERSION.
-PHOSPHOR_OS_RELEASE_DISTRO_VERSION := "${@run_git(d, 'describe --dirty')}"
+BRANCHES := "${@run_git(d, 'branch')}"
+TARGET_BRANCH = "${@''.join(d.getVar('BRANCHES').split('\n')[0])}"
+FIND_TARGET_TAG := "${@find_target_tag(d, 'TARGET_BRANCH', 'MACHINE')}"
+
+PHOSPHOR_OS_RELEASE_DISTRO_VERSION := "${@run_git(d, 'describe --tags --dirty')}"
 DISTRO_VERSION ??= "${PHOSPHOR_OS_RELEASE_DISTRO_VERSION}"
 
 VERSION_SPLIT := "${@strip_specific_str(d, 'VERSION_ID', '@')}"
 VERSION = "${@'-'.join(d.getVar('VERSION_SPLIT').split('-')[0:2])}"
 VERSION_ID = "${VERSION_SPLIT}"
 
-BUILD_ID_TAG := "${@run_git(d, 'describe --abbrev=0')}"
+BUILD_ID_TAG := "${@run_git(d, 'describe --tags --abbrev=0')}"
 BUILD_ID := "${@strip_specific_str(d, 'BUILD_ID_TAG', '@')}"
 OPENBMC_TARGET_MACHINE = "${MACHINE}"
 
@@ -57,3 +97,6 @@ BB_DONT_CACHE = "1"
 
 # Make os-release available to other recipes.
 SYSROOT_DIRS:append = " ${sysconfdir}"
+
+# Restore to sync remote tags
+SYNC_TAGS := "${@run_git(d, 'fetch --tags')}"
