@@ -1,4 +1,4 @@
-PACKAGECONFIG:append = " log-threshold log-watchdog"
+PACKAGECONFIG:append = " log-threshold"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 PROJECT_SRC_DIR := "${THISDIR}/${PN}"

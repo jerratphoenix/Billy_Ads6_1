@@ -17,6 +17,8 @@
 #include "phoenix-dbus-sensors.hpp"
 
 #include "debug.hpp"
+#include "ipmisdr.hpp"
+#include "matchhandle.hpp"
 #include "raw_reading.hpp"
 
 #include <bsd/sys/time.h>
@@ -27,8 +29,9 @@
 #include <signal.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
+
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/asio.hpp>
 #include <iostream>
 #include <mutex>
 #include <sdbusplus/asio/connection.hpp>
@@ -37,6 +40,55 @@
 #include <thread>
 #include <type_traits>
 #include <variant>
+
+constexpr const char* specific_sensor_path_prefix =
+    "/xyz/openbmc_project/sensors/specific/";
+constexpr const char* temperature_sensor_path_prefix =
+    "/xyz/openbmc_project/sensors/temperature/";
+constexpr const char* fan_tach_sensor_path_prefix =
+    "/xyz/openbmc_project/sensors/fan_tach/";
+constexpr const char* pwm_sensor_path_prefix =
+    "/xyz/openbmc_project/sensors/fan_pwm/";
+constexpr const char* voltage_sensor_path_prefix =
+    "/xyz/openbmc_project/sensors/voltage/";
+constexpr const char* current_sensor_path_prefix =
+    "/xyz/openbmc_project/sensors/current/";
+constexpr const char* power_sensor_path_prefix =
+    "/xyz/openbmc_project/sensors/power/";
+constexpr const char* base_board_path_prefix =
+    "/xyz/openbmc_project/inventory/system/board/Baseboard";
+
+constexpr const char* sensor_value_interface_name =
+    "xyz.openbmc_project.Sensor.Value";
+constexpr const char* sensor_warning_interface_name =
+    "xyz.openbmc_project.Sensor.Threshold.Warning";
+constexpr const char* sensor_critical_interface_name =
+    "xyz.openbmc_project.Sensor.Threshold.Critical";
+
+//Follow Gagarin's discrete interface
+constexpr const char* sensor_discrete_interface_name =
+    "xyz.openbmc_project.Sensor.Discrete.Event";
+
+constexpr const char* sensor_unit_degreesc =
+    "xyz.openbmc_project.Sensor.Value.Unit.DegreesC";
+constexpr const char* sensor_unit_rpms =
+    "xyz.openbmc_project.Sensor.Value.Unit.RPMS";
+constexpr const char* sensor_unit_percents =
+    "xyz.openbmc_project.Sensor.Value.Unit.Percents";
+constexpr const char* sensor_unit_volts =
+    "xyz.openbmc_project.Sensor.Value.Unit.Volts";
+constexpr const char* sensor_unit_meters =
+    "xyz.openbmc_project.Sensor.Value.Unit.Meters";
+constexpr const char* sensor_unit_ampers =
+    "xyz.openbmc_project.Sensor.Value.Unit.Amperes";
+constexpr const char* sensor_unit_watts =
+    "xyz.openbmc_project.Sensor.Value.Unit.Watts";
+constexpr const char* sensor_unit_joules =
+    "xyz.openbmc_project.Sensor.Value.Unit.Joules";
+constexpr const char* sensor_unit_none =
+    "xyz.openbmc_project.Sensor.Value.Unit.None";
+
+using Association = std::tuple<std::string, std::string, std::string>;
 
 sem_t semService;
 
@@ -69,9 +121,18 @@ constexpr const int defaultPowerOffDelay = 0; //ms
 
 extern bool is_power_on(void);
 
+struct sensor_var_t* processing_sensor_var = NULL;
+
 static bool last_power_good;
 static struct timespec last_poweron_ts;
 static struct timespec last_poweroff_ts;
+
+std::string get_processing_sensor_path(void)
+{
+    std::string sensor_path(processing_sensor_var->obj_path);
+
+    return sensor_path;
+}
 
 struct timespec get_last_poweron_ts(void)
 {
@@ -1028,6 +1089,7 @@ int sensor_scan_service(void)
         for (int i = 0; i < sensor_count; i++)
         {
             struct sensor_var_t* sensor = &sensor_table[i];
+            processing_sensor_var = sensor;
 
             if (sensor == NULL)
             {
@@ -1290,12 +1352,13 @@ int find_board_path(std::shared_ptr<sdbusplus::asio::connection> conn,
         catch (sdbusplus::exception_t&)
         {
             DPRINT("can't find board object\n");
+            break;
         };
 
         // FIXME: Although this is started after entity-manager, but still have to wait for board object to be created.
         if (resp.size() == 0 && retry > 0)
         {
-            DPRINT("No board object, retry %d\n", retry);
+            //DPRINT("No board object, retry %d\n", retry);
             sleep(1);
         }
     } while (resp.size() == 0 && retry-- > 0);
@@ -1304,7 +1367,7 @@ int find_board_path(std::shared_ptr<sdbusplus::asio::connection> conn,
     {
         DPRINT("board object count is 0\n");
         FUNC_END();
-        return -1;
+        return STATUS_ERROR;
     }
 
     for (const auto& object : resp)
@@ -1972,6 +2035,8 @@ void sensor_dbus_service(void)
         operational_interface->initialize();
     }
 
+    register_event_match_handler(conn);
+
     sem_post(&semService);
 
     io.run();
@@ -2189,13 +2254,13 @@ static int sdr_repository_load(void)
 int main(int argc, char* argv[])
 {
     FUNC_START();
-
+    /*
     // Register all signal action
     for (int i = 1; i < NSIG; i++)
     {
         signal(i, segv_backtrace);
     }
-
+*/
     if (sdr_repository_load() != STATUS_OK)
     {
         DPRINT("sdr_repository_load error\n");

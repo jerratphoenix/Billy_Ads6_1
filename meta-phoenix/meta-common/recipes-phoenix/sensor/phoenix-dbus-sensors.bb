@@ -10,6 +10,8 @@ SRC_URI = " \
     file://phoenix-dbus-sensors.cpp  \
     file://phoenix-dbus-sensors.service \
     file://debug.hpp \
+    file://ipmisdr.hpp \
+    file://matchhandle.hpp \
     file://SensorAPIs/sensorapi.hpp \
     file://SensorAPIs/sysfs.cpp \
     file://SensorAPIs/sysfs.hpp \
@@ -29,6 +31,8 @@ SRC_URI = " \
     file://SensorAPIs/bmc_update.hpp \
     file://SensorAPIs/bmc_factory_reset.cpp \
     file://SensorAPIs/bmc_factory_reset.hpp \
+    file://SensorAPIs/watchdog2.cpp \
+    file://SensorAPIs/watchdog2.hpp \
 "
 
 S = "${WORKDIR}"

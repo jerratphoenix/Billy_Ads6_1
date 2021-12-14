@@ -15,15 +15,13 @@
 */
 
 #include "debug.hpp"
-
-#include "adc.hpp"
-#include "gpio.hpp"
-#include "sel.hpp"
-#include "bmc_state.hpp"
-#include "chassis_state.hpp"
-#include "sysfs.hpp"
-#include "host_cpu.hpp"
-#include "bmc_update.hpp"
-#include "bmc_factory_reset.hpp"
 #include "watchdog2.hpp"
+
+void register_event_match_handler(std::shared_ptr<sdbusplus::asio::connection> conn)
+{
+    // Register Watchdog2 event handler
+    static sdbusplus::bus::match::match wdt_event_handle = 
+        register_watchdog2_event_handler(conn);
+}
+
 

@@ -30,6 +30,8 @@ set(SENSOR_API_SRCS
     SensorAPIs/bmc_update.cpp
     SensorAPIs/bmc_factory_reset.hpp
     SensorAPIs/bmc_factory_reset.cpp
+    SensorAPIs/watchdog2.hpp
+    SensorAPIs/watchdog2.cpp
 )
 
 set(SRCS
@@ -38,6 +40,8 @@ set(SRCS
     raw_reading.cpp
     raw_reading.hpp
     debug.hpp
+    ipmisdr.hpp
+    matchhandle.hpp
 )
 
 add_executable (phoenix-dbus-sensors

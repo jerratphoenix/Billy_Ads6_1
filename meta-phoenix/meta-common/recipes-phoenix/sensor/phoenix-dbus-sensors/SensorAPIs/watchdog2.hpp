@@ -13,17 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 */
-
 #include "debug.hpp"
 
-#include "adc.hpp"
-#include "gpio.hpp"
-#include "sel.hpp"
-#include "bmc_state.hpp"
-#include "chassis_state.hpp"
-#include "sysfs.hpp"
-#include "host_cpu.hpp"
-#include "bmc_update.hpp"
-#include "bmc_factory_reset.hpp"
-#include "watchdog2.hpp"
+#include <stdlib.h>
 
+int32_t api_sensor_watchdog2(double* reading);
+
+sdbusplus::bus::match::match register_watchdog2_event_handler(
+    std::shared_ptr<sdbusplus::asio::connection> conn);

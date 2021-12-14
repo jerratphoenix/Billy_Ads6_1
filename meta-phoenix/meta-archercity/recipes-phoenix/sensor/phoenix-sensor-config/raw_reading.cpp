@@ -138,9 +138,7 @@ int32_t get_bmc_reset(double* reading)
     // Because sensor value don't have information for event data1~3,
     // we assert SEL / REDFISH log at here.
     int ret = add_ipmi_std_sel_entry("BmcResetCause",
-                                     "/xyz/openbmc_project/sensors/specific/"
-                                     "BMC_Reset", // FIXME: not hard code
-                                                  // sensor path
+                                     get_processing_sensor_path(),
                                      vector_event_data,
                                      true,
                                      0x20);
@@ -183,7 +181,7 @@ int32_t get_bmc_fw_update(double* reading)
     // we assert SEL / REDFISH log at here.
     int ret = add_ipmi_std_sel_entry(
         "BmcFwUpdate",
-        "/xyz/openbmc_project/sensors/specific/BMC_FW_update",
+        get_processing_sensor_path(),
         vector_event_data,
         true,
         0x20);
@@ -226,7 +224,7 @@ int32_t get_ipmi_sel(double* reading)
     // we assert SEL / REDFISH log at here.
     int ret =
         add_ipmi_std_sel_entry("BmcSelClear",
-                               "/xyz/openbmc_project/sensors/specific/IPMI_SEL",
+                               get_processing_sensor_path(),
                                vector_event_data,
                                true,
                                0x20);
@@ -259,11 +257,6 @@ int32_t get_bmc_factory_reset(double* reading)
 
 int32_t get_ipmi_wdt(double* reading)
 {
-    /*
-        WDT evnet watch handler at the phosphor-sel-logger
-        Not thing to do at here.
-    */
-
-    // Notify sensor daemon we already handled event in here.
-    return SENSOR_STATUS::NORMAL_AND_EVENT_HANDLED;
+    return api_sensor_watchdog2(reading);
 }
+
