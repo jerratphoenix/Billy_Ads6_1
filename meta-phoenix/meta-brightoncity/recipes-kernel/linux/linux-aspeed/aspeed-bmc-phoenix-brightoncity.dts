@@ -414,6 +414,11 @@
 	aspeed,dma-buf-size = <4095>;
 	aspeed,hw-timeout-ms = <300>;
 	status = "okay";
+	psu@59 {
+		compatible = "pmbus";
+		reg = <0x59>;
+	};
+
 };
 
 &i2c9 {
