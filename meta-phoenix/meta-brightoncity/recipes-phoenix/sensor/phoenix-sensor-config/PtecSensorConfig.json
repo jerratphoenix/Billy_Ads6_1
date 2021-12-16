@@ -20,6 +20,21 @@
             "SensorName": "BMC FW update",
             "Function"  : "get_bmc_fw_update",
             "ReadingState": "BOTH",
+        },
+        {
+            "SensorName": "IPMI SEL",
+            "Function"  : "get_ipmi_sel",
+            "ReadingState": "BOTH",
+        },
+        {
+            "SensorName": "Factory Reset",
+            "Function"  : "get_bmc_factory_reset",
+            "ReadingState": "BOTH",
+        },
+        {
+            "SensorName": "IPMI Watchdog",
+            "Function"  : "get_ipmi_wdt",
+            "ReadingState": "BOTH",
         }
     ],
     "SDRRepository": [
@@ -2741,6 +2756,60 @@
 			"OEM": "0x00",
 			"LengthCode": "0xc9",
 			"SensorName": "BMC Reset"
+		},
+        {
+			"RecordID": "0x00d5",
+			"SDRVersion": "0x51",
+			"RecordType": "0x03",
+			"RecordLength": "0x14",
+			"SensorOwnerID": "0x20",
+			"SensorOwnerLUN": "0x00",
+			"SensorNumber": "0xd5",
+			"EntityID": "0x06",
+			"EntityInstance": "0x01",
+			"SensorType": "0x10",
+			"Event/ReadingType": "0x6f",
+			"SensorRecordSharing": "0x8100",
+			"Reserved": "0x00",
+			"OEM": "0x00",
+			"LengthCode": "0xc8",
+			"SensorName": "IPMI SEL"
+		},
+        {
+			"RecordID": "0x00d6",
+			"SDRVersion": "0x51",
+			"RecordType": "0x03",
+			"RecordLength": "0x19",
+			"SensorOwnerID": "0x20",
+			"SensorOwnerLUN": "0x00",
+			"SensorNumber": "0xd6",
+			"EntityID": "0x06",
+			"EntityInstance": "0x01",
+			"SensorType": "0x28",
+			"Event/ReadingType": "0x03",
+			"SensorRecordSharing": "0x8100",
+			"Reserved": "0x00",
+			"OEM": "0x00",
+			"LengthCode": "0xcd",
+			"SensorName": "Factory Reset"
+		},
+        {
+			"RecordID": "0x00d7",
+			"SDRVersion": "0x51",
+			"RecordType": "0x03",
+			"RecordLength": "0x19",
+			"SensorOwnerID": "0x20",
+			"SensorOwnerLUN": "0x00",
+			"SensorNumber": "0xd7",
+			"EntityID": "0x06",
+			"EntityInstance": "0x01",
+			"SensorType": "0x23",
+			"Event/ReadingType": "0x6f",
+			"SensorRecordSharing": "0x8100",
+			"Reserved": "0x00",
+			"OEM": "0x00",
+			"LengthCode": "0xcd",
+			"SensorName": "IPMI Watchdog"
 		}
     ]
 }
