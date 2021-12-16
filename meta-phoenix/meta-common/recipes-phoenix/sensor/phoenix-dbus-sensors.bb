@@ -1,41 +1,14 @@
-SUMMARY = "Phoenix Dbus Sensors"
-DESCRIPTION = "Phoenix Dbus Sensor Services Configured from D-Bus"
+SUMMARY = "Phoenix Dbus Sensor Service"
+DESCRIPTION = "Phoenix Dbus Sensor Service"
 PR = "r1"
 LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/Apache-2.0;md5=89aea4e17d99a7cacdbeed46a0096b10"
 
-SRC_URI = " \
-    file://CMakeLists.txt \
-    file://phoenix-dbus-sensors.hpp \
-    file://phoenix-dbus-sensors.cpp  \
-    file://phoenix-dbus-sensors.service \
-    file://debug.hpp \
-    file://ipmisdr.hpp \
-    file://matchhandle.hpp \
-    file://SensorAPIs/sensorapi.hpp \
-    file://SensorAPIs/sysfs.cpp \
-    file://SensorAPIs/sysfs.hpp \
-    file://SensorAPIs/adc.cpp \
-    file://SensorAPIs/adc.hpp \
-    file://SensorAPIs/gpio.cpp \
-    file://SensorAPIs/gpio.hpp \
-    file://SensorAPIs/sel.cpp \
-    file://SensorAPIs/sel.hpp \
-    file://SensorAPIs/bmc_state.cpp \
-    file://SensorAPIs/bmc_state.hpp \
-    file://SensorAPIs/chassis_state.cpp \
-    file://SensorAPIs/chassis_state.hpp \
-    file://SensorAPIs/host_cpu.cpp \
-    file://SensorAPIs/host_cpu.hpp \
-    file://SensorAPIs/bmc_update.cpp \
-    file://SensorAPIs/bmc_update.hpp \
-    file://SensorAPIs/bmc_factory_reset.cpp \
-    file://SensorAPIs/bmc_factory_reset.hpp \
-    file://SensorAPIs/watchdog2.cpp \
-    file://SensorAPIs/watchdog2.hpp \
-"
+SRC_URI = "git://git@github.com/pteceng/phoenix-dbus-sensors.git;protocol=ssh"
+SRCREV = "615789b235afc81375af2bbd26a8ec7297b7162d"
 
-S = "${WORKDIR}"
+S = "${WORKDIR}/git"
+PV = "0.1+git${SRCPV}"
 
 inherit obmc-phosphor-systemd
 inherit cmake systemd
@@ -51,10 +24,7 @@ DEPENDS = "systemd boost sdbusplus \
 
 RDEPENDS:${PN} += "libsystemd bash libnl"
 
-FILESEXTRAPATHS:append := "${THISDIR}/phoenix-dbus-sensors:"
 SYSTEMD_SERVICE:${PN} += "phoenix-dbus-sensors.service"
-
-DEBUG_BUILD = "1"
 
 do_configure:prepend() {
     SENSOR_CONFIG_DIR=${STAGING_DATADIR_NATIVE}/phoenix-sensor-config
@@ -65,7 +35,7 @@ do_configure:prepend() {
 
 FILES:${PN}:append = " ${datadir}/phoenix-sensor-config/SDR.active"
 
-do_install() {
+do_install:prepend() {
   install -d ${D}/${datadir}/${PN}/
 
   install -d ${D}${bindir}
