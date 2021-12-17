@@ -3,6 +3,8 @@ PROJECT_SRC_DIR := "${THISDIR}/${PN}"
 
 # Ignore patches for now since they refer to old version above
 SRC_URI += "file://ptec-ipmi-whitelist.conf \
+            file://ptec-oemcommands.cpp \
+            file://ptec-oemcommands.hpp \
             file://0001-Add-OEMDiscrete-Sensor-Type-And-SDR.patch \
             file://0002-Parse-PhoenixBMC-FirmwareRevision-GetDeviceID.patch \
             file://0003-Support-IPMI-Get-and-Add-SEL-Entry-commands.patch \
@@ -33,5 +35,13 @@ do_override_whitelist () {
     if [ -r "${DEVTOOL_TEMPDIR}/oe-local-files/ptec-ipmi-whitelist.conf" ]; then
         cp ${DEVTOOL_TEMPDIR}/oe-local-files/ptec-ipmi-whitelist.conf \
             ${S}/ipmi-whitelist.conf
+    fi
+    if [ -r "${DEVTOOL_TEMPDIR}/oe-local-files/ptec-oemcommands.cpp" ]; then
+        cp ${DEVTOOL_TEMPDIR}/oe-local-files/ptec-oemcommands.cpp \
+            ${S}/src/oemcommands.cpp
+    fi
+    if [ -r "${DEVTOOL_TEMPDIR}/oe-local-files/ptec-oemcommands.hpp" ]; then
+        cp ${DEVTOOL_TEMPDIR}/oe-local-files/ptec-oemcommands.hpp \
+            ${S}/include/oemcommands.hpp
     fi
 }
