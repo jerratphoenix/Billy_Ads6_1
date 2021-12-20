@@ -1,4 +1,4 @@
-PACKAGECONFIG:append = " log-threshold"
+PACKAGECONFIG:append = " log-threshold clears-sel"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 PROJECT_SRC_DIR := "${THISDIR}/${PN}"

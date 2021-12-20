@@ -14,6 +14,7 @@ SRC_URI += "file://ptec-ipmi-whitelist.conf \
     		file://0012-Redfish-factory-reset-function-into-restore-default-IPMI-command-and-fix-SRVRBMC-1533.patch \
             file://0013-Add-DCMI-commands-to-whitelist.patch \
             file://0014-Disable_Set_Sel_Time_Cmd_for_intel-ipmi-oem.patch \
+            file://0015-Add-dbus-Clear-method-to-ClearSEL-command.patch \
            "
 
 
