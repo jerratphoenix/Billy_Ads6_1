@@ -218,7 +218,7 @@
 	/*P0-P7*/	"","","","","","","","",
 	/*Q0-Q7*/	"","","","","","","","PWR_DEBUG_N",
 	/*R0-R7*/	"","XDP_PRST_N","","","","","","CHASSIS_INTRUSION",
-	/*S0-S7*/	"REMOTE_DEBUG_ENABLE","SYSPWROK","RSMRST_N","","","","","",
+	/*S0-S7*/	"REMOTE_DEBUG_ENABLE","","RSMRST_N","","LED_STATUS_GREEN_N","LED_STATUS_AMBER_N","ID_LED_N","",
 	/*T0-T7*/	"","","","","","","","",
 	/*U0-U7*/	"","","","","","","","",
 	/*V0-V7*/	"","","","","","","","",

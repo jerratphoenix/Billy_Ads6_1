@@ -1,0 +1,7 @@
+bmc_booted:
+
+enclosure_identify:
+    identify:
+        Action: 'Blink'
+        DutyOn: 50
+        Period: 1000
