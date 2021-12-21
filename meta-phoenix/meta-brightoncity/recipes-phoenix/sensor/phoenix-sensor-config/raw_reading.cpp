@@ -107,6 +107,6 @@ int32_t get_ipmi_wdt(double* reading)
 
 int32_t get_sel_time(double* reading)
 {
-    return SENSOR_STATUS::NORMAL;
+    return api_sensor_sel(reading);
 }
 
