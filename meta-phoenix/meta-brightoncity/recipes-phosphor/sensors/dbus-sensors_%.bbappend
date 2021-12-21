@@ -1,4 +1,3 @@
 FILESEXTRAPATHS:append := "${THISDIR}/${PN}:"
 
-EXTRA_OECMAKE += "-DDISABLE_CPUERROR=ON"
-SYSTEMD_SERVICE:${PN}:remove += " xyz.openbmc_project.cpuerrsensor.service"
+SRC_URI += "file://0001-Shorten-the-name-to-keep-the-length-below-16-as-much.patch"

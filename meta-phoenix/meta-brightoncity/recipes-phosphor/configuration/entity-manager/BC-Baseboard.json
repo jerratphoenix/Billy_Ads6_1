@@ -278,7 +278,7 @@
         {
             "CPURequired": 1,
             "Index": 8,
-            "Name": "PVCCIN_CPU0",
+            "Name": "PVCCIN_CPU1",
             "PowerState": "On",
             "ScaleFactor": 0.7505,
             "Thresholds": [
@@ -344,7 +344,7 @@
         {
             "CPURequired": 1,
             "Index": 10,
-            "Name": "PVDQ_ABC_CPU0",
+            "Name": "PVDQ_ABC_CPU1",
             "PowerState": "On",
             "Thresholds": [
                 {
@@ -377,9 +377,9 @@
         {
             "CPURequired": 1,
             "Index": 11,
-            "Name": "PVPP_CPU0_ABC",
+            "Name": "PVPP_CPU1_ABC",
             "PowerState": "On",
-			"ScaleFactor": 0.5348,
+            "ScaleFactor": 0.5348,
             "Thresholds": [
                 {
                     "Direction": "greater than",
@@ -439,7 +439,7 @@
             ],
             "Type": "ADC"
         },
-		{
+        {
             "Index": 13,
             "Name": "P1V05_NAC",
             "Thresholds": [
@@ -472,7 +472,7 @@
         },
         {
             "Connector": {
-		"Name": "System Fan connector 1",
+                "Name": "System Fan connector 1",
                 "Pwm": 0,
                 "Tachs": [
                     0
@@ -480,23 +480,23 @@
             },
             "Index": 0,
             "Name": "Fan_tach_1",
-	    "Type": "AspeedFan"
+            "Type": "AspeedFan"
         },
         {
             "Connector": {
-		"Name": "System Fan connector 2",
+                "Name": "System Fan connector 2",
                 "Pwm": 1,
                 "Tachs": [
                     1
                 ]
-	    },
-	    "Index": 1,
+            },
+            "Index": 1,
             "Name": "Fan_tach_2",
             "Type": "AspeedFan"
         },
         {
             "Connector": {
-		"Name": "System Fan connector 3",
+                "Name": "System Fan connector 3",
                 "Pwm": 2,
                 "Tachs": [
                     2
@@ -505,43 +505,43 @@
             "Index": 2,
             "Name": "Fan_tach_3",
             "Type": "AspeedFan"
-	},
-	{
+        },
+        {
             "Connector": {
-		"Name": "System Fan connector 4",
+                "Name": "System Fan connector 4",
                 "Pwm": 3,
                 "Tachs": [
                     3
                 ]
-	    },
-	    "Index": 3,
+            },
+            "Index": 3,
             "Name": "Fan_tach_4",
             "Type": "AspeedFan"
-	},
-	{
-	    "Connector": {
-		"Name": "System Fan connector 5",
+        },
+        {
+            "Connector": {
+                "Name": "System Fan connector 5",
                 "Pwm": 4,
                 "Tachs": [
                     4
                 ]
-	    },
-	    "Index": 4,
-	    "Name": "Fan_tach_5",
+            },
+            "Index": 4,
+            "Name": "Fan_tach_5",
             "Type": "AspeedFan"
-	},
-	{
-	    "Connector": {
-		"Name": "System Fan connector 6",
+        },
+        {
+            "Connector": {
+                "Name": "System Fan connector 6",
                 "Pwm": 5,
                 "Tachs": [
                     5
                 ]
-	    },
-	    "Index": 5,
-	    "Name": "Fan_tach_6",
-	    "Type": "AspeedFan"
-	},
+            },
+            "Index": 5,
+            "Name": "Fan_tach_6",
+            "Type": "AspeedFan"
+        },
         {
             "Class": "fan",
             "FFGainCoefficient": 1.0,
@@ -557,8 +557,8 @@
             "OutLimitMax": 100.0,
             "OutLimitMin": 30.0,
             "Outputs": [
-				"Pwm 0"
-			],
+            "Pwm 0"
+            ],
             "PCoefficient": 0.0,
             "PositiveHysteresis": 0.0,
             "SlewNeg": 0.0,
@@ -583,8 +583,8 @@
             "OutLimitMax": 100.0,
             "OutLimitMin": 30.0,
             "Outputs": [
-				"Pwm 1"
-			],
+                "Pwm 1"
+            ],
             "PCoefficient": 0.0,
             "PositiveHysteresis": 0.0,
             "SlewNeg": 0.0,
@@ -609,8 +609,8 @@
             "OutLimitMax": 100.0,
             "OutLimitMin": 30.0,
             "Outputs": [
-				"Pwm 2"
-			],
+                "Pwm 2"
+            ],
             "PCoefficient": 0.0,
             "PositiveHysteresis": 0.0,
             "SlewNeg": 0.0,
@@ -635,8 +635,8 @@
             "OutLimitMax": 100.0,
             "OutLimitMin": 30.0,
             "Outputs": [
-				"Pwm 3"
-			],
+                "Pwm 3"
+             ],
             "PCoefficient": 0.0,
             "PositiveHysteresis": 0.0,
             "SlewNeg": 0.0,
@@ -661,8 +661,8 @@
             "OutLimitMax": 100.0,
             "OutLimitMin": 30.0,
             "Outputs": [
-				"Pwm 4"
-			],
+                "Pwm 4"
+             ],
             "PCoefficient": 0.0,
             "PositiveHysteresis": 0.0,
             "SlewNeg": 0.0,
@@ -687,8 +687,8 @@
             "OutLimitMax": 100.0,
             "OutLimitMin": 30.0,
             "Outputs": [
-				"Pwm 5"
-			],
+                 "Pwm 5"
+             ],
             "PCoefficient": 0.0,
             "PositiveHysteresis": 0.0,
             "SlewNeg": 0.0,
@@ -699,13 +699,13 @@
             ]
         },
         {
-	    "C1": 92.16,
+            "C1": 92.16,
             "C2": 107.52,
             "MaxCFM": 17.5,
             "Name": "System Airflow",
             "TachMaxPercent": 100,
             "TachMinPercent": 20,
-	    "Tachs": [
+            "Tachs": [
                 "Fan_tach_1",
                 "Fan_tach_2",
                 "Fan_tach_3",
@@ -713,15 +713,15 @@
                 "Fan_tach_5",
                 "Fan_tach_6"
             ],
-	    "Type": "CFMSensor"
-	},
-	{
-	    "Direction": "Input",
+            "Type": "CFMSensor"
+        },
+        {
+            "Direction": "Input",
             "Index": 40,
             "Name": "NMI Input",
             "Polarity": "Low",
             "Type": "Gpio"
-	},
+        },
         {
             "Address": "0x60",
             "Class": "PxeBridgeTemp",
@@ -923,19 +923,19 @@
         },
         {
             "Address": [
-                "0x50",
-                "0x51"
+                "0x58",
+                "0x59"
             ],
             "Bus": 7,
             "Name": "PSU address",
             "Type": "PSUPresence"
         },
-	{
+        {
             "Name": "PCH SMBUS Slave",
             "PchSmbusSlaveI2cAddress": "0x44",
             "PchSmbusSlaveI2cBus": 3,
             "Type": "PchSmbusSlave"
-	},
+        },
         {
             "Class": "temp",
             "FFGainCoefficient": 0.0,
@@ -1012,7 +1012,7 @@
                 "Board"
             ]
         },
-		{
+        {
             "FailSafePercent": 100,
             "MinThermalOutput": 30,
             "Name": "Board",
@@ -1126,8 +1126,8 @@
             ],
             "Type": "TMP75"
         },
-	{
-	    "Address": "0x30",
+        {
+            "Address": "0x30",
             "Bus": 0,
             "CpuID": 1,
             "Name": "CPU 1",
@@ -1141,7 +1141,7 @@
             ],
             "RequiredTempSensor": "DTS",
             "Type": "XeonCPU"
-	}
+        }
     ],
     "Name": "BC Baseboard",
     "Probe": "xyz.openbmc_project.FruDevice({'PRODUCT_PRODUCT_NAME': 'BRIGHTONCITY'})",
