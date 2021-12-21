@@ -9,9 +9,6 @@ IMAGE_INSTALL:append = " ipmitool"
 IMAGE_INSTALL:append = " phoenix-ipmi-oem"
 IMAGE_INSTALL:append = " phosphor-sel-logger"
 
-# Sensor and fan control related
-IMAGE_INSTALL:append = " host-error-monitor"
-
 # Intel recipe 
 IMAGE_INSTALL:append = " smbios-mdrv2"
 IMAGE_INSTALL:append = " phosphor-node-manager-proxy"
