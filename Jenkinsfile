@@ -64,13 +64,11 @@ pipeline {
 			  devtool modify archercity-led-manager-config-native; \
                           devtool modify phosphor-node-manager-proxy; \
                           devtool modify settings; \
-                          devtool modify host-error-monitor; \
                           devtool modify phoenix-dbus-monitor; \
                           devtool modify phoenix-ipmi-oem; \
                           devtool modify phoenix-ipmi-pef; \
                           devtool modify phoenix-ipmi-sdr; \
                           devtool modify dbus-sensors; \
-                          devtool modify intel-dbus-interfaces-native; \
                           devtool modify obmc-console; \
                           devtool modify obmc-control-bmc; \
                           devtool modify obmc-control-fan; \
