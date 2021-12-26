@@ -1,6 +1,12 @@
 {
     "Exposes": [
         {
+                "Address": "0x00",
+                "Bus": "0",
+                "Name": "AC_board_FRU",
+                "Type": "EEPROM"
+        },
+        {
             "Index": 0,
             "Name": "P12V_PSU_SCALED",
             "PowerState": "On",
