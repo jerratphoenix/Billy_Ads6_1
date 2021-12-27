@@ -483,7 +483,7 @@
             "LowerThresholdReadingMask": "0x0000",
             "UpperThresholdReadingMask": "0x0000",
             "Settable/ReadableThresholdMask": "0x0000",
-            "SensorUnits1": "0x00",
+            "SensorUnits1": "0x01",
             "SensorUnits2-BaseUnit": "0x00",
             "SensorUnits3-ModifierUnit": "0x00",
             "Linearization": "0x00",
