@@ -9,4 +9,5 @@ SRC_URI:append += " \
     file://0007-Disable-PCIe-L1.patch \
     file://0008-Enable-kcs3-in-uboot.patch \
     file://0009-Add-resetreason-to-kernel-cmdline.patch \
+    file://0010-Remove-the-redundancy-step-of-getting-BMC-reset-info.patch \
     "
