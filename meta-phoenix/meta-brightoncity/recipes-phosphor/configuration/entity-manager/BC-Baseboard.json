@@ -557,7 +557,7 @@
             "OutLimitMax": 100.0,
             "OutLimitMin": 30.0,
             "Outputs": [
-            "Pwm 0"
+            "Pwm 1"
             ],
             "PCoefficient": 0.0,
             "PositiveHysteresis": 0.0,
@@ -565,7 +565,7 @@
             "SlewPos": 0.0,
             "Type": "Pid",
             "Zones": [
-                "Zone 1"
+                "Board"
             ]
         },
         {
@@ -583,7 +583,7 @@
             "OutLimitMax": 100.0,
             "OutLimitMin": 30.0,
             "Outputs": [
-                "Pwm 1"
+                "Pwm 2"
             ],
             "PCoefficient": 0.0,
             "PositiveHysteresis": 0.0,
@@ -591,7 +591,7 @@
             "SlewPos": 0.0,
             "Type": "Pid",
             "Zones": [
-                "Zone 2"
+                "Cards"
             ]
         },
         {
@@ -609,7 +609,7 @@
             "OutLimitMax": 100.0,
             "OutLimitMin": 30.0,
             "Outputs": [
-                "Pwm 2"
+                "Pwm 3"
             ],
             "PCoefficient": 0.0,
             "PositiveHysteresis": 0.0,
@@ -617,7 +617,7 @@
             "SlewPos": 0.0,
             "Type": "Pid",
             "Zones": [
-                "Zone 3"
+                "Board"
             ]
         },
         {
@@ -635,15 +635,15 @@
             "OutLimitMax": 100.0,
             "OutLimitMin": 30.0,
             "Outputs": [
-                "Pwm 3"
-             ],
+                "Pwm 4"
+            ],
             "PCoefficient": 0.0,
             "PositiveHysteresis": 0.0,
             "SlewNeg": 0.0,
             "SlewPos": 0.0,
             "Type": "Pid",
             "Zones": [
-                "Zone 4"
+                "Cards"
             ]
         },
         {
@@ -661,7 +661,7 @@
             "OutLimitMax": 100.0,
             "OutLimitMin": 30.0,
             "Outputs": [
-                "Pwm 4"
+                "Pwm 5"
              ],
             "PCoefficient": 0.0,
             "PositiveHysteresis": 0.0,
@@ -669,7 +669,7 @@
             "SlewPos": 0.0,
             "Type": "Pid",
             "Zones": [
-                "Zone 5"
+                "Board"
             ]
         },
         {
@@ -687,7 +687,7 @@
             "OutLimitMax": 100.0,
             "OutLimitMin": 30.0,
             "Outputs": [
-                 "Pwm 5"
+                 "Pwm 6"
              ],
             "PCoefficient": 0.0,
             "PositiveHysteresis": 0.0,
@@ -695,7 +695,7 @@
             "SlewPos": 0.0,
             "Type": "Pid",
             "Zones": [
-                "Zone 6"
+                "Board"
             ]
         },
         {
@@ -721,171 +721,6 @@
             "Name": "NMI Input",
             "Polarity": "Low",
             "Type": "Gpio"
-        },
-        {
-            "Address": "0x60",
-            "Class": "PxeBridgeTemp",
-            "HostSMbusIndex": 2,
-            "Name": "CPU1 P12V PVCCIN VR Temp",
-            "Thresholds": [
-                {
-                    "Direction": "greater than",
-                    "Name": "upper critical",
-                    "Severity": 1,
-                    "Value": 115
-                },
-                {
-                    "Direction": "greater than",
-                    "Name": "upper non critical",
-                    "Severity": 0,
-                    "Value": 110
-                },
-                {
-                    "Direction": "less than",
-                    "Name": "lower non critical",
-                    "Severity": 0,
-                    "Value": 5
-                },
-                {
-                    "Direction": "less than",
-                    "Name": "lower critical",
-                    "Severity": 1,
-                    "Value": 0
-                }
-            ],
-            "Type": "IpmbSensor"
-        },
-        {
-            "Address": "0x70",
-            "Class": "PxeBridgeTemp",
-            "HostSMbusIndex": 2,
-            "Name": "CPU1 VR Mem ABCD Temp",
-            "Thresholds": [
-                {
-                    "Direction": "greater than",
-                    "Name": "upper critical",
-                    "Severity": 1,
-                    "Value": 115
-                },
-                {
-                    "Direction": "greater than",
-                    "Name": "upper non critical",
-                    "Severity": 0,
-                    "Value": 110
-                },
-                {
-                    "Direction": "less than",
-                    "Name": "lower non critical",
-                    "Severity": 0,
-                    "Value": 5
-                },
-                {
-                    "Direction": "less than",
-                    "Name": "lower critical",
-                    "Severity": 1,
-                    "Value": 0
-                }
-            ],
-            "Type": "IpmbSensor"
-        },
-        {
-            "Address": "0x7C",
-            "Class": "PxeBridgeTemp",
-            "HostSMbusIndex": 2,
-            "Name": "VNN_NAC",
-            "Thresholds": [
-                {
-                    "Direction": "greater than",
-                    "Name": "upper critical",
-                    "Severity": 1,
-                    "Value": 115
-                },
-                {
-                    "Direction": "greater than",
-                    "Name": "upper non critical",
-                    "Severity": 0,
-                    "Value": 110
-                },
-                {
-                    "Direction": "less than",
-                    "Name": "lower non critical",
-                    "Severity": 0,
-                    "Value": 5
-                },
-                {
-                    "Direction": "less than",
-                    "Name": "lower critical",
-                    "Severity": 1,
-                    "Value": 0
-                }
-            ],
-            "Type": "IpmbSensor"
-        },
-        {
-            "Address": "0x82",
-            "Class": "IRBridgeTemp",
-            "HostSMbusIndex": 2,
-            "Name": "VNN_CDF",
-            "Thresholds": [
-                {
-                    "Direction": "greater than",
-                    "Name": "upper critical",
-                    "Severity": 1,
-                    "Value": 115
-                },
-                {
-                    "Direction": "greater than",
-                    "Name": "upper non critical",
-                    "Severity": 0,
-                    "Value": 110
-                },
-                {
-                    "Direction": "less than",
-                    "Name": "lower non critical",
-                    "Severity": 0,
-                    "Value": 5
-                },
-                {
-                    "Direction": "less than",
-                    "Name": "lower critical",
-                    "Severity": 1,
-                    "Value": 0
-                }
-            ],
-            "Type": "IpmbSensor"
-        },
-        {
-            "Address": "0x84",
-            "Class": "IRBridgeTemp",
-            "HostSMbusIndex": 2,
-            "Name": "CPU1 P12V PVCCIO VR Temp",
-            "Thresholds": [
-                {
-                    "Direction": "greater than",
-                    "Name": "upper critical",
-                    "Severity": 1,
-                    "Value": 115
-                },
-                {
-                    "Direction": "greater than",
-                    "Name": "upper non critical",
-                    "Severity": 0,
-                    "Value": 110
-                },
-                {
-                    "Direction": "less than",
-                    "Name": "lower non critical",
-                    "Severity": 0,
-                    "Value": 5
-                },
-                {
-                    "Direction": "less than",
-                    "Name": "lower critical",
-                    "Severity": 1,
-                    "Value": 0
-                }
-            ],
-            "Type": "IpmbSensor"
         },
         {
             "EthIndex": 0,
@@ -929,12 +764,6 @@
             "Bus": 7,
             "Name": "PSU address",
             "Type": "PSUPresence"
-        },
-        {
-            "Name": "PCH SMBUS Slave",
-            "PchSmbusSlaveI2cAddress": "0x44",
-            "PchSmbusSlaveI2cBus": 3,
-            "Type": "PchSmbusSlave"
         },
         {
             "Class": "temp",
