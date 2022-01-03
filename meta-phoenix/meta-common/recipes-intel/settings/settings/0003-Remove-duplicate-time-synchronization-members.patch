@@ -1,0 +1,31 @@
+From c3a163aa70795af0500097a7099db723ef4f836e Mon Sep 17 00:00:00 2001
+From: Adeli Yeh <Adeli_Yeh@phoenix.com>
+Date: Mon, 3 Jan 2022 11:17:24 +0800
+Subject: [PATCH] Remove duplicate time synchronization members
+
+---
+ include/defaults.hpp | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/include/defaults.hpp b/include/defaults.hpp
+index ed4a494..db3c8cf 100755
+--- a/include/defaults.hpp
++++ b/include/defaults.hpp
+@@ -118,12 +118,12 @@ inline void loadSettings(sdbusplus::asio::object_server &objectServer,
+     setting->addProperty("TimeOwner",
+                          "xyz.openbmc_project.Time.Owner.Owners.BMC");
+ 
+-    setting = &settings.emplace_back(
+-        objectServer, "/xyz/openbmc_project/time/sync_method",
+-        "xyz.openbmc_project.Time.Synchronization");
++    // setting = &settings.emplace_back(
++    //     objectServer, "/xyz/openbmc_project/time/sync_method",
++    //     "xyz.openbmc_project.Time.Synchronization");
+ 
+-    setting->addProperty("TimeSyncMethod",
+-                         "xyz.openbmc_project.Time.Synchronization.Method.NTP");
++    // setting->addProperty("TimeSyncMethod",
++    //                      "xyz.openbmc_project.Time.Synchronization.Method.NTP");
+ 
+     setting = &settings.emplace_back(objectServer,
+                                      "/xyz/openbmc_project/network/host0/intf",

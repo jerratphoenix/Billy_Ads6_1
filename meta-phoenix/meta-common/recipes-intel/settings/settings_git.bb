@@ -15,6 +15,7 @@ SYSTEMD_SERVICE:${PN} = "xyz.openbmc_project.Intel_Settings.service"
 SRC_URI += "file://0000-Avoid-Conflict-Service.patch \
 	    file://0001-Remove-Duplicate-Boot-Option-Members.patch \
 	    file://0002-Remove-Duplicate-Restore-Policy.patch \
+            file://0003-Remove-duplicate-time-synchronization-members.patch \
 	"
 
 DEPENDS = "boost \
