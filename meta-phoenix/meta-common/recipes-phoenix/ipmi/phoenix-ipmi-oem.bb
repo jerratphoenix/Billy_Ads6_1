@@ -7,7 +7,7 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 S = "${WORKDIR}/git"
 
 SRC_URI = "git://git@github.com/pteceng/ServerBMC-Gold-phoenix-ipmi-oem.git;protocol=ssh;branch=main"
-SRCREV = "cb109e791f89b5155145cbd22f53da5e8ab5d3f8"
+SRCREV = "fe6bd270501b59662815f4de41ac01843deebc2e"
 
 inherit autotools pkgconfig
 inherit obmc-phosphor-ipmiprovider-symlink
