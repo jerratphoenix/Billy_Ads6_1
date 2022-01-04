@@ -110,3 +110,7 @@ int32_t get_sel_time(double* reading)
     return api_sensor_sel(reading);
 }
 
+int32_t get_ipmi_pef(double* reading)
+{
+    return api_sensor_pef(reading);
+}
