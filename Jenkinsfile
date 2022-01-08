@@ -261,6 +261,7 @@ pipeline {
                 sh "cd ${WORKSPACE}/; \
                     source setup ${params.target}; \
                     echo 'EXTRA_IMAGE_FEATURES += \"debug-tweaks\"' >> conf/local.conf; \
+		    rm -rf ./workspace/sources; \
                     bitbake obmc-phosphor-image \
                    "
             }
