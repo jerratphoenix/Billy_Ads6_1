@@ -12,3 +12,4 @@ IMAGE_INSTALL:append += " phoenix-dbus-sensors"
 # Phoenix gpio module
 IMAGE_INSTALL:append += " phoenix-gpio-monitor"
 
+IMAGE_INSTALL:append = " default-datetime"

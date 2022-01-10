@@ -520,3 +520,7 @@
 &vhub {
 	status = "okay";
 };
+
+&rtc {
+	status = "okay";
+};

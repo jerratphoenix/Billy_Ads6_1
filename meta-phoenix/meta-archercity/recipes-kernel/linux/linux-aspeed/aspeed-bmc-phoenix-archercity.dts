@@ -1005,3 +1005,6 @@
 	phy-handle = <&ethphy2>;
 };
 
+&rtc {
+	status = "okay";
+};
