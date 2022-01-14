@@ -5,7 +5,7 @@ LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/Apache-2.0;md5=89aea4e17d99a7cacdbeed46a0096b10"
 
 SRC_URI = "git://git@github.com/pteceng/phoenix-dbus-sensors.git;protocol=ssh"
-SRCREV = "1b23785b31781c17dffe98fe65e1cf9641a884d4"
+SRCREV = "d358d1799a899a7aa51abfd0eada6b644fffe5ac"
 
 S = "${WORKDIR}/git"
 PV = "0.1+git${SRCPV}"
