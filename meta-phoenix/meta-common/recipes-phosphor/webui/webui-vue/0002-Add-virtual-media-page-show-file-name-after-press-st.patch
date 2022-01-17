@@ -1,0 +1,21 @@
+From 77689163737a91c529e5df620f4f55490d31afa9 Mon Sep 17 00:00:00 2001
+From: Brad Ho <brad_ho@phoenix.com>
+Date: Mon, 17 Jan 2022 14:41:47 +0800
+Subject: [PATCH] Add virtual media page show file name after press start
+
+---
+ src/views/Operations/VirtualMedia/VirtualMedia.vue | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/views/Operations/VirtualMedia/VirtualMedia.vue b/src/views/Operations/VirtualMedia/VirtualMedia.vue
+index 8a3d5ad..f4e9f02 100644
+--- a/src/views/Operations/VirtualMedia/VirtualMedia.vue
++++ b/src/views/Operations/VirtualMedia/VirtualMedia.vue
+@@ -21,6 +21,7 @@
+                   </template>
+                 </form-file>
+               </b-form-group>
++              <p v-if="dev.isActive">{{ dev.file.name }}</p>
+               <b-button
+                 v-if="!dev.isActive"
+                 variant="primary"
