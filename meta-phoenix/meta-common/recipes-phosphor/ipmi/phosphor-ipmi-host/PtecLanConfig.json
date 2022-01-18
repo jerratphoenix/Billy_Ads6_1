@@ -5,17 +5,23 @@
             "_comment": "Reserve to Alert immediate command",
             "Selector": "0x00",
             "Address_Format": "0x00",
-            "Alerting_IP_Address": "192.168.122.1"
+            "Gateway_Selector": "0x00",
+            "Alerting_IP_Address": "192.168.122.1",
+            "Alerting_MAC_Address": "00:00:00:00:00:00"
         },
         {
             "Selector": "0x01",
             "Address_Format": "0x00",
-            "Alerting_IP_Address": "192.168.122.1"
+            "Gateway_Selector": "0x00",
+            "Alerting_IP_Address": "192.168.122.1",
+            "Alerting_MAC_Address": "00:00:00:00:00:00"
         },
         {
             "Selector": "0x02",
             "Address_Format": "0x00",
-            "Alerting_IP_Address": "192.168.122.2"
+            "Gateway_Selector": "0x00",
+            "Alerting_IP_Address": "192.168.122.2",
+            "Alerting_MAC_Address": "00:00:00:00:00:00"
         }
     ]
 }
