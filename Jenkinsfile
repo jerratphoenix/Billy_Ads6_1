@@ -252,6 +252,12 @@ pipeline {
                     def pyScan = scanForIssues tool: pyLint(pattern: 'pylint.log')
                     publishIssues issues: [pyScan]
                 }
+
+		sh "cd ${WORKSPACE}; \
+                    source setup ${params.target}; \
+                    cp ${WORKSPACE}/../devtool_reset.sh .; \
+                    ./devtool_reset.sh; \
+                   "
             }
         }
 
@@ -261,7 +267,6 @@ pipeline {
                 sh "cd ${WORKSPACE}/; \
                     source setup ${params.target}; \
                     echo 'EXTRA_IMAGE_FEATURES += \"debug-tweaks\"' >> conf/local.conf; \
-		    rm -rf ./workspace/sources; \
                     bitbake obmc-phosphor-image \
                    "
             }
