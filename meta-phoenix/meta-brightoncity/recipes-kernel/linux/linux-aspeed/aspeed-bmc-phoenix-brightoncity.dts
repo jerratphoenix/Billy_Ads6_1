@@ -234,10 +234,7 @@
 &sgpio {
 	ngpios = <80>;
 	status = "okay";
-	/* Enable GPIOE0 and GPIOE2 pass-through by default */
-	pinctrl-names = "pass-through";
-	pinctrl-0 = <&pinctrl_gpie0_default
-			&pinctrl_gpie2_default>;
+
 	gpio-line-names =
 	/* SGPIO output lines */
 	/*OA0-OA7*/	"","","","","","","","",
@@ -302,20 +299,6 @@
 	status = "okay";
 };
 
-/**
- * SAFS through SPI1 is available only on Wilson Point.
- * These pins are used as fan presence checking gpios in WFP
- * so commenting it out for now.
- * &spi1 {
- *	status = "okay";
- *
- *	flash@0 {
- *		m25p,fast-read;
- *		status = "okay";
- *	};
- *};
- */
-
 &uart1 {
 	status = "okay";
 	pinctrl-names = "default";
@@ -329,22 +312,12 @@
 			&pinctrl_nri1_default>;
 };
 
-
-&uart3 {
-	status = "okay";
-};
-
-&uart4 {
-	status = "okay";
-};
-
 &uart5 {
 	status = "okay";
 };
 
 &mac1 {
 	status = "okay";
-
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_rgmii2_default &pinctrl_mdio2_default>;
 };
@@ -352,7 +325,6 @@
 &mac0 {
 	status = "okay";
 	use-ncsi;
-
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_rmii1_default>;
 };
@@ -432,13 +404,6 @@
 	status = "okay";
 };
 
-&i2c11 {
-	multi-master;
-	aspeed,dma-buf-size = <4095>;
-	aspeed,hw-timeout-ms = <300>;
-	status = "okay";
-};
-
 &i2c13 {
 	multi-master;
 	aspeed,dma-buf-size = <4095>;
@@ -459,43 +424,33 @@
 	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pwm0_default &pinctrl_pwm1_default
-			 &pinctrl_pwm2_default &pinctrl_pwm3_default
-			 &pinctrl_pwm4_default &pinctrl_pwm5_default
-			 &pinctrl_pwm6_default &pinctrl_pwm7_default>;
+	             &pinctrl_pwm2_default &pinctrl_pwm3_default
+		     &pinctrl_pwm4_default &pinctrl_pwm5_default>;
 
 	fan@0 {
 		reg = <0x00>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x00 0x01>;
+		aspeed,fan-tach-ch = /bits/ 8 <0x00 >;
 	};
 	fan@1 {
 		reg = <0x01>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x02 0x03>;
+		aspeed,fan-tach-ch = /bits/ 8 <0x01 >;
 	};
 	fan@2 {
 		reg = <0x02>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x04 0x05>;
+		aspeed,fan-tach-ch = /bits/ 8 <0x02 >;
 	};
 	fan@3 {
 		reg = <0x03>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x06 0x07>;
+		aspeed,fan-tach-ch = /bits/ 8 <0x03 >;
 	};
 	fan@4 {
 		reg = <0x04>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x08 0x09>;
+		aspeed,fan-tach-ch = /bits/ 8 <0x04 >;
 	};
 	fan@5 {
 		reg = <0x05>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x0A 0x0B>;
+		aspeed,fan-tach-ch = /bits/ 8 <0x05 >;
 	};
-	fan@6 {
-		reg = <0x06>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x0C 0x0D>;
-	};
-	fan@7 {
-		reg = <0x07>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x0E 0x0F>;
-	};
-
 };
 
 &timer {

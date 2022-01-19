@@ -10,4 +10,5 @@ SRC_URI:append += " \
     file://0008-Enable-kcs3-in-uboot.patch \
     file://0009-Add-resetreason-to-kernel-cmdline.patch \
     file://0010-Remove-the-redundancy-step-of-getting-BMC-reset-info.patch \
+    file://0011-Brightoncity-Modify-mulit-function-pin.patch \
     "
