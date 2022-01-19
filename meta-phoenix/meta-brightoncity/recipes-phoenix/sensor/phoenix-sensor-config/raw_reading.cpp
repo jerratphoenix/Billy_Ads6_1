@@ -114,3 +114,8 @@ int32_t get_ipmi_pef(double* reading)
 {
     return api_sensor_pef(reading);
 }
+
+int32_t get_sys_host_state(double* reading)
+{
+    return api_get_host_running(reading);
+}
