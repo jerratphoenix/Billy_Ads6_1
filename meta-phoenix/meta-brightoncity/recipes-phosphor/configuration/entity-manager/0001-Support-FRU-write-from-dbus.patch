@@ -1,0 +1,124 @@
+From 5c47f0aadf998693bf57a2954aaa795e60ca20e9 Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Wed, 19 Jan 2022 11:00:06 +0000
+Subject: [PATCH] Support FRU write from dbus
+
+1. Set all dbus properties of FruDevice to writable except BUS and ADDRESS.
+2. Base on I2C bus and address to give a unique object path for FruDevice rather than use board or product name from EEPROM content.
+3. Support FRU resize.
+---
+ src/FruDevice.cpp | 76 +++++++++++++++++------------------------------
+ 1 file changed, 27 insertions(+), 49 deletions(-)
+
+diff --git a/src/FruDevice.cpp b/src/FruDevice.cpp
+index 52a83ce..fbc2629 100644
+--- a/src/FruDevice.cpp
++++ b/src/FruDevice.cpp
+@@ -659,29 +659,10 @@ void addFruObjectToDbus(
+                   << bus << " address " << address << "\n";
+     }
+ 
+-    auto productNameFind = formattedFRU.find("BOARD_PRODUCT_NAME");
+-    std::string productName;
+-    // Not found under Board section or an empty string.
+-    if (productNameFind == formattedFRU.end() ||
+-        productNameFind->second.empty())
+-    {
+-        productNameFind = formattedFRU.find("PRODUCT_PRODUCT_NAME");
+-    }
+-    // Found under Product section and not an empty string.
+-    if (productNameFind != formattedFRU.end() &&
+-        !productNameFind->second.empty())
+-    {
+-        productName = productNameFind->second;
+-        std::regex illegalObject("[^A-Za-z0-9_]");
+-        productName = std::regex_replace(productName, illegalObject, "_");
+-    }
+-    else
+-    {
+-        productName = "UNKNOWN" + std::to_string(unknownBusObjectCount);
+-        unknownBusObjectCount++;
+-    }
+-
+-    productName = "/xyz/openbmc_project/FruDevice/" + productName;
++    // Base on I2C bus and address to give a unique object path for FruDevice
++    // rather than use board or product name from EEPROM content.
++    std::string productName = "/xyz/openbmc_project/FruDevice/PtecFru_" + \
++			       std::to_string(bus) + "_" + std::to_string(address);
+     // avoid duplicates by checking to see if on a mux
+     if (bus > 0)
+     {
+@@ -742,38 +723,35 @@ void addFruObjectToDbus(
+ 
+         std::regex_replace(property.second.begin(), property.second.begin(),
+                            property.second.end(), nonAsciiRegex, "_");
+-        if (property.second.empty() && property.first != "PRODUCT_ASSET_TAG")
++        if (property.second.empty())
+         {
+             continue;
+         }
+         std::string key =
+             std::regex_replace(property.first, nonAsciiRegex, "_");
+ 
+-        if (property.first == "PRODUCT_ASSET_TAG")
+-        {
+-            std::string propertyName = property.first;
+-            iface->register_property(
+-                key, property.second + '\0',
+-                [bus, address, propertyName,
+-                 &dbusInterfaceMap](const std::string& req, std::string& resp) {
+-                    if (strcmp(req.c_str(), resp.c_str()) != 0)
++        std::string propertyName = property.first;
++        auto ret_reg_prop = iface->register_property(
++            key, property.second + '\0',
++            [bus, address, propertyName,
++             &dbusInterfaceMap](const std::string& req, std::string& resp) {
++                if (strcmp(req.c_str(), resp.c_str()) != 0)
++                {
++                    // call the method which will update
++                    if (updateFRUProperty(req, bus, address, propertyName,
++                                          dbusInterfaceMap))
+                     {
+-                        // call the method which will update
+-                        if (updateFRUProperty(req, bus, address, propertyName,
+-                                              dbusInterfaceMap))
+-                        {
+-                            resp = req;
+-                        }
+-                        else
+-                        {
+-                            throw std::invalid_argument(
+-                                "FRU property update failed.");
+-                        }
++                        resp = req;
+                     }
+-                    return 1;
+-                });
+-        }
+-        else if (!iface->register_property(key, property.second + '\0'))
++                    else
++                    {
++                        throw std::invalid_argument(
++                            "FRU property update failed.");
++                    }
++                }
++                return 1;
++            });
++        if (!ret_reg_prop)
+         {
+             std::cerr << "illegal key: " << key << "\n";
+         }
+@@ -1277,8 +1255,8 @@ bool updateFRUProperty(
+         std::copy(restFRUAreasData.begin(), restFRUAreasData.end(),
+                   fruData.begin() + nextFRUAreaNewLoc);
+         // Update Common Header
+-        for (int fruArea = fruAreaInternal; fruArea <= fruAreaMultirecord;
+-             fruArea++)
++        for (fruAreas fruArea = fruAreas::fruAreaInternal; fruArea <= fruAreas::fruAreaMultirecord;
++             ++fruArea)
+         {
+             unsigned int fruAreaOffsetField = getHeaderAreaFieldOffset(fruArea);
+             size_t curFRUAreaOffset = fruData[fruAreaOffsetField];
+-- 
+2.17.1
+

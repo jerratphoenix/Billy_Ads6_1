@@ -1,0 +1,25 @@
+From 6f4b9e48c7a1d43e631bdc1b4e425b08966b36e2 Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Wed, 19 Jan 2022 11:06:14 +0000
+Subject: [PATCH] Support IPMI FRU write
+
+Remove the command of IPMI FRU write from manufacturering filter.
+---
+ src/manufacturingcommands.cpp | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/src/manufacturingcommands.cpp b/src/manufacturingcommands.cpp
+index 2417955..b4176d9 100644
+--- a/src/manufacturingcommands.cpp
++++ b/src/manufacturingcommands.cpp
+@@ -798,7 +798,6 @@ ipmi::Cc mfgFilterMessage(ipmi::message::Request::ptr request)
+                         ipmi::intel::general::cmdSetFITcLayout):
+         case makeCmdKey(ipmi::netFnOemOne,
+                         ipmi::intel::general::cmdMTMBMCFeatureControl):
+-        case makeCmdKey(ipmi::netFnStorage, ipmi::storage::cmdWriteFruData):
+         case makeCmdKey(ipmi::netFnOemTwo, ipmi::intel::platform::cmdClearCMOS):
+ 
+             // Check for Special mode
+-- 
+2.17.1
+

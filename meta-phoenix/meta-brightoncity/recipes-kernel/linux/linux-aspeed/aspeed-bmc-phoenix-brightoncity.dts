@@ -356,6 +356,11 @@
 	aspeed,dma-buf-size = <4095>;
 	aspeed,hw-timeout-ms = <300>;
 	status = "okay";
+	eeprom@56 {
+		compatible = "atmel,24c02";
+		reg = <0x56>;
+		pagesize = <8>;
+	};
 };
 
 &i2c4 {
