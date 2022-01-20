@@ -137,13 +137,6 @@ pipeline {
                           devtool modify x86-power-control; \
 			 "
 		    }
-		    else {
-		      sh "cd ${WORKSPACE}; \
-		          source setup ${params.target}; \
-			  devtool modify nativesdk-phosphor-dbus-interfaces; \
-			  devtool modify nativesdk-phosphor-logging; \
-			 "
-		    }
 		}
 	        script {
                     if (params.linux_kernel == true) {
