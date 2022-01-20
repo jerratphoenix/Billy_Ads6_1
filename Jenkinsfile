@@ -140,7 +140,6 @@ pipeline {
 		    else {
 		      sh "cd ${WORKSPACE}; \
 		          source setup ${params.target}; \
-			  devtool modify phosphor-led-manager-config-example-native; \
 			  devtool modify nativesdk-phosphor-dbus-interfaces; \
 			  devtool modify nativesdk-phosphor-logging; \
 			 "
