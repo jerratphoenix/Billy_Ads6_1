@@ -1,16 +1,22 @@
 {
     "Exposes": [
         {
-                "Address": "0x57",
-                "Bus": "1",
-                "Name": "BC_sys_FRU",
-                "Type": "EEPROM"
+            "Address": "0x57",
+            "Bus": "1",
+            "Name": "BC_ffpanel_FRU",
+            "Type": "EEPROM"
         },
         {
-                "Address": "0x56",
-                "Bus": "3",
-                "Name": "BC_board_FRU",
-                "Type": "EEPROM"
+            "Address": "0x56",
+            "Bus": "3",
+            "Name": "BC_board_FRU",
+            "Type": "EEPROM"
+        },
+        {
+            "Address": "0x50",
+            "Bus": "7",
+            "Name": "BC_psu_FRU",
+            "Type": "EEPROM"
         },
         {
             "Index": 0,

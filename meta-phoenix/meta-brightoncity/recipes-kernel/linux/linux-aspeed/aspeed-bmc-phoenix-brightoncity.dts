@@ -342,6 +342,11 @@
 	aspeed,dma-buf-size = <4095>;
 	aspeed,hw-timeout-ms = <300>;
 	status = "okay";
+	eeprom@57 {
+		compatible = "atmel,24c02";
+		reg = <0x57>;
+		pagesize = <8>;
+	};
 };
 
 &i2c2 {
@@ -399,7 +404,16 @@
 		compatible = "pmbus";
 		reg = <0x59>;
 	};
-
+	eeprom@50 {
+		compatible = "atmel,24c02";
+		reg = <0x50>;
+		pagesize = <8>;
+	};
+	eeprom@51 {
+                compatible = "atmel,24c02";
+                reg = <0x51>;
+                pagesize = <8>;
+        };
 };
 
 &i2c9 {
