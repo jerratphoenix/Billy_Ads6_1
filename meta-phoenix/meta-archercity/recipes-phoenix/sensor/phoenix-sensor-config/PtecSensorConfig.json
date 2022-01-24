@@ -4302,7 +4302,7 @@
             "RecordType": "0x11",
             "RecordLength": "0x13",
             "SlaveAddress": "0x20",
-            "FRUDeviceID": "0x54",
+            "FRUDeviceID": "0x01",
             "Log/physicalID": "0x80",
             "ChannelNumber": "0x00",
             "Reserved": "0x00",

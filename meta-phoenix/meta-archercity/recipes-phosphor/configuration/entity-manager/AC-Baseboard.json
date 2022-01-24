@@ -1,10 +1,16 @@
 {
     "Exposes": [
         {
-                "Address": "0x00",
-                "Bus": "0",
-                "Name": "AC_board_FRU",
-                "Type": "EEPROM"
+            "Address": "0x00",
+            "Bus": "0",
+            "Name": "AC_board_FRU",
+            "Type": "EEPROM"
+        },
+        {
+            "Address": "0x50",
+            "Bus": "7",
+            "Name": "AC_psu_FRU",
+            "Type": "EEPROM"
         },
         {
             "Index": 0,
