@@ -147,6 +147,7 @@ pipeline {
                 }
                 sh "cd ${WORKSPACE}; \
                     cppcheck -j 10 --library=googletest --xml --xml-version=2 \
+                             --suppress=integerOverflow \
                              -i ${WORKSPACE}/meta-arm \
                              -i ${WORKSPACE}/meta-aspeed \
                              -i ${WORKSPACE}/meta-bytedance \
