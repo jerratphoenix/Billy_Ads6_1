@@ -177,28 +177,29 @@ pipeline {
                              -i ${WORKSPACE}/build/${params.target}/tmp \
                              -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/test \
                              -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/tests \
-			     -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/alpha \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/arc \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/c6x \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/csky \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/h8300 \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/hexagon \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/ia64 \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/m68k \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/microblaze \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/mips \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/nds32 \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/nios2 \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/openrisc \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/parisc \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/powerpc \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/riscv \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/s390 \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/sh \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/sparc \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/um \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/unicore32 \
-                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/linux-aspeed/arch/xtensa \
+			     -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/alpha \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/arc \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/c6x \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/csky \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/h8300 \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/hexagon \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/ia64 \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/m68k \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/microblaze \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/mips \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/nds32 \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/nios2 \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/openrisc \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/parisc \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/powerpc \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/riscv \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/s390 \
+			     -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/sandbox \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/sh \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/sparc \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/um \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/unicore32 \
+                             -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/xtensa \
                              ${WORKSPACE} 2>${WORKSPACE}/cppcheck.xml; \
 			     xmlstarlet ed -O -L -d '//error[@id=\"syntaxError\"][contains(@file0, \"unpack_properties.cpp\")][child::location[@line=\"48\"]]' ${WORKSPACE}/cppcheck.xml; \
                              xmlstarlet ed -O -L -d '//error[@id=\"syntaxError\"][contains(@file0, \"event.cpp\")][child::location[@line=\"141\"]]' ${WORKSPACE}/cppcheck.xml; \
