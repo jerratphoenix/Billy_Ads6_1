@@ -15,5 +15,6 @@ SRC_URI += "file://0001-Merge-from-ptec-bmcweb.patch \
 			file://0014-Add-ADC-diagnostic-tool-on-redfish.patch \
 			file://0015-Change-watchdog-severity-to-critical.patch \
 			file://0016-Fixed-Get-Systems-system-cmd-fail-and-returns-500-In.patch \
+			file://0017-Register-discrete-sensor-redfish-messages.patch \
            "
 
