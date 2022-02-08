@@ -13,3 +13,6 @@ IMAGE_INSTALL:append += " phoenix-dbus-sensors"
 IMAGE_INSTALL:append += " phoenix-gpio-monitor"
 
 IMAGE_INSTALL:append = " default-datetime"
+
+# SNMP agent
+IMAGE_INSTALL:append = " net-snmp-server-snmpd"
