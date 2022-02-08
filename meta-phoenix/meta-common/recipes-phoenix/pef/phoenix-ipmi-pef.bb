@@ -7,7 +7,7 @@ LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/Apache-2.0;md5=89aea4e17d99a7cacdbeed46a0096b10"
 
 SRC_URI = "git://git@github.com/pteceng/phoenix-ipmi-pef.git;protocol=ssh"
-SRCREV = "1cb0e0dbef255c22881a064ea540e103af81095d"
+SRCREV = "a4e5c2cb86508bffc5908af09663fbaa47a97d03"
 
 S = "${WORKDIR}/git"
 PV = "0.1+git${SRCPV}"
