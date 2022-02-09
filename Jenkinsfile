@@ -140,7 +140,7 @@ pipeline {
                     if (params.linux_kernel == true) {
                        sh "cd ${WORKSPACE}; \
                            source setup ${params.target}; \
-                           devtool modify linux-aspeed;
+                           devtool modify linux-aspeed; \
 			  "
 		       if ("${params.target}" == "archercity") {
 		       	  sh "cd ${WORKSPACE}; \
