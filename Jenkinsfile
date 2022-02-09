@@ -132,8 +132,6 @@ pipeline {
                           devtool modify smbios-mdrv2; \
                           devtool modify stdplus; \
                           devtool modify telemetry; \
-                          devtool modify u-boot-aspeed-sdk; \
-                          devtool modify u-boot-fw-utils-aspeed-sdk; \
                           devtool modify x86-power-control; \
 			 "
 		    }
@@ -142,7 +140,15 @@ pipeline {
                     if (params.linux_kernel == true) {
                        sh "cd ${WORKSPACE}; \
                            source setup ${params.target}; \
-                           devtool modify linux-aspeed;"
+                           devtool modify linux-aspeed;
+			  "
+		       if ("${params.target}" == "archercity") {
+		       	  sh "cd ${WORKSPACE}; \
+                              source setup ${params.target}; \
+                              devtool modify u-boot-aspeed-sdk; \
+                              devtool modify u-boot-fw-utils-aspeed-sdk; \
+			  "
+		       }
                     }
                 }
                 sh "cd ${WORKSPACE}; \
