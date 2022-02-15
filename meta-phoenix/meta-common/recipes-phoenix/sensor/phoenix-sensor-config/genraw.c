@@ -76,6 +76,40 @@ static void writeContentHead(FILE *fp)
     WRITE_TO_FILE("\t%s\n","int32_t offset14_retry;");
     WRITE_TO_FILE("\t%s\n","int32_t offset15_retry;");
 
+    WRITE_TO_FILE("\t%s\n","int32_t offset0_assert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset1_assert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset2_assert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset3_assert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset4_assert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset5_assert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset6_assert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset7_assert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset8_assert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset9_assert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset10_assert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset11_assert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset12_assert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset13_assert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset14_assert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset15_assert_servrity;");
+
+    WRITE_TO_FILE("\t%s\n","int32_t offset0_deassert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset1_deassert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset2_deassert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset3_deassert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset4_deassert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset5_deassert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset6_deassert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset7_deassert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset8_deassert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset9_deassert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset10_deassert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset11_deassert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset12_deassert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset13_deassert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset14_deassert_servrity;");
+    WRITE_TO_FILE("\t%s\n","int32_t offset15_deassert_servrity;");
+
     //TODO: Extend here.
     WRITE_END_BRACKETS;
 
@@ -169,6 +203,40 @@ static void parseSensorName(json_object *jsonRecord, FILE *fp)
     const char *sensor_offset13_retry;
     const char *sensor_offset14_retry;
     const char *sensor_offset15_retry;
+
+    const char *sensor_offset0_assert_servrity;
+    const char *sensor_offset1_assert_servrity;
+    const char *sensor_offset2_assert_servrity;
+    const char *sensor_offset3_assert_servrity;
+    const char *sensor_offset4_assert_servrity;
+    const char *sensor_offset5_assert_servrity;
+    const char *sensor_offset6_assert_servrity;
+    const char *sensor_offset7_assert_servrity;
+    const char *sensor_offset8_assert_servrity;
+    const char *sensor_offset9_assert_servrity;
+    const char *sensor_offset10_assert_servrity;
+    const char *sensor_offset11_assert_servrity;
+    const char *sensor_offset12_assert_servrity;
+    const char *sensor_offset13_assert_servrity;
+    const char *sensor_offset14_assert_servrity;
+    const char *sensor_offset15_assert_servrity;
+
+    const char *sensor_offset0_deassert_servrity;
+    const char *sensor_offset1_deassert_servrity;
+    const char *sensor_offset2_deassert_servrity;
+    const char *sensor_offset3_deassert_servrity;
+    const char *sensor_offset4_deassert_servrity;
+    const char *sensor_offset5_deassert_servrity;
+    const char *sensor_offset6_deassert_servrity;
+    const char *sensor_offset7_deassert_servrity;
+    const char *sensor_offset8_deassert_servrity;
+    const char *sensor_offset9_deassert_servrity;
+    const char *sensor_offset10_deassert_servrity;
+    const char *sensor_offset11_deassert_servrity;
+    const char *sensor_offset12_deassert_servrity;
+    const char *sensor_offset13_deassert_servrity;
+    const char *sensor_offset14_deassert_servrity;
+    const char *sensor_offset15_deassert_servrity;
 
     json_object_object_get_ex (jsonRecord, "SensorName", &jsonObj);
     sensorName = json_object_get_string(jsonObj);
@@ -373,10 +441,266 @@ static void parseSensorName(json_object *jsonRecord, FILE *fp)
         sensor_offset15_retry = json_object_get_string(jsonObj);
     }
 
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset0", &jsonObj) )
+    {
+        sensor_offset0_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset0, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset0_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset1", &jsonObj) )
+    {
+        sensor_offset1_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset1, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset1_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset2", &jsonObj) )
+    {
+        sensor_offset2_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset2, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset2_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset3", &jsonObj) )
+    {
+        sensor_offset3_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset3, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset3_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset4", &jsonObj) )
+    {
+        sensor_offset4_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset4, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset4_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset5", &jsonObj) )
+    {
+        sensor_offset5_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset5, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset5_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset6", &jsonObj) )
+    {
+        sensor_offset6_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset6, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset6_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset7", &jsonObj) )
+    {
+        sensor_offset7_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset7, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset7_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset8", &jsonObj) )
+    {
+        sensor_offset8_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset8, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset8_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset9", &jsonObj) )
+    {
+        sensor_offset9_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset9, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset9_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset10", &jsonObj) )
+    {
+        sensor_offset10_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset10, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset10_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset11", &jsonObj) )
+    {
+        sensor_offset11_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset11, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset11_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset12", &jsonObj) )
+    {
+        sensor_offset12_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset12, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset12_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset13", &jsonObj) )
+    {
+        sensor_offset13_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset13, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset13_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset14", &jsonObj) )
+    {
+        sensor_offset14_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset14, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset14_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "AssertServrityOffset15", &jsonObj) )
+    {
+        sensor_offset15_assert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define AssertServrityOffset15, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset15_assert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset0", &jsonObj) )
+    {
+        sensor_offset0_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset0, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset0_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset1", &jsonObj) )
+    {
+        sensor_offset1_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset1, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset1_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset2", &jsonObj) )
+    {
+        sensor_offset2_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset2, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset2_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset3", &jsonObj) )
+    {
+        sensor_offset3_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset3, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset3_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset4", &jsonObj) )
+    {
+        sensor_offset4_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset4, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset4_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset5", &jsonObj) )
+    {
+        sensor_offset5_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset5, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset5_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset6", &jsonObj) )
+    {
+        sensor_offset6_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset6, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset6_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset7", &jsonObj) )
+    {
+        sensor_offset7_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset7, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset7_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset8", &jsonObj) )
+    {
+        sensor_offset8_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset8, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset0_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset9", &jsonObj) )
+    {
+        sensor_offset9_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset9, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset9_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset10", &jsonObj) )
+    {
+        sensor_offset10_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset10, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset10_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset11", &jsonObj) )
+    {
+        sensor_offset11_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset11, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset11_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset12", &jsonObj) )
+    {
+        sensor_offset12_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset12, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset12_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset13", &jsonObj) )
+    {
+        sensor_offset13_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset13, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset13_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset14", &jsonObj) )
+    {
+        sensor_offset14_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset14, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset10_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
+    if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset15", &jsonObj) )
+    {
+        sensor_offset15_deassert_servrity = "UNKNOW";
+        LOG_DBG("\"%s\" does not define DeassertServrityOffset15, please check JSON file\n", sensorName);
+    } else {
+        sensor_offset15_deassert_servrity = json_object_get_string(jsonObj);
+    }
+
     /* Write sensor_callback_map array elements*/
     /* Format:  { "sensorName"  ,   sensorFunName, sensorReadingState, .... },*/
     /* Example: { "CPU0_TEMP"   ,   get_cpu0_temp_value,    both, .... },*/
-    WRITE_TO_FILE("\t{ \"%s\"\t,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s },\n"
+    WRITE_TO_FILE("\t{ \"%s\"\t,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s,\t%s },\n"
         , sensorName
         , sensorFunName
         , sensorReadingState
@@ -403,6 +727,38 @@ static void parseSensorName(json_object *jsonRecord, FILE *fp)
         , sensor_offset13_retry
         , sensor_offset14_retry
         , sensor_offset15_retry
+        , sensor_offset0_assert_servrity
+        , sensor_offset1_assert_servrity
+        , sensor_offset2_assert_servrity
+        , sensor_offset3_assert_servrity
+        , sensor_offset4_assert_servrity
+        , sensor_offset5_assert_servrity
+        , sensor_offset6_assert_servrity
+        , sensor_offset7_assert_servrity
+        , sensor_offset8_assert_servrity
+        , sensor_offset9_assert_servrity
+        , sensor_offset10_assert_servrity
+        , sensor_offset11_assert_servrity
+        , sensor_offset12_assert_servrity
+        , sensor_offset13_assert_servrity
+        , sensor_offset14_assert_servrity
+        , sensor_offset15_assert_servrity
+        , sensor_offset0_deassert_servrity
+        , sensor_offset1_deassert_servrity
+        , sensor_offset2_deassert_servrity
+        , sensor_offset3_deassert_servrity
+        , sensor_offset4_deassert_servrity
+        , sensor_offset5_deassert_servrity
+        , sensor_offset6_deassert_servrity
+        , sensor_offset7_deassert_servrity
+        , sensor_offset8_deassert_servrity
+        , sensor_offset9_deassert_servrity
+        , sensor_offset10_deassert_servrity
+        , sensor_offset11_deassert_servrity
+        , sensor_offset12_deassert_servrity
+        , sensor_offset13_deassert_servrity
+        , sensor_offset14_deassert_servrity
+        , sensor_offset15_deassert_servrity
         //TODO: Extend here.
     );
 }
