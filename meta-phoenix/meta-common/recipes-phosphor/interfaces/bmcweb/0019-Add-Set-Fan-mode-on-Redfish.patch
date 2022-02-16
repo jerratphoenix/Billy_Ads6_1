@@ -1,0 +1,161 @@
+From e202b19bcee4822c098044dd868e08d6a3a9319e Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Mon, 14 Feb 2022 03:17:48 +0000
+Subject: [PATCH] Add Set Fan mode on Redfish.
+
+---
+ redfish-core/include/redfish.hpp              |   2 +
+ .../include/registries/privilege_registry.hpp |  16 +++
+ redfish-core/lib/oem_fan_module.hpp           | 100 ++++++++++++++++++
+ 3 files changed, 118 insertions(+)
+
+diff --git a/redfish-core/include/redfish.hpp b/redfish-core/include/redfish.hpp
+index ce7e6fd..9a2c29c 100755
+--- a/redfish-core/include/redfish.hpp
++++ b/redfish-core/include/redfish.hpp
+@@ -213,6 +213,8 @@ class RedfishService
+ 
+ //Phoenix OEM feature
+         requestRoutesOEMFanPWM(app);
++        requsetRoutesOEMFanSetMode(app);
++        requsetRoutesOEMFanGetMode(app);
+         requestRoutesOEMI2CDetect(app);
+         requestRoutesOEMI2CDump(app);
+         requestRoutesOEMI2CSet(app);
+diff --git a/redfish-core/include/registries/privilege_registry.hpp b/redfish-core/include/registries/privilege_registry.hpp
+index 5fe5c7a..d06a35a 100755
+--- a/redfish-core/include/registries/privilege_registry.hpp
++++ b/redfish-core/include/registries/privilege_registry.hpp
+@@ -498,6 +498,22 @@ const static auto& putFanPWM = privilegeSetConfigureManager;
+ const static auto& deleteFanPWM = privilegeSetConfigureManager;
+ const static auto& postFanPWM = privilegeSetConfigureManager;
+ 
++//FanSetMode
++const static auto& getFanSetMode = privilegeSetLogin;
++const static auto& headFanSetMode = privilegeSetLogin;
++const static auto& patchFanSetMode = privilegeSetLogin;
++const static auto& putFanSetMode = privilegeSetConfigureManager;
++const static auto& deleteFanSetMode = privilegeSetConfigureManager;
++const static auto& postFanSetMode = privilegeSetConfigureManager;
++
++//FanGetMode
++const static auto& getFanGetMode = privilegeSetLogin;
++const static auto& headFanGetMode = privilegeSetLogin;
++const static auto& patchFanGetMode = privilegeSetLogin;
++const static auto& putFanGetMode = privilegeSetConfigureManager;
++const static auto& deleteFanGetMode = privilegeSetConfigureManager;
++const static auto& postFanGetMode = privilegeSetConfigureManager;
++
+ //GPIOSet
+ const static auto& getGPIOSet = privilegeSetLogin;
+ const static auto& headGPIOSet = privilegeSetLogin;
+diff --git a/redfish-core/lib/oem_fan_module.hpp b/redfish-core/lib/oem_fan_module.hpp
+index 63b6ee5..9c05a24 100755
+--- a/redfish-core/lib/oem_fan_module.hpp
++++ b/redfish-core/lib/oem_fan_module.hpp
+@@ -138,4 +138,104 @@ inline void requestRoutesOEMFanPWM(App& app)
+             }
+         );
+ }
++
++inline void requsetRoutesOEMFanSetMode(App& app)
++{
++    BMCWEB_ROUTE(app, "/redfish/v1/Managers/bmc/Oem/FanModeSet")
++        .privileges(redfish::privileges::getFanSetMode)
++        .methods(boost::beast::http::verb::get)(
++            [](const crow::Request&/* req */,
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)-> void{
++                    asyncResp->res.jsonValue = {
++                        //{"@Redfish.Copyright", "Copyright 2021 Distributed Management Task Force, Inc. (DMTF). All rights reserved."},
++                        {"@odata.context", "/redfish/v1/$metadata#Manager"},
++                        {"@odata.id", "/redfish/v1/Managers/bmc/Oem/FanModeSet"},
++                        {"@odata.type", "#OEMFanModeModule.OEMFanModeModule"},
++                        {"Name", "Fan Mode Set"},
++                        {"Describe", "Use PATCH { MODE:[number] } to set mode, 0 = Automatic mode, 1 = Manual mode, 2 = Full mode, 3 = Quite mode."},
++                    };
++                    asyncResp->res.end();
++                    return;
++                }
++        );
++
++    BMCWEB_ROUTE(app, "/redfish/v1/Managers/bmc/Oem/FanModeSet")
++        .privileges(redfish::privileges::patchFanSetMode)
++        .methods(boost::beast::http::verb::patch)(
++            [](const crow::Request& req, 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)-> void{
++                    std::optional<uint8_t> number;
++                    if (!json_util::readJson(req, asyncResp->res, "MODE", number))
++                    {
++                        asyncResp->res.end();
++                        return;
++                    }
++                    std::string number_set;
++                    if (number)
++                    {
++                        // Supported range [0-3]
++                        if (*number > 3)
++                        {
++                            messages::queryParameterOutOfRange(
++                                asyncResp->res, std::to_string(*number),
++                                "chip", "[0-3]");
++                                asyncResp->res.end();
++                                return ;
++                        }
++                        else
++                        {
++                            number_set = std::to_string(*number);
++                        }
++                    }
++                    std::string cmd("ipmitool raw 0x2E 0x04 0xCF 0xC2 0x00 0x01 0x00 0x" + number_set);
++                    int ret = system(cmd.c_str());
++                    if (ret < 0)
++                    {
++                        std::cout << "failed to write ,error = " << strerror(-ret) << std::endl;
++                        messages::internalError(asyncResp->res);
++                        asyncResp->res.end();
++                        return;
++                    }
++                    asyncResp->res.end();
++                    return ;
++                }
++        );
++
++}
++
++inline void requsetRoutesOEMFanGetMode(App& app)
++{
++    BMCWEB_ROUTE(app, "/redfish/v1/Managers/bmc/Oem/FanModeGet")
++        .privileges(redfish::privileges::getFanGetMode)
++        .methods(boost::beast::http::verb::get)(
++            [](const crow::Request&/* req */,
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)-> void{
++                    asyncResp->res.jsonValue = {
++                        {"@odata.context", "/redfish/v1/$metadata#Manager"},
++                        {"@odata.id", "/redfish/v1/Managers/bmc/Oem/FanModeGet"},
++                        {"@odata.type", "#OEMFanModeModule.OEMFanModeModule"},
++                        {"Name", "Fan Mode Get"},
++                        {"Describe", "Fan mode 0 = Automatic mode, 1 = Manual mode, 2 = Full mode, 3 = Quite mode"},
++                    };
++                    std::string cmd("ipmitool raw 0x2E 0x04 0xCF 0xC2 0x00 0x00 0x00 > /mnt/FANMODGET");
++                    int ret = system(cmd.c_str());
++                    if (ret < 0)
++                    {
++                        std::cout << "failed to write ,error = " << strerror(-ret) << std::endl;
++                        messages::internalError(asyncResp->res);
++                        asyncResp->res.end();
++                        return;
++                    }
++                    std::ifstream fin ("/mnt/FANMODGET");
++                    std::string cmdline;
++                    std::string final_buffer;
++                    getline(fin, cmdline);
++                    final_buffer = final_buffer.assign(cmdline,11,1);//start 11 limet 1
++                    asyncResp->res.jsonValue["MODE"] = final_buffer;
++                    fin.close();
++                    asyncResp->res.end();
++                    return;
++                }
++        );
++}
+ }// namespace redfish
+\ No newline at end of file

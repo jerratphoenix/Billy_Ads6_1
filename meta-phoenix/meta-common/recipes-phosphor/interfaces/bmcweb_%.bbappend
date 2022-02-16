@@ -17,5 +17,6 @@ SRC_URI += "file://0001-Merge-from-ptec-bmcweb.patch \
 			file://0016-Fixed-Get-Systems-system-cmd-fail-and-returns-500-In.patch \
 			file://0017-Register-discrete-sensor-redfish-messages.patch \
 			file://0018-Correct-dbus-service-to-match-power-cap-data.patch \
+			file://0019-Add-Set-Fan-mode-on-Redfish.patch \
            "
 
