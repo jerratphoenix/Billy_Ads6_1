@@ -68,13 +68,32 @@ int32_t get_system_crash(double* reading)
 
 int32_t get_sys_pwr_state(double* reading)
 {
-    if (is_power_on())
+    static int first_time_AC_check = 0;
+    static bool previous_reading = is_power_on();
+    bool current_reading = is_power_on();
+
+    // Because the service could not ready yet before getting host status
+    // So we check power status one time only when AC boot
+    if (first_time_AC_check == 0 && get_BMC_ACBoot_state_from_Intel_Settings_dbus())
     {
-        *reading = BIT(0); // SensorType 22h, offset 00h: S0 / G0 "working"
+        if (current_reading )
+        {
+            *reading = BIT(0); // SensorType 22h, offset 00h: S0 / G0 "working"
+            first_time_AC_check = 1;
+        }
     }
-    else
+
+    if (previous_reading != current_reading)
     {
-        *reading = BIT(5); // SensorType 22h, offset 05h: S5 / G2 "soft-off"
+        if (current_reading )
+        {
+            *reading = BIT(0); // SensorType 22h, offset 00h: S0 / G0 "working"
+        }
+        else
+        {
+            *reading = BIT(5); // SensorType 22h, offset 05h: S5 / G2 "soft-off"
+        }
+        previous_reading = current_reading;
     }
 
     return SENSOR_STATUS::NORMAL;
