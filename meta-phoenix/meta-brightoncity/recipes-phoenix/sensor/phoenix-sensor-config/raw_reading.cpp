@@ -43,15 +43,18 @@ int32_t get_system_crash(double* reading)
     bool cpu_err = false;
     int gpio_caterr, gpio_err0, gpio_err1, gpio_err2;
 
-    // Read from GPIO
-    api_get_gpio("CPU_CATERR", &gpio_caterr, gpiod::line::ACTIVE_LOW);
-    api_get_gpio("CPU_ERR0", &gpio_err0, gpiod::line::ACTIVE_LOW);
-    api_get_gpio("CPU_ERR1", &gpio_err1, gpiod::line::ACTIVE_LOW);
-    api_get_gpio("CPU_ERR2", &gpio_err2, gpiod::line::ACTIVE_LOW);
-
-    if (gpio_caterr == 1 || gpio_err0 == 1 || gpio_err1 == 1 || gpio_err2 == 1)
+    if (is_power_on() == true)
     {
-        cpu_err = true;
+        // Read from GPIO
+        api_get_gpio("CPU_CATERR", &gpio_caterr, gpiod::line::ACTIVE_LOW);
+        api_get_gpio("CPU_ERR0", &gpio_err0, gpiod::line::ACTIVE_LOW);
+        api_get_gpio("CPU_ERR1", &gpio_err1, gpiod::line::ACTIVE_LOW);
+        api_get_gpio("CPU_ERR2", &gpio_err2, gpiod::line::ACTIVE_LOW);
+
+        if (gpio_caterr == 1 || gpio_err0 == 1 || gpio_err1 == 1 || gpio_err2 == 1)
+        {
+            cpu_err = true;
+        }
     }
 
     if (cpu_err == true)
