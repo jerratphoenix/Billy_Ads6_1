@@ -382,7 +382,7 @@
         },
         {
             "CPURequired": 1,
-            "Index": 11,
+            "Index": 12,
             "Name": "PVPP_CPU1_ABC",
             "PowerState": "On",
             "ScaleFactor": 0.5348,
@@ -415,7 +415,7 @@
             "Type": "ADC"
         },
         {
-            "Index": 12,
+            "Index": 14,
             "Name": "PVNN_NAC",
             "Thresholds": [
                 {
@@ -446,7 +446,7 @@
             "Type": "ADC"
         },
         {
-            "Index": 13,
+            "Index": 15,
             "Name": "P1V05_NAC",
             "Thresholds": [
                 {
