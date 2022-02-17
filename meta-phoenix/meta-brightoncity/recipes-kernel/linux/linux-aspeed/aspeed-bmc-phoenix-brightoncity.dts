@@ -312,6 +312,10 @@
 			&pinctrl_nri1_default>;
 };
 
+&uart3 {
+	status = "okay";
+};
+
 &uart5 {
 	status = "okay";
 };
