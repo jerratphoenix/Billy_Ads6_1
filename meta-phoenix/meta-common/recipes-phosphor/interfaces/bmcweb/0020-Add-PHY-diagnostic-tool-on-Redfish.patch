@@ -1,0 +1,269 @@
+From 5c5fd9b4e042c1f547d878decadbab334f000f4e Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Thu, 17 Feb 2022 05:36:36 +0000
+Subject: [PATCH] Add PHY diagnostic tool on Redfish.
+
+---
+ meson.build                                   |   1 +
+ meson_options.txt                             |   1 +
+ redfish-core/include/redfish.hpp              |   3 +
+ .../include/registries/privilege_registry.hpp |  16 ++
+ redfish-core/lib/oem_phy_module.hpp           | 176 ++++++++++++++++++
+ 5 files changed, 197 insertions(+)
+ create mode 100755 redfish-core/lib/oem_phy_module.hpp
+
+diff --git a/meson.build b/meson.build
+index 29d30a6..f5dac9c 100755
+--- a/meson.build
++++ b/meson.build
+@@ -90,6 +90,7 @@ feature_map = {
+   'oem-i2c-module'                  : '-DBMCWEB_ENABLE_OEM_I2C_MODULE',
+   'oem-gpio-module'                 : '-DBMCWEB_ENABLE_OEM_GPIO_MODULE',
+   'oem-adc-module'                  : '-DBMCWEB_ENABLE_OEM_ADC_MODULE',
++  'oem-phy-module'                  : '-DBMCWEB_ENABLE_OEM_PHY_MODULE',
+ }
+ 
+ # Get the options status and build a project summary to show which flags are
+diff --git a/meson_options.txt b/meson_options.txt
+index 4e2c144..460d6de 100755
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -38,6 +38,7 @@ option('oem-fan-module', type : 'feature', value : 'enabled', description : 'Ena
+ option('oem-i2c-module', type : 'feature', value : 'enabled', description : 'Enable OEM I2C module.')
+ option('oem-gpio-module', type : 'feature', value : 'enabled', description : 'Enable OEM GPIO module.')
+ option('oem-adc-module', type : 'feature', value : 'enabled', description : 'Enable OEM ADC module.')
++option('oem-phy-module', type : 'feature', value : 'enabled', description : 'Enable OEM PHY module.')
+ 
+ # Insecure options. Every option that starts with a `insecure` flag should
+ # not be enabled by default for any platform, unless the author fully comprehends
+diff --git a/redfish-core/include/redfish.hpp b/redfish-core/include/redfish.hpp
+index 9a2c29c..cd114e0 100755
+--- a/redfish-core/include/redfish.hpp
++++ b/redfish-core/include/redfish.hpp
+@@ -34,6 +34,7 @@
+ #include "../lib/oem_gpio_module.hpp"
+ #include "../lib/oem_fan_module.hpp"
+ #include "../lib/oem_i2c_module.hpp"
++#include "../lib/oem_phy_module.hpp"
+ #include "../lib/pcie.hpp"
+ #include "../lib/power.hpp"
+ #include "../lib/processor.hpp"
+@@ -223,6 +224,8 @@ class RedfishService
+         requestRoutesOEMGPIOGet(app);
+         requestRoutesOEMADCSet(app);
+         requestRoutesOEMADCGet(app);
++        requestRoutesOEMPHYSet(app);
++        requestRoutesOEMPHYGet(app);
+     }
+ };
+ 
+diff --git a/redfish-core/include/registries/privilege_registry.hpp b/redfish-core/include/registries/privilege_registry.hpp
+index d06a35a..920f82a 100755
+--- a/redfish-core/include/registries/privilege_registry.hpp
++++ b/redfish-core/include/registries/privilege_registry.hpp
+@@ -1044,6 +1044,22 @@ const static auto& postPCIeSlots = privilegeSetConfigureComponents;
+ const static auto& putPCIeSlots = privilegeSetConfigureComponents;
+ const static auto& deletePCIeSlots = privilegeSetConfigureComponents;
+ 
++//PHYSet
++const static auto& getPHYSet = privilegeSetLogin;
++const static auto& headPHYSet = privilegeSetLogin;
++const static auto& patchPHYSet = privilegeSetLogin;
++const static auto& putPHYSet = privilegeSetConfigureManager;
++const static auto& deletePHYSet = privilegeSetConfigureManager;
++const static auto& postPHYSet = privilegeSetConfigureManager;
++
++//PHYGet
++const static auto& getPHYGet = privilegeSetLogin;
++const static auto& headPHYGet = privilegeSetLogin;
++const static auto& patchPHYGet = privilegeSetLogin;
++const static auto& putPHYGet = privilegeSetConfigureManager;
++const static auto& deletePHYGet = privilegeSetConfigureManager;
++const static auto& postPHYGet = privilegeSetConfigureManager;
++
+ // Port
+ const static auto& getPort = privilegeSetLogin;
+ const static auto& headPort = privilegeSetLogin;
+diff --git a/redfish-core/lib/oem_phy_module.hpp b/redfish-core/lib/oem_phy_module.hpp
+new file mode 100755
+index 0000000..b22c6dc
+--- /dev/null
++++ b/redfish-core/lib/oem_phy_module.hpp
+@@ -0,0 +1,176 @@
++#pragma once
++
++#include "registries.hpp"
++#include "registries/base_message_registry.hpp"
++#include "registries/openbmc_message_registry.hpp"
++#include "task.hpp"
++
++#include <systemd/sd-journal.h>
++
++#include <boost/algorithm/string/split.hpp>
++#include <boost/beast/core/span.hpp>
++#include <boost/container/flat_map.hpp>
++#include <boost/system/linux_error.hpp>
++#include <error_messages.hpp>
++
++#include <filesystem>
++#include <string_view>
++#include <variant>
++#include <cctype>
++#include <stdlib.h>
++#include <iostream>
++#include <string>
++
++namespace redfish
++{
++
++inline void requestRoutesOEMPHYSet(App& app)
++{
++    BMCWEB_ROUTE(app, "/redfish/v1/Managers/bmc/Oem/PHYSet")
++        .privileges(redfish::privileges::getPHYSet)
++        .methods(boost::beast::http::verb::get)(
++            [](const crow::Request&/* req */, 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)-> void{
++                    asyncResp->res.jsonValue = {
++                        {"@odata.context", "/redfish/v1/$metadata#Manager"},
++                        {"@odata.id", "/redfish/v1/Managers/bmc/Oem/PHYSet"},
++                        {"@odata.type", "#OEMPHYModule.OEMPHYModule"},
++                        {"Name", "PHY Set"},
++                        {"Describe", "Use PATCH { OFFSET:\"Addr\", DATA:\"data\" } to Set register, Reference ASPEED SPEC PHY Controller, It should be 2 digits [00] offset and 32 bit and Hex format [0xFFFFFFFF], Write Data Register[MDC/MDIO 0: 00, MDC/MDIO 1: 08, MDC/MDIO 2: 10, MDC/MDIO 3: 18]"},
++                    };
++                    asyncResp->res.end();
++                    return;
++                }
++        );
++    
++    BMCWEB_ROUTE(app, "/redfish/v1/Managers/bmc/Oem/PHYSet")
++        .privileges(redfish::privileges::patchPHYSet)
++        .methods(boost::beast::http::verb::patch)(
++            [](const crow::Request& req , 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)-> void{
++                    std::optional<std::string> offset;
++                    std::optional<std::string> data;
++                    if (!json_util::readJson(req, asyncResp->res, "OFFSET", offset, "DATA", data))
++                    {
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    std::size_t len_offset;
++                    std::string set_offset;
++                    std::size_t len_data;
++                    std::string set_data;
++
++                    set_offset = *offset;
++                    len_offset = strlen(set_offset.c_str());
++                    if ( len_offset != 2)
++                    {
++                        messages::queryParameterOutOfRange(
++                            asyncResp->res, *offset,
++                            "OFFSET", "It should be 2 digits offset, Example: PMI18: Data of Channel 7 and 6, It will be 18 ,Write Data Register[MDC/MDIO 0: 00, MDC/MDIO 1: 08, MDC/MDIO 2: 10, MDC/MDIO 3: 18]");
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    set_data = *data;
++                    len_data = strlen(set_data.c_str());
++                    if ( len_data != 10)
++                    {
++                        messages::queryParameterOutOfRange(
++                            asyncResp->res, *data,
++                            "DATA", "It should be 32 bit and Hex format [0xFFFFFFFF]");
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    std::string cmd("devmem 0x1E6500" + *offset + " 32 " + *data );
++                    int ret = system(cmd.c_str());
++                    if (ret < 0)
++                    {
++                        std::cout << "failed to write ,error = " << strerror(-ret) << std::endl;
++                        messages::internalError(asyncResp->res);
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    asyncResp->res.end();
++                    return ;
++                }
++        );
++}
++
++inline void requestRoutesOEMPHYGet(App& app)
++{
++    BMCWEB_ROUTE(app, "/redfish/v1/Managers/bmc/Oem/PHYGet")
++        .privileges(redfish::privileges::getPHYGet)
++        .methods(boost::beast::http::verb::get)(
++            [](const crow::Request&/* req */, 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)-> void{
++                    asyncResp->res.jsonValue = {
++                        {"@odata.context", "/redfish/v1/$metadata#Manager"},
++                        {"@odata.id", "/redfish/v1/Managers/bmc/Oem/PHYGet"},
++                        {"@odata.type", "#OEMPHYModule.OEMPHYModule"},
++                        {"Name", "PHY Get"},
++                        {"Describe", "Use PATCH { OFFSET: \"addr\" } to get register, Reference ASPEED SPEC PHY Controller,Example: Get PMI004, The Offset should be 004 ,Read Data Register[MDC/MDIO 0 : 004, MDC/MDIO 1 : 00C, MDC/MDIO 2 : 014, MDC/MDIO 3 : 01C]"},
++                    };
++                    asyncResp->res.end();
++                    return;
++                }
++        );
++
++    BMCWEB_ROUTE(app, "/redfish/v1/Managers/bmc/Oem/PHYGet")
++        .privileges(redfish::privileges::patchPHYGet)
++        .methods(boost::beast::http::verb::patch)(
++            [](const crow::Request& req, 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)-> void{
++                    std::optional<std::string> offset;
++                    if (!json_util::readJson(req, asyncResp->res, "OFFSET", offset))
++                    {
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    std::size_t len_offset;
++                    std::string set_offset;
++                    set_offset = *offset;
++                    len_offset = strlen(set_offset.c_str());
++                    if ( len_offset != 2)
++                    {
++                        messages::queryParameterOutOfRange(
++                            asyncResp->res, *offset,
++                            "OFFSET", "It should be 2 digits offset, Example: Get PMI04, The Offset should be 04 [MDC/MDIO 0: 04, MDC/MDIO 1: 0C, MDC/MDIO 2: 14, MDC/MDIO 3: 1C]");
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    std::string cmd("devmem 0x1E6500" + *offset + " 32 > /mnt/PHYGET");
++                    int ret = system(cmd.c_str());
++                    if (ret < 0)
++                    {
++                        std::cout << "failed to write ,error = " << strerror(-ret) << std::endl;
++                        messages::internalError(asyncResp->res);
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    std::ifstream fin ("/mnt/PHYGET");
++                    std::string buffer;
++                    std::string PHY_GET;
++                    int i = 0 ;
++                    while(getline(fin,buffer))
++                    {
++                        PHY_GET=buffer;
++                        i++;
++                    }
++
++                    asyncResp->res.jsonValue["DATA"] = PHY_GET;
++                    fin.close();
++                    if (system("rm -rf /mnt/PHYGET") < 0){
++                        return;
++                    }
++                    asyncResp->res.end();
++                    return ;
++                }
++        );
++}
++}
+\ No newline at end of file
