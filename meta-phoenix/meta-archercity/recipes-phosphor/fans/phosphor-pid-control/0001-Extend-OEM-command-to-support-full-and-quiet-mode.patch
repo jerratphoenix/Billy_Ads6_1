@@ -1,0 +1,296 @@
+From 0b10f292c022e8ac675c99f0821753099f3c5573 Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Fri, 12 Nov 2021 08:27:51 +0000
+Subject: [PATCH] Extend OEM command to support full and quiet mode.
+
+---
+ ipmi/control.hpp       |  4 ++--
+ ipmi/dbus_mode.cpp     | 10 +++++-----
+ ipmi/dbus_mode.hpp     |  4 ++--
+ ipmi/manualcmds.cpp    |  6 +++---
+ pid/fancontroller.cpp  | 13 +++++++++++++
+ pid/pidloop.cpp        | 11 +++++++++++
+ pid/tuning.hpp         |  6 ++++++
+ pid/zone.cpp           |  6 +++---
+ pid/zone.hpp           |  8 ++++----
+ pid/zone_interface.hpp |  2 +-
+ 10 files changed, 50 insertions(+), 20 deletions(-)
+ mode change 100644 => 100755 ipmi/control.hpp
+ mode change 100644 => 100755 ipmi/dbus_mode.cpp
+ mode change 100644 => 100755 ipmi/dbus_mode.hpp
+ mode change 100644 => 100755 ipmi/manualcmds.cpp
+ mode change 100644 => 100755 pid/fancontroller.cpp
+ mode change 100644 => 100755 pid/pidloop.cpp
+ mode change 100644 => 100755 pid/tuning.hpp
+ mode change 100644 => 100755 pid/zone.cpp
+ mode change 100644 => 100755 pid/zone.hpp
+ mode change 100644 => 100755 pid/zone_interface.hpp
+
+diff --git a/ipmi/control.hpp b/ipmi/control.hpp
+old mode 100644
+new mode 100755
+index 4f1f0ad..dba7032
+--- a/ipmi/control.hpp
++++ b/ipmi/control.hpp
+@@ -16,12 +16,12 @@ class ZoneControlInterface
+ 
+     // Reads the fan control property (either manual or failsafe) and returns an
+     // IPMI code based on success or failure of this.
+-    virtual uint8_t getFanCtrlProperty(uint8_t zoneId, bool* value,
++    virtual uint8_t getFanCtrlProperty(uint8_t zoneId, uint8_t* value,
+                                        const std::string& property) = 0;
+ 
+     // Sets the fan control property (only manual mode is settable presently)
+     // and returns an IPMI code based on success or failure of this.
+-    virtual uint8_t setFanCtrlProperty(uint8_t zoneId, bool value,
++    virtual uint8_t setFanCtrlProperty(uint8_t zoneId, uint8_t value,
+                                        const std::string& property) = 0;
+ };
+ 
+diff --git a/ipmi/dbus_mode.cpp b/ipmi/dbus_mode.cpp
+old mode 100644
+new mode 100755
+index b9cdb67..e316688
+--- a/ipmi/dbus_mode.cpp
++++ b/ipmi/dbus_mode.cpp
+@@ -38,7 +38,7 @@ static constexpr auto failsafeProperty = "FailSafe";
+ static constexpr auto propertiesintf = "org.freedesktop.DBus.Properties";
+ 
+ using Property = std::string;
+-using Value = std::variant<bool>;
++using Value = std::variant<uint8_t>;
+ using PropertyMap = std::map<Property, Value>;
+ 
+ /* The following was copied directly from my manual thread handler. */
+@@ -47,7 +47,7 @@ static std::string getControlPath(int8_t zone)
+     return std::string(objectPath) + std::to_string(zone);
+ }
+ 
+-uint8_t DbusZoneControl::getFanCtrlProperty(uint8_t zoneId, bool* value,
++uint8_t DbusZoneControl::getFanCtrlProperty(uint8_t zoneId, uint8_t* value,
+                                             const std::string& property)
+ {
+     std::string path = getControlPath(zoneId);
+@@ -66,7 +66,7 @@ uint8_t DbusZoneControl::getFanCtrlProperty(uint8_t zoneId, bool* value,
+ 
+         valueResponseMsg.read(propMap);
+ 
+-        *value = std::get<bool>(propMap[property]);
++        *value = std::get<uint8_t>(propMap[property]);
+     }
+     catch (const sdbusplus::exception::exception& ex)
+     {
+@@ -76,10 +76,10 @@ uint8_t DbusZoneControl::getFanCtrlProperty(uint8_t zoneId, bool* value,
+     return IPMI_CC_OK;
+ }
+ 
+-uint8_t DbusZoneControl::setFanCtrlProperty(uint8_t zoneId, bool value,
++uint8_t DbusZoneControl::setFanCtrlProperty(uint8_t zoneId, uint8_t value,
+                                             const std::string& property)
+ {
+-    using Value = std::variant<bool>;
++    using Value = std::variant<uint8_t>;
+     Value v{value};
+ 
+     std::string path = getControlPath(zoneId);
+diff --git a/ipmi/dbus_mode.hpp b/ipmi/dbus_mode.hpp
+old mode 100644
+new mode 100755
+index b063ac4..542baec
+--- a/ipmi/dbus_mode.hpp
++++ b/ipmi/dbus_mode.hpp
+@@ -29,10 +29,10 @@ class DbusZoneControl : public ZoneControlInterface
+      * to hold the result). NOTE: This does not return the typedef value to
+      * avoid including a header with conflicting types.
+      */
+-    uint8_t getFanCtrlProperty(uint8_t zoneId, bool* value,
++    uint8_t getFanCtrlProperty(uint8_t zoneId, uint8_t* value,
+                                const std::string& property) override;
+ 
+-    uint8_t setFanCtrlProperty(uint8_t zoneId, bool value,
++    uint8_t setFanCtrlProperty(uint8_t zoneId, uint8_t value,
+                                const std::string& property) override;
+ };
+ 
+diff --git a/ipmi/manualcmds.cpp b/ipmi/manualcmds.cpp
+old mode 100644
+new mode 100755
+index 0ff0c0a..3904600
+--- a/ipmi/manualcmds.cpp
++++ b/ipmi/manualcmds.cpp
+@@ -43,7 +43,7 @@ ipmi_ret_t ZoneControlIpmiHandler::getFailsafeModeState(const uint8_t* reqBuf,
+                                                         uint8_t* replyBuf,
+                                                         size_t* dataLen)
+ {
+-    bool current;
++    uint8_t current;
+ 
+     if (*dataLen < sizeof(struct FanCtrlRequest))
+     {
+@@ -75,7 +75,7 @@ ipmi_ret_t ZoneControlIpmiHandler::getManualModeState(const uint8_t* reqBuf,
+                                                       uint8_t* replyBuf,
+                                                       size_t* dataLen)
+ {
+-    bool current;
++    uint8_t current;
+ 
+     if (*dataLen < sizeof(struct FanCtrlRequest))
+     {
+@@ -118,7 +118,7 @@ ipmi_ret_t ZoneControlIpmiHandler::setManualModeState(const uint8_t* reqBuf,
+ 
+     /* 0 is false, 1 is true */
+     ipmi_ret_t rc = _control->setFanCtrlProperty(
+-        request->zone, static_cast<bool>(request->value), manualProperty);
++        request->zone, request->value, manualProperty);
+     return rc;
+ }
+ 
+diff --git a/pid/fancontroller.cpp b/pid/fancontroller.cpp
+old mode 100644
+new mode 100755
+index d3c58ca..7c2fb29
+--- a/pid/fancontroller.cpp
++++ b/pid/fancontroller.cpp
+@@ -138,6 +138,19 @@ void FanController::outputProc(double value)
+         }
+     }
+ 
++    /* Extend OEM command to support full and quiet mode */ 
++    switch(_owner->getManualMode())
++    {
++        case fullMode:
++            percent = 100;
++            break;
++        case quiteMode: 
++            percent = 20;
++            break;
++        default:
++            break;
++    }
++
+     // value and kFanFailSafeDutyCycle are 10 for 10% so let's fix that.
+     percent /= 100;
+ 
+diff --git a/pid/pidloop.cpp b/pid/pidloop.cpp
+old mode 100644
+new mode 100755
+index a5d0daf..fc899f9
+--- a/pid/pidloop.cpp
++++ b/pid/pidloop.cpp
+@@ -102,6 +102,17 @@ void pidControlLoop(std::shared_ptr<ZoneInterface> zone,
+         // Check if we should just go back to sleep.
+         if (zone->getManualMode())
+         {
++            /* Extend OEM command to support full and quiet mode */ 
++            switch(zone->getManualMode())
++            {
++                case fullMode:
++                case quiteMode:
++                    zone->processFans();
++                    break;
++                default:
++                    break;
++            }
++
+             pidControlLoop(zone, timer, isCanceling, false, ms100cnt);
+             return;
+         }
+diff --git a/pid/tuning.hpp b/pid/tuning.hpp
+old mode 100644
+new mode 100755
+index ba4ec32..024151a
+--- a/pid/tuning.hpp
++++ b/pid/tuning.hpp
+@@ -11,3 +11,9 @@ extern bool tuningEnabled;
+ extern std::string loggingPath;
+ /** Boolean variable whether loggingPath is non-empty. */
+ extern bool loggingEnabled;
++
++/* Extend OEM command to support full and quiet mode */
++enum{
++    fullMode = 0x2,
++    quiteMode
++};
+diff --git a/pid/zone.cpp b/pid/zone.cpp
+old mode 100644
+new mode 100755
+index 441031a..43031b3
+--- a/pid/zone.cpp
++++ b/pid/zone.cpp
+@@ -74,12 +74,12 @@ double DbusPidZone::getMaxSetPointRequest(void) const
+     return _maximumSetPoint;
+ }
+ 
+-bool DbusPidZone::getManualMode(void) const
++uint8_t DbusPidZone::getManualMode(void) const
+ {
+     return _manualMode;
+ }
+ 
+-void DbusPidZone::setManualMode(bool mode)
++void DbusPidZone::setManualMode(uint8_t mode)
+ {
+     _manualMode = mode;
+ }
+@@ -447,7 +447,7 @@ Sensor* DbusPidZone::getSensor(const std::string& name)
+     return _mgr.getSensor(name);
+ }
+ 
+-bool DbusPidZone::manual(bool value)
++uint8_t DbusPidZone::manual(uint8_t value)
+ {
+     std::cerr << "manual: " << value << std::endl;
+     setManualMode(value);
+diff --git a/pid/zone.hpp b/pid/zone.hpp
+old mode 100644
+new mode 100755
+index 3bea9c2..d4ef540
+--- a/pid/zone.hpp
++++ b/pid/zone.hpp
+@@ -49,11 +49,11 @@ class DbusPidZone : public ZoneInterface, public ModeObject
+         }
+     }
+ 
+-    bool getManualMode(void) const override;
++    uint8_t getManualMode(void) const override;
+     /* Could put lock around this since it's accessed from two threads, but
+      * only one reader/one writer.
+      */
+-    void setManualMode(bool mode);
++    void setManualMode(uint8_t mode);
+     bool getFailSafeMode(void) const override;
+ 
+     int64_t getZoneID(void) const;
+@@ -84,7 +84,7 @@ class DbusPidZone : public ZoneInterface, public ModeObject
+     void writeLog(const std::string& value) override;
+ 
+     /* Method for setting the manual mode over dbus */
+-    bool manual(bool value) override;
++    uint8_t manual(uint8_t value);
+     /* Method for reading whether in fail-safe mode over dbus */
+     bool failSafe() const override;
+ 
+@@ -93,7 +93,7 @@ class DbusPidZone : public ZoneInterface, public ModeObject
+ 
+     const int64_t _zoneId;
+     double _maximumSetPoint = 0;
+-    bool _manualMode = false;
++    uint8_t _manualMode = 0;
+     const double _minThermalOutputSetPt;
+     const double _failSafePercent;
+ 
+diff --git a/pid/zone_interface.hpp b/pid/zone_interface.hpp
+old mode 100644
+new mode 100755
+index a024c0e..f30a2fe
+--- a/pid/zone_interface.hpp
++++ b/pid/zone_interface.hpp
+@@ -74,7 +74,7 @@ class ZoneInterface
+     /** Return if the zone is set to manual mode.  false equates to automatic
+      * mode (the default).
+      */
+-    virtual bool getManualMode(void) const = 0;
++    virtual uint8_t getManualMode(void) const = 0;
+ 
+     /** For each fan pid, do processing. */
+     virtual void processFans(void) = 0;
