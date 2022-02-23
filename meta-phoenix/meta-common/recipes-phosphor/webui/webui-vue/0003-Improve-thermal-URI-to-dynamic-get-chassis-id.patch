@@ -1,0 +1,47 @@
+From 7369ffcdbc3ed976e5999db8a002c5f4423f8cf9 Mon Sep 17 00:00:00 2001
+From: Brad Ho <brad_ho@phoenix.com>
+Date: Wed, 23 Feb 2022 11:23:51 +0800
+Subject: [PATCH] Improve thermal URI to dynamic get chassis id
+
+---
+ src/store/modules/HardwareStatus/FanStore.js | 26 +++++++++++++++++---
+ 1 file changed, 23 insertions(+), 3 deletions(-)
+
+diff --git a/src/store/modules/HardwareStatus/FanStore.js b/src/store/modules/HardwareStatus/FanStore.js
+index fca1f32..4c6afd6 100644
+--- a/src/store/modules/HardwareStatus/FanStore.js
++++ b/src/store/modules/HardwareStatus/FanStore.js
+@@ -38,10 +38,30 @@ const FanStore = {
+     },
+   },
+   actions: {
+-    async getFanInfo({ commit }) {
++    async getChassisCollection() {
+       return await api
+-        .get('/redfish/v1/Chassis/chassis/Thermal')
+-        .then(({ data: { Fans = [] } }) => commit('setFanInfo', Fans))
++        .get('/redfish/v1/Chassis')
++        .then(({ data: { Members } }) =>
++          Members.map((member) => member['@odata.id'])
++        )
++        .catch((error) => console.log(error));
++    },
++    async getFanInfo({ dispatch, commit }) {
++      const collection = await dispatch('getChassisCollection');
++      if (!collection) return;
++      return await api
++        .all(collection.map((chassis) => dispatch('getFan', chassis)))
++        .then((response) => {
++          let fanList = [];
++          response.forEach((fan) => (fanList = [...fanList, ...fan]));
++          commit('setFanInfo', fanList);
++        })
++        .catch((error) => console.log(error));
++    },
++    async getFan(_, id) {
++      return await api
++        .get(`${id}/Thermal`)
++        .then(({ data: { Fans } }) => Fans || [])
+         .catch((error) => console.log(error));
+     },
+   },
