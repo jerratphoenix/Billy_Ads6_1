@@ -162,7 +162,7 @@ index d3c58ca..7c2fb29
 +            percent = 100;
 +            break;
 +        case quiteMode: 
-+            percent = 20;
++            percent = 30;
 +            break;
 +        default:
 +            break;
