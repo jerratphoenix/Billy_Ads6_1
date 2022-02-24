@@ -20,14 +20,6 @@ pipeline {
 
             }
         }
-	stage('License Manifest'){
-            steps {
-                echo "Step LICENSE MANIFEST"
-                sh "cd ${WORKSPACE}/workspace/robotframework/base/build_tests; \
-                    python3 -m robot test_verify_license_manifest_file_creation-phoenix-gm-dev.robot; \
-                   "
-            }
-        }
         stage('Static Code Analysis') {
             when {
                 expression { return params.static_analysis }
@@ -287,7 +279,7 @@ pipeline {
 
             echo "Archive Artifacts"
 	    archiveArtifacts artifacts: 'build/*/tmp/deploy/images/*/*.mtd*', onlyIfSuccessful: true
-	    archiveArtifacts artifacts: 'workspace/robotframework/base/build_tests/**/${params.target}/license.manifest'
+	    archiveArtifacts artifacts: 'build/*/tmp/deploy/licenses/obmc-phosphor-image-*/license.manifest'
             script {
             	   if (params.static_analysis == true) {
             	       archiveArtifacts artifacts: 'cppcheck.xml'
