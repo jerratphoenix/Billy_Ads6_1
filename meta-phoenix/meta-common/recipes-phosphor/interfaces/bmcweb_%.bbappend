@@ -17,7 +17,8 @@ SRC_URI += "file://0001-Merge-from-ptec-bmcweb.patch \
 			file://0018-Correct-dbus-service-to-match-power-cap-data.patch \
 			file://0019-Add-Set-Fan-mode-on-Redfish.patch \
 			file://0020-Add-PHY-diagnostic-tool-on-Redfish.patch \
-            file://0021-Merge-from-server-gold.patch \
-            file://0022-Fixed-Get-Systems-system-cmd-fail-and-returns-500-In.patch \
+			file://0021-Merge-from-server-gold.patch \
+			file://0022-Fixed-Get-Systems-system-cmd-fail-and-returns-500-In.patch \
+			file://0023-Add-Set-Get-GPIO-diagnostic-limit-message.patch \
            "
 
