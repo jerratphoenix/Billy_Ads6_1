@@ -197,12 +197,12 @@ index 0000000..10a72b6
 +                    std::string bus_set;
 +                    if (bus)
 +                    {
-+                        // Supported range [0-15]
-+                        if (*bus > 15)
++                        // Supported range [0-17]
++                        if (*bus > 17)
 +                        {
 +                            messages::queryParameterOutOfRange(
 +                                asyncResp->res, std::to_string(*bus),
-+                                "bus", "[0-15]");
++                                "bus", "[0-17]");
 +                        }
 +                        else
 +                        {
@@ -274,12 +274,12 @@ index 0000000..10a72b6
 +                    std::string addr_set;
 +                    if (bus)
 +                    {
-+                        // Supported range [0-15]
-+                        if (*bus > 15)
++                        // Supported range [0-17]
++                        if (*bus > 17)
 +                        {
 +                            messages::queryParameterOutOfRange(
 +                                asyncResp->res, std::to_string(*bus),
-+                                "bus", "[0-15]");
++                                "bus", "[0-17]");
 +                        }
 +                        else
 +                        {
@@ -368,12 +368,12 @@ index 0000000..10a72b6
 +                    std::string data_set;
 +                    if (bus)
 +                    {
-+                        // Supported range [0-15]
-+                        if (*bus > 15)
++                        // Supported range [0-17]
++                        if (*bus > 17)
 +                        {
 +                            messages::queryParameterOutOfRange(
 +                                asyncResp->res, std::to_string(*bus),
-+                                "bus", "[0-15]");
++                                "bus", "[0-17]");
 +                        }
 +                        else
 +                        {
@@ -448,12 +448,12 @@ index 0000000..10a72b6
 +                    std::string reg_set;
 +                    if (bus)
 +                    {
-+                        // Supported range [0-15]
-+                        if (*bus > 15)
++                        // Supported range [0-17]
++                        if (*bus > 17)
 +                        {
 +                            messages::queryParameterOutOfRange(
 +                                asyncResp->res, std::to_string(*bus),
-+                                "bus", "[0-15]");
++                                "bus", "[0-17]");
 +                        }
 +                        else
 +                        {
