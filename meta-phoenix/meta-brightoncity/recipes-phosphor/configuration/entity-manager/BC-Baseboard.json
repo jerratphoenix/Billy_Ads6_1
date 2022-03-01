@@ -597,7 +597,7 @@
             "SlewPos": 0.0,
             "Type": "Pid",
             "Zones": [
-                "Cards"
+                "Board"
             ]
         },
         {
@@ -649,7 +649,7 @@
             "SlewPos": 0.0,
             "Type": "Pid",
             "Zones": [
-                "Cards"
+                "Board"
             ]
         },
         {
@@ -793,8 +793,7 @@
             "SlewPos": 0.0,
             "Type": "Pid",
             "Zones": [
-                "Board",
-                "Cards"
+                "Board"
             ]
         },
         {
