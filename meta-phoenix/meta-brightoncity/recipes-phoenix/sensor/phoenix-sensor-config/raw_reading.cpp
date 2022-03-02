@@ -38,20 +38,31 @@ bool is_power_on(void)
     return system_power_good;
 }
 
+// Let user could implement initial code, before first sensor get raw reading
+void initial_before_raw_reading(void)
+{
+    // Configure Host CPU GPIOs
+    // If does not want sensor module to monitor that GPIO, just remove it.
+    // As in case of enable host-error-monitor service, that GPIO line can not be requested again.
+    api_config_cpu_caterr_gpio("CPU_CATERR", gpiod::line::ACTIVE_LOW);
+    api_config_cpu_err0_gpio("CPU_ERR0", gpiod::line::ACTIVE_LOW);
+    api_config_cpu_err1_gpio("CPU_ERR1", gpiod::line::ACTIVE_LOW);
+    api_config_cpu_err2_gpio("CPU_ERR2", gpiod::line::ACTIVE_LOW);
+    api_config_cpu1_present_gpio("CPU1_PRESENCE", gpiod::line::ACTIVE_LOW);
+
+    // Add other inital code here
+}
+
 int32_t get_system_crash(double* reading)
 {
     bool cpu_err = false;
-    int gpio_caterr, gpio_err0, gpio_err1, gpio_err2;
 
     if (is_power_on() == true)
     {
-        // Read from GPIO
-        api_get_gpio("CPU_CATERR", &gpio_caterr, gpiod::line::ACTIVE_LOW);
-        api_get_gpio("CPU_ERR0", &gpio_err0, gpiod::line::ACTIVE_LOW);
-        api_get_gpio("CPU_ERR1", &gpio_err1, gpiod::line::ACTIVE_LOW);
-        api_get_gpio("CPU_ERR2", &gpio_err2, gpiod::line::ACTIVE_LOW);
-
-        if (gpio_caterr == 1 || gpio_err0 == 1 || gpio_err1 == 1 || gpio_err2 == 1)
+        if (api_is_cpu_caterr_gpio_assert() == true ||
+            api_is_cpu_err0_gpio_assert() == true ||
+            api_is_cpu_err1_gpio_assert() == true ||
+            api_is_cpu_err2_gpio_assert() == true)
         {
             cpu_err = true;
         }
