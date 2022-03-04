@@ -1,0 +1,37 @@
+diff --git a/Makefile.am b/Makefile.am
+index c303b11..c2f4194 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -9,7 +9,7 @@ man_MANS	 = rngd.8 rngtest.1
+ noinst_LIBRARIES = librngd.a
+ 
+ rngd_SOURCES	= rngd.h rngd.c	rngd_entsource.h rngd_entsource.c	\
+-		  rngd_linux.h rngd_linux.c util.c ossl_helpers.c
++		  rngd_linux.h rngd_linux.c util.c ossl_helpers.c hook_add_entropy_buffer.c
+ 
+ if NISTBEACON
+ rngd_SOURCES	+= rngd_nistbeacon.c
+diff --git a/rngd_linux.c b/rngd_linux.c
+index 873723c..9439f3e 100644
+--- a/rngd_linux.c
++++ b/rngd_linux.c
+@@ -48,6 +48,8 @@
+ #include "exits.h"
+ #include "rngd_linux.h"
+ 
++#include "hook_add_entropy_buffer.h"
++
+ /* Kernel output device */
+ static int random_fd;
+ 
+@@ -142,6 +144,10 @@ int random_add_entropy(void *buf, size_t size)
+ 
+ 	ent->ent_count = size * arguments->entropy_count;
+ 	ent->size = size;
++	// Call hook to modify buf
++	if(0 != hook_add_entropy_buffer(buf, size)) {
++			message(LOG_DAEMON|LOG_DEBUG, "Successful work done by hook_add_entropy_buffer()\n");
++        }
+ 	memcpy(ent + 1, buf, size);
+ 
+ 	if (write_to_output == false) {
