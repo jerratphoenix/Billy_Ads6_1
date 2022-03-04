@@ -1,5 +1,5 @@
 Fixing a few complaints by https://github.com/drwetter/testssl.sh
-    1. Should be using SHA284 for secp384r1 (curve P-384) keys
+    1. Should be using SHA384 for secp384r1 (curve P-384) keys
     2. Serial number needs a minum length 8 bytes
     3. Certificate Validity is to not exceed 398 days
     4. Changed Phoenix Technologies Ltd. to Phoenix Technologies Inc.
