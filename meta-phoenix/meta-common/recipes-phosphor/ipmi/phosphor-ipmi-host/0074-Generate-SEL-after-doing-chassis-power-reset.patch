@@ -1,0 +1,79 @@
+From e9327f0f22c4b2c5bbece00d4cf3db860e9fa873 Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Tue, 8 Mar 2022 00:42:41 +0000
+Subject: [PATCH] Generate SEL after doing chassis power reset.
+
+---
+ chassishandler.cpp | 49 ++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 49 insertions(+)
+
+diff --git a/chassishandler.cpp b/chassishandler.cpp
+index 27faaa8..0409d64 100755
+--- a/chassishandler.cpp
++++ b/chassishandler.cpp
+@@ -812,6 +812,37 @@ ipmi::RspType<> ipmiSetChassisCap(bool intrusion, bool fpLockout,
+     return ipmi::responseSuccess();
+ }
+ 
++int add_ipmi_std_sel_entry(std::string ipmiSELAddMessage,
++                           std::string sensorPath,
++                           std::vector<uint8_t> eventData,
++                           bool assert,
++                           uint16_t generatorID)
++{
++    boost::asio::io_context io;
++    auto conn = std::make_shared<sdbusplus::asio::connection>(io);
++
++    auto method = conn->new_method_call("xyz.openbmc_project.Logging.IPMI",
++                                        "/xyz/openbmc_project/Logging/IPMI",
++                                        "xyz.openbmc_project.Logging.IPMI",
++                                        "IpmiSelAdd");
++
++    method.append(
++        ipmiSELAddMessage, sensorPath, eventData, assert, generatorID);
++
++    try
++    {
++        conn->call(method);
++    }
++
++    catch (sdbusplus::exception::SdBusError& e)
++    {
++        log<level::ERR>("add_ipmi_std_sel_entry error\n");
++        return -1;
++    }
++
++    return 0;
++}
++
+ //------------------------------------------
+ // Calls into Host State Manager Dbus object
+ //------------------------------------------
+@@ -1478,9 +1509,27 @@ ipmi::RspType<> ipmiChassisControl(uint8_t chassisControl)
+             break;
+ 
+         case CMD_HARD_RESET:
++        {
+             rc = initiate_state_transition(
+                 State::Host::Transition::ForceWarmReboot);
++            std::vector<uint8_t> eventData(3, 0xFF);
++            // mapping to SensorType 1Dh = system event
++            eventData[0] = 0x05; // Event Data 1
++            eventData[1] = 0xff; // Event Data 2
++            eventData[2] = 0xff; // Event Data 3
++            int ret;
++            ret = add_ipmi_std_sel_entry("System host state Event",
++                                  "/xyz/openbmc_project/sensors/specific/Host_State",
++                                  eventData,
++                                  true,
++                                  0x20);
++            if (ret != 0)
++            {
++                log<level::ERR>("Add System host state Event fail .....\n");
++            }
+             break;
++        }
++
+         case CMD_POWER_CYCLE:
+             // SPEC has a section that says certain implementations can trigger
+             // PowerOn if power is Off when a command to power cycle is

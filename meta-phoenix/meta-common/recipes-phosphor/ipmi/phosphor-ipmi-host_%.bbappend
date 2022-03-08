@@ -13,6 +13,7 @@ SRC_URI += "file://PtecLanConfig.json \
             file://0071-Before_Send_Set_SEL_Time_probe_NTP_Status.patch \
             file://0072-Add-phoenix-oem-Number-and-IPMI-Completion-Codes-0xD5.patch \
             file://0073-Implement-destination-address-gateway-selector-and-m.patch \
+	    file://0074-Generate-SEL-after-doing-chassis-power-reset.patch \
             "
 
 do_install:append() {
