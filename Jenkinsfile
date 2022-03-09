@@ -1,5 +1,3 @@
-// parameters: static_analysis, target
-
 pipeline {
     agent any
     stages{
@@ -17,7 +15,9 @@ pipeline {
                                        [$class: 'LocalBranch', localBranch: '**']],
                           userRemoteConfigs: [[credentialsId: 'jenkins-slave-1', url: 'git@github.com:pteceng/RobotFrameworkTest-BMC.git']]
                           ]);
-
+		  sh "cd ${WORKSPACE}/workspace/robotframework/; \
+                      if [ ! -d './${params.test_board}' ]; then mv './_archived/${params.test_board}' .; fi \
+                     "
             }
         }
         stage('Static Code Analysis') {
@@ -272,6 +272,114 @@ pipeline {
                    "
             }
         }
+
+	stage('Test') {
+            when {
+                expression { return params.test_build }
+            }
+            steps {
+	        echo "Initialize Tests"
+                sh "cp ${WORKSPACE}/build/${params.target}/tmp/deploy/images/${params.target}/obmc-phosphor-image-${params.target}.static.mtd ${WORKSPACE}/workspace/robotframework/${params.test_board}/firmware_tests; \
+                    cp ${WORKSPACE}/../set_root_password.sh ${WORKSPACE}; \
+                    /bin/bash ${WORKSPACE}/set_root_password.sh ${params.bmc_ip}; \
+                   "
+
+	        echo "Test Firmware Update"
+                catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                    sh "cd ${WORKSPACE}/workspace/robotframework/shell_file_executables; \
+                        sh run_fw_update_testsuites_pipeline.sh ${params.bmc_ip} ${params.bmc_username} ${params.bmc_password} ${params.https_port} \
+                        ${params.ssh_port} ${params.ipmi_port} ${params.browser} ${params.test_board}; \
+                       "
+                }
+
+		sh "/bin/bash ${WORKSPACE}/set_root_password.sh ${params.bmc_ip};"
+
+                echo "Test Redfish"
+                catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                    sh "cd ${WORKSPACE}/workspace/robotframework/shell_file_executables; \
+                        sh run_redfish_testsuites.sh ${params.bmc_ip} ${params.bmc_username} ${params.bmc_password} ${params.https_port} \
+                        ${params.ssh_port} ${params.ipmi_port} ${params.baseboard} ${params.test_board}; \
+                       "
+                }
+
+		sh "/bin/bash ${WORKSPACE}/set_root_password.sh ${params.bmc_ip};"
+
+                echo "Test IPMI"
+                catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                    sh "cd ${WORKSPACE}/workspace/robotframework/shell_file_executables; \
+                        sh run_ipmi_oob_testsuites.sh ${params.bmc_ip} ${params.bmc_username} ${params.bmc_password} ${params.https_port} \
+                        ${params.ssh_port} ${params.ipmi_port} ${params.powerswitch_ip} ${params.powerswitch_outlet} \
+                        ${params.baseboard} ${params.test_board}; \
+                       "
+                }
+
+		sh "/bin/bash ${WORKSPACE}/set_root_password.sh ${params.bmc_ip};"
+
+                echo "Test SOL"
+                catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                    sh "cd ${WORKSPACE}/workspace/robotframework/shell_file_executables; \
+                        sh run_sol_functionality_testsuite.sh ${params.client_ip} ${params.client_username} ${params.client_password} \
+                        ${params.bmc_priv_ip} ${params.bmc_ip} ${params.bmc_username} ${params.bmc_password} ${params.https_port} \
+                        ${params.ssh_port} ${params.ipmi_port} ${params.test_board}; \
+                       "
+                }
+
+                sh "/bin/bash ${WORKSPACE}/set_root_password.sh ${params.bmc_ip};"
+
+                echo "Test Web GUI"
+                catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                    sh "cd ${WORKSPACE}/workspace/robotframework/shell_file_executables; \
+                        sh run_webgui_testsuites.sh ${params.bmc_ip} ${params.bmc_username} ${params.bmc_password} ${params.https_port} \
+                        ${params.ssh_port} ${params.ipmi_port} ${params.baseboard} ${params.browser} ${params.test_board}; \
+                       "
+                        // /build/jenkins/os_images/ubuntu-20.04.1-live-server-amd64.iso
+                }
+
+		sh "/bin/bash ${WORKSPACE}/set_root_password.sh ${params.bmc_ip};"
+
+                echo "Stress Tests"
+                catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                    sh "cd ${WORKSPACE}/workspace/robotframework/shell_file_executables; \
+                        sh run_stress_testsuites.sh ${params.client_ip} ${params.client_username} ${params.client_password} \
+                        ${params.bmc_priv_ip} ${params.bmc_ip} ${params.bmc_username} ${params.bmc_password} ${params.https_port} \
+                        ${params.ssh_port} ${params.ipmi_port} ${params.test_board}; \
+                       "
+                }
+
+                sh "/bin/bash ${WORKSPACE}/set_root_password.sh ${params.bmc_ip};"
+
+                echo "Combine all Test Results"
+                catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                    sh "mkdir -p ${WORKSPACE}/test_results; \
+                        python -m robot.rebot \
+                               --outputdir ${WORKSPACE}/test_results \
+                               --output output.xml \
+                               --log log.html \
+                               --report report.html \
+                               ${WORKSPACE}/workspace/robotframework/${params.test_board}/firmware_tests/output.xml \
+                               ${WORKSPACE}/workspace/robotframework/${params.test_board}/redfish_tests/output.xml \
+                               ${WORKSPACE}/workspace/robotframework/${params.test_board}/ipmi_tests/ipmitool/output.xml \
+                               ${WORKSPACE}/workspace/robotframework/${params.test_board}/sol_tests/output.xml \
+                               ${WORKSPACE}/workspace/robotframework/${params.test_board}/webgui_tests/output.xml \
+                               ${WORKSPACE}/workspace/robotframework/${params.test_board}/stress_tests/output.xml; \
+                       "
+                }
+
+                echo "Publish Test Results"
+                script {
+                       step([
+                                $class                    : 'RobotPublisher',
+                                outputPath                : "${WORKSPACE}/test_results",
+                                outputFileName            : "output.xml",
+                                reportFileName            : "report.html",
+                                logFileName               : "log.html",
+                                disableArchiveOutput      : false,
+                                passThreshold             : 0.0,
+//                              unstableThreshold         : 0.0,
+                        ])
+                }
+	    }
+	}
     }
     post {
         always {
@@ -287,6 +395,9 @@ pipeline {
 		       archiveArtifacts artifacts: 'rflint.txt'
 		       archiveArtifacts artifacts: 'pylint.log'
 		   }
+		   if (params.test_build == true ){
+                       archiveArtifacts artifacts: 'test_results/output.xml'
+                   }
             }
 	    
             echo "Clean Workspace"
