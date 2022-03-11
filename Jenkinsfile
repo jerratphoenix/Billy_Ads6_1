@@ -16,7 +16,7 @@ pipeline {
                           userRemoteConfigs: [[credentialsId: 'jenkins-slave-1', url: 'git@github.com:pteceng/RobotFrameworkTest-BMC.git']]
                           ]);
 		  sh "cd ${WORKSPACE}/workspace/robotframework/; \
-                      if [ ! -d './${params.test_board}' ]; then mv './_archived/${params.test_board}' .; fi \
+                      if [ ! -d './${params.test_board}' ]; then if [ -d './_archived/${params.test_board}' ]; then mv './_archived/${params.test_board}' .; fi; fi \
                      "
             }
         }
@@ -275,6 +275,7 @@ pipeline {
 
 	stage('Test') {
             when {
+	    // add in check here for  "if [ ! -d './${params.test_board}' ];" to skip if directory is not present
                 expression { return params.test_build }
             }
             steps {
