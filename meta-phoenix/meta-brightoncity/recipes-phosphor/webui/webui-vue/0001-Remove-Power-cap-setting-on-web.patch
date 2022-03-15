@@ -1,0 +1,45 @@
+From e81f602f4ee1aec2529ee865da4b8ebc537d11ef Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Tue, 15 Mar 2022 08:41:45 +0000
+Subject: [PATCH] Remove Power cap setting on web.
+
+---
+ src/views/ResourceManagement/Power.vue | 15 ++++++++-------
+ 1 file changed, 8 insertions(+), 7 deletions(-)
+ mode change 100644 => 100755 src/views/ResourceManagement/Power.vue
+
+diff --git a/src/views/ResourceManagement/Power.vue b/src/views/ResourceManagement/Power.vue
+old mode 100644
+new mode 100755
+index 8e4acdd..baade41
+--- a/src/views/ResourceManagement/Power.vue
++++ b/src/views/ResourceManagement/Power.vue
+@@ -22,13 +22,13 @@
+         <b-row>
+           <b-col sm="8" md="6" xl="12">
+             <b-form-group :label="$t('pagePower.powerCapSettingLabel')">
+-              <b-form-checkbox
+-                v-model="isPowerCapFieldEnabled"
+-                data-test-id="power-checkbox-togglePowerCapField"
+-                name="power-cap-setting"
+-              >
+-                {{ $t('pagePower.powerCapSettingData') }}
+-              </b-form-checkbox>
++              <dd>
++                {{
++                  isPowerCapFieldEnabled
++                    ? $t('global.status.enabled')
++                    : $t('global.status.disabled')
++                }}
++              </dd>
+             </b-form-group>
+           </b-col>
+         </b-row>
+@@ -72,6 +72,7 @@
+         </b-row>
+ 
+         <b-button
++          :disabled="!isPowerCapFieldEnabled"
+           variant="primary"
+           type="submit"
+           data-test-id="power-button-savePowerCapValue"
