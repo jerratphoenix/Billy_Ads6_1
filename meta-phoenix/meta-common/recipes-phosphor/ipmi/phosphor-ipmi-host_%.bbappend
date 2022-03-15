@@ -14,6 +14,7 @@ SRC_URI += "file://PtecLanConfig.json \
             file://0072-Add-phoenix-oem-Number-and-IPMI-Completion-Codes-0xD5.patch \
             file://0073-Implement-destination-address-gateway-selector-and-m.patch \
 	    file://0074-Generate-SEL-after-doing-chassis-power-reset.patch \
+            file://0075-Add-Custom-OEM-IANA-parameter.patch \
             "
 
 do_install:append() {
