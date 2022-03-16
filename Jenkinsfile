@@ -264,12 +264,14 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo "Step Build"
-                sh "cd ${WORKSPACE}/; \
-                    source setup ${params.target}; \
-                    echo 'EXTRA_IMAGE_FEATURES += \"debug-tweaks\"' >> conf/local.conf; \
-                    bitbake obmc-phosphor-image \
-                   "
+                retry(count: 5) {
+                    echo "Step Build"
+                    sh "cd ${WORKSPACE}/; \
+                        source setup ${params.target}; \
+                        echo 'EXTRA_IMAGE_FEATURES += \"debug-tweaks\"' >> conf/local.conf; \
+                        bitbake obmc-phosphor-image \
+                       "
+                }
             }
         }
 
