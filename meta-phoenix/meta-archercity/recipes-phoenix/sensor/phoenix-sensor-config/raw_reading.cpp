@@ -14,12 +14,10 @@
 // limitations under the License.
 */
 
-#include "phoenix-dbus-sensors.hpp"
 #include "sensorapi.hpp"
 
-#include <stdlib.h>
-#include <string.h>
-
+#include <cstdint>
+#include <string>
 #include <boost/algorithm/string.hpp>
 #include <filesystem>
 #include <fstream>

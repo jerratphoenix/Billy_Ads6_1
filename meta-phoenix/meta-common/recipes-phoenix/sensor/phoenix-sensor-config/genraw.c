@@ -39,7 +39,8 @@ const char *varName = "*ptr";
 
 static void writeContentHead(FILE *fp)
 {
-    WRITE_TO_FILE("\n%s\n","#pragma once");
+    WRITE_TO_FILE("\n%s\n","#include <cstdint>");
+    WRITE_TO_FILE("\n%s\n","#define UNKNOW -1");
 
     /* Write struct callback_map_t*/
     WRITE_TO_FILE("\n%s\n","struct callback_map_t");
@@ -781,6 +782,8 @@ static int parseSdrJsonFile(char *content, char *filename)
 
     /* Write define callback_map_t struct*/
     writeContentHead(fp);
+
+    WRITE_TO_FILE("int sensor_callback_map_count = %d;\n", json_object_array_length(jsonSDRInfo));
 
     /* Write define function*/
     for (i = 0; i < json_object_array_length(jsonSDRInfo); i++) {

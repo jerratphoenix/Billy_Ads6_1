@@ -32,7 +32,7 @@ do_install:append() {
 
     ${S}/genraw \
         ${S}/PtecSensorConfig.json \
-        ${DEST}/raw_reading.hpp
+        ${DEST}/raw_reading_info.cpp
 
     install -Dm 0644 ${S}/raw_reading.cpp ${DEST}/raw_reading.cpp
 }
