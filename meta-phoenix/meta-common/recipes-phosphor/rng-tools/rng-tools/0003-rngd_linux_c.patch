@@ -1,0 +1,13 @@
+diff --git a/rngd_linux.c b/rngd_linux.c
+index 9439f3e..d333bc9 100644
+--- a/rngd_linux.c
++++ b/rngd_linux.c
+@@ -145,7 +145,7 @@ int random_add_entropy(void *buf, size_t size)
+ 	ent->ent_count = size * arguments->entropy_count;
+ 	ent->size = size;
+ 	// Call hook to modify buf
+-	if(0 != hook_add_entropy_buffer(buf, size)) {
++	if(0 != hook_add_entropy_buffer(CMD_NOOP, buf, size, NULL, 0)) {
+ 			message(LOG_DAEMON|LOG_DEBUG, "Successful work done by hook_add_entropy_buffer()\n");
+         }
+ 	memcpy(ent + 1, buf, size);

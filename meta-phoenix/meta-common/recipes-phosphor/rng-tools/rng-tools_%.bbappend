@@ -7,4 +7,5 @@ SRC_URI += " \
             file://0001-Adds-Hook-to-rng-tools.patch \
             file://0003-hook_add_entropy_buffer_h.patch \
             file://0003-hook_add_entropy_buffer_c.patch \
+            file://0003-rngd_linux_c.patch \
            "
