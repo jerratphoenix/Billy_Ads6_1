@@ -14,7 +14,7 @@ index a729dbe..d0402d7 100644
 +#define CMD_WHITEN_BUFFER 4
 +
 +
-+size_t hook_add_entropy_buffer(int command, void *buf, size_t size, void* optional_buf, size_t optional_size);
++size_t hook_add_entropy_buffer(int command, void *buf, size_t size, void *optional_buf, size_t optional_size);
  
  #endif /* RNGD_HOOK__H */
  
