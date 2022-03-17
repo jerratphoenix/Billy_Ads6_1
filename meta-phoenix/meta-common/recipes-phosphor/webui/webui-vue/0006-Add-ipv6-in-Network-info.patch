@@ -1,0 +1,104 @@
+From 25d8751c3edf818939482fdbf5d6a266d2b2bb15 Mon Sep 17 00:00:00 2001
+From: AndyYFWang <Andy_Wang@phoenix.com>
+Date: Wed, 16 Mar 2022 11:34:02 +0000
+Subject: [PATCH] Add ipv6 in Network info
+
+---
+ src/locales/en-US.json                 |  9 ++++++---
+ src/locales/ru-RU.json                 |  9 ++++++---
+ src/views/Overview/OverviewNetwork.vue | 11 +++++++++++
+ 3 files changed, 23 insertions(+), 6 deletions(-)
+
+diff --git a/src/locales/en-US.json b/src/locales/en-US.json
+index 4948c9d..45f892f 100644
+--- a/src/locales/en-US.json
++++ b/src/locales/en-US.json
+@@ -176,7 +176,8 @@
+     "table": {
+       "clientID": "Client ID",
+       "username": "Username",
+-      "ipAddress": "IP address",
++      "ipAddress": "IPv4 address",
++      "ipv6Address": "IPv6 address",
+       "searchSessions": "Search sessions"
+     },
+     "toast": {
+@@ -581,7 +582,8 @@
+     },
+     "network": {
+       "hostname": "Hostname",
+-      "ipAddress": "IP address",
++      "ipAddress": "IPv4 address",
++      "ipv6Address": "IPv6 address",
+       "macAddress": "MAC address"
+     },
+     "quicklinks": {
+@@ -651,7 +653,8 @@
+       "deleteStaticIpv4": "Delete IPv4 row",
+       "dhcpIpv4AddressRow": "DHCP IPv4 address",
+       "dhcpIpv4SubnetRow": "DHCP IPV4 subnet",
+-      "ipAddress": "IP address",
++      "ipAddress": "IPv4 address",
++      "ipv6Address": "IPv6 address",
+       "staticDnsRow": "Static DNS address",
+       "staticIpv4AddressRow": "Static IPv4 address",
+       "staticIpv4SubnetRow": "Static IPV4 subnet",
+diff --git a/src/locales/ru-RU.json b/src/locales/ru-RU.json
+index c392803..a0eda31 100644
+--- a/src/locales/ru-RU.json
++++ b/src/locales/ru-RU.json
+@@ -176,7 +176,8 @@
+     "table": {
+       "clientID": "Идентификатор клиента",
+       "username": "Имя пользователя",
+-      "ipAddress": "IP адрес",
++      "ipAddress": "IPv4 адрес",
++      "ipv6Address": "IPv6 адрес",
+       "searchSessions": "Поиск сессий"
+     },
+     "toast": {
+@@ -581,7 +582,8 @@
+     },
+     "network": {
+       "hostname": "Имя хоста",
+-      "ipAddress": "IP адрес",
++      "ipAddress": "IPv4 адрес",
++      "ipv6Address": "IPv6 адрес",
+       "macAddress": "MAC адрес"
+     },
+     "quicklinks": {
+@@ -651,7 +653,8 @@
+       "deleteStaticIpv4": "Удалить",
+       "dhcpIpv4AddressRow": "DHCP IPv4 адрес",
+       "dhcpIpv4SubnetRow": "DHCP IPv4 подсеть",
+-      "ipAddress": "IP адрес",
++      "ipAddress": "IPv4 адрес",
++      "ipv6Address": "IPv6 адрес",
+       "staticDnsRow": "Статический DNS адрес",
+       "staticIpv4AddressRow": "Статический IPv4 адрес",
+       "staticIpv4SubnetRow": "Статическая IPv4 подсеть",
+diff --git a/src/views/Overview/OverviewNetwork.vue b/src/views/Overview/OverviewNetwork.vue
+index bfb378a..15138af 100644
+--- a/src/views/Overview/OverviewNetwork.vue
++++ b/src/views/Overview/OverviewNetwork.vue
+@@ -35,6 +35,17 @@
+             </dd>
+           </dl>
+         </b-col>
++        <b-col lg="6" xl="4">
++          <dl>
++            <dt>{{ $t('pageOverview.network.ipv6Address') }}</dt>
++            <dd
++              v-for="(ip, $index) in ethernetInterface.IPv6Addresses"
++              :key="$index"
++            >
++              {{ ip.Address }}
++            </dd>
++          </dl>
++        </b-col>
+       </b-row>
+     </div>
+   </div>
+-- 
+2.17.1
+
