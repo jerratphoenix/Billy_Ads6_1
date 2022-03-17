@@ -1,0 +1,160 @@
+From 5b70af68a52c775a07a4710be10e560795ff5f3c Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Thu, 17 Mar 2022 17:20:37 +0800
+Subject: [PATCH] Restart netipmid service if VLAN change
+
+If VLAN is set, the network config will be reloaded, but IPMI network service won't know.
+It causes the interface of IPMI over LAN cannot work.
+Need to restart netipmid service if VLAN change to rebind the network interface.
+---
+ src/network_manager.cpp |  3 --
+ src/util.hpp            |  1 +
+ src/vlan_interface.cpp  | 64 +++++++++++++++++++++++++++++++++++++++--
+ src/vlan_interface.hpp  |  3 ++
+ 4 files changed, 65 insertions(+), 6 deletions(-)
+
+diff --git a/src/network_manager.cpp b/src/network_manager.cpp
+index 19e4673..6417a13 100644
+--- a/src/network_manager.cpp
++++ b/src/network_manager.cpp
+@@ -21,9 +21,6 @@
+ #include <string>
+ #include <xyz/openbmc_project/Common/error.hpp>
+ 
+-constexpr char SYSTEMD_BUSNAME[] = "org.freedesktop.systemd1";
+-constexpr char SYSTEMD_PATH[] = "/org/freedesktop/systemd1";
+-constexpr char SYSTEMD_INTERFACE[] = "org.freedesktop.systemd1.Manager";
+ constexpr auto FirstBootFile = "/var/lib/network/firstBoot_";
+ 
+ constexpr char NETWORKD_BUSNAME[] = "org.freedesktop.network1";
+diff --git a/src/util.hpp b/src/util.hpp
+index 804d492..475d69e 100644
+--- a/src/util.hpp
++++ b/src/util.hpp
+@@ -78,6 +78,7 @@ bool isUnicast(const ether_addr& mac);
+ 
+ constexpr auto networkdService = "systemd-networkd.service";
+ constexpr auto timeSynchdService = "systemd-timesyncd.service";
++constexpr auto netipmidService = "phosphor-ipmi-net@%s.service";
+ 
+ /* @brief converts the given subnet into prefix notation.
+  * @param[in] addressFamily - IP address family(AF_INET/AF_INET6).
+diff --git a/src/vlan_interface.cpp b/src/vlan_interface.cpp
+index 2918989..5fe9590 100644
+--- a/src/vlan_interface.cpp
++++ b/src/vlan_interface.cpp
+@@ -8,11 +8,26 @@
+ #include <algorithm>
+ #include <filesystem>
+ #include <fstream>
++#include <chrono>
++#include <thread>
+ #include <phosphor-logging/elog-errors.hpp>
+ #include <phosphor-logging/log.hpp>
+ #include <string>
+ #include <xyz/openbmc_project/Common/error.hpp>
+ 
++#include <boost/algorithm/string/replace.hpp>
++#include <boost/asio.hpp>
++#include <sdbusplus/asio/connection.hpp>
++#include <sdbusplus/asio/object_server.hpp>
++#include <sdbusplus/server.hpp>
++
++constexpr char SYSTEMD_BUSNAME[] = "org.freedesktop.systemd1";
++constexpr char SYSTEMD_PATH[] = "/org/freedesktop/systemd1";
++constexpr char SYSTEMD_INTERFACE[] = "org.freedesktop.systemd1.Manager";
++
++constexpr int SEC_WAIT_VLAN_ENABLE = 30;
++constexpr int SEC_WAIT_VLAN_DISABLE = 1;
++
+ namespace phosphor
+ {
+ namespace network
+@@ -48,7 +63,8 @@ void VlanInterface::writeDeviceFile()
+ {
+     using namespace std::string_literals;
+     fs::path confPath = manager.getConfDir();
+-    std::string fileName = EthernetInterface::interfaceName() + ".netdev"s;
++    std::string interfaceName = EthernetInterface::interfaceName();
++    std::string fileName = interfaceName + ".netdev"s;
+     confPath /= fileName;
+     std::fstream stream;
+     try
+@@ -64,16 +80,58 @@ void VlanInterface::writeDeviceFile()
+     }
+ 
+     stream << "[NetDev]\n";
+-    stream << "Name=" << EthernetInterface::interfaceName() << "\n";
++    stream << "Name=" << interfaceName << "\n";
+     stream << "Kind=vlan\n";
+     stream << "[VLAN]\n";
+     stream << "Id=" << id() << "\n";
+     stream.close();
++
++    std::thread theadRestartUnit(&VlanInterface::restartNetIpmid, this, interfaceName, SEC_WAIT_VLAN_ENABLE);
++    theadRestartUnit.detach();
+ }
+ 
+ void VlanInterface::delete_()
+ {
+-    parentInterface.deleteVLANObject(EthernetInterface::interfaceName());
++    std::string interfaceName = EthernetInterface::interfaceName();
++
++    parentInterface.deleteVLANObject(interfaceName);
++    std::thread theadRestartUnit(&VlanInterface::restartNetIpmid, this, interfaceName, SEC_WAIT_VLAN_DISABLE);
++    theadRestartUnit.detach();
++}
++
++void VlanInterface::restartNetIpmid(std::string interfaceName, int relTime)
++{
++    /* The phosphor-ipmi-net service should be assigned the corresponding interface name.
++     * Even if the eth0 VLAN is enabled, the interface still directs eth0 rather than eth0.$vlanid.
++     * Therefore, need to split the interface name without VLAN ID.
++     */
++    char restartUnit[32];
++    char *splitIfaceName = strtok(const_cast<char*>(interfaceName.c_str()), ".");
++    sprintf(restartUnit, phosphor::network::netipmidService, splitIfaceName);
++
++    // Need to wait for network reloading if VLAN change
++    std::this_thread::sleep_for (std::chrono::seconds(relTime));
++
++    // Restart IPMI network service
++    log<level::INFO>("Sending netipmid restart");
++    boost::asio::io_context io;
++    auto conn = std::make_shared<sdbusplus::asio::connection>(io);
++    auto method = conn->new_method_call(SYSTEMD_BUSNAME,
++                                        SYSTEMD_PATH,
++                                        SYSTEMD_INTERFACE,
++                                        "RestartUnit");
++    method.append(restartUnit, "replace");
++    try
++    {
++        conn->call(method);
++    }
++    catch (const sdbusplus::exception::SdBusError& ex)
++    {
++        log<level::ERR>("Failed to restart service", entry("ERR=%s", ex.what()),
++                        entry("UNIT=%s", restartUnit));
++        elog<InternalFailure>();
++    }
++    log<level::INFO>("Done netipmid restart");
+ }
+ 
+ } // namespace network
+diff --git a/src/vlan_interface.hpp b/src/vlan_interface.hpp
+index c003056..a73af0e 100644
+--- a/src/vlan_interface.hpp
++++ b/src/vlan_interface.hpp
+@@ -65,6 +65,9 @@ class VlanInterface : public VlanIface,
+                and creates the vlan interface.*/
+     void writeDeviceFile();
+ 
++    /** @brief restart netipmid service if VLAN change.
++     */
++    void restartNetIpmid(std::string interfaceName, int relTime);
+   private:
+     /** @brief VLAN Identifier. */
+     using VlanIface::id;
+-- 
+2.17.1
+
