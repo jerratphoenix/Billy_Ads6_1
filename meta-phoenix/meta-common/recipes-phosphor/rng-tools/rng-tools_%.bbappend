@@ -9,4 +9,5 @@ SRC_URI += " \
             file://0003-hook_add_entropy_buffer_c.patch \
             file://0003-rngd_linux_c.patch \
             file://0004-rngd_linux_c.patch \
+            file://0005-rngd_linux_c.patch \
            "
