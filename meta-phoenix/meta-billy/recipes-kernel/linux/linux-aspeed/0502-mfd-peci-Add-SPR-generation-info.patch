@@ -1,0 +1,214 @@
+From 944104019f554ee443d7996656e28a31311ac4d2 Mon Sep 17 00:00:00 2001
+From: Jae Hyun Yoo <jae.hyun.yoo@intel.com>
+Date: Mon, 4 May 2020 14:50:46 -0700
+Subject: [PATCH] mfd: peci: Add SPR generation info
+
+This commit adds CPU generation info for Sapphire Rapids Xeon
+family. It should be managed within downstream until it is rolled
+out.
+
+Signed-off-by: Jae Hyun Yoo <jae.hyun.yoo@intel.com>
+---
+ drivers/hwmon/peci-cputemp.c          | 39 +++++++++++++++-
+ drivers/hwmon/peci-dimmtemp.c         | 66 +++++++++++++++++++++++++++
+ drivers/mfd/intel-peci-client.c       |  6 +++
+ include/linux/mfd/intel-peci-client.h |  7 ++-
+ 4 files changed, 115 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/hwmon/peci-cputemp.c b/drivers/hwmon/peci-cputemp.c
+index dbad105238fe..5b9332a2eaf8 100644
+--- a/drivers/hwmon/peci-cputemp.c
++++ b/drivers/hwmon/peci-cputemp.c
+@@ -346,7 +346,7 @@ static umode_t cputemp_is_visible(const void *data,
+ 	    (priv->temp_config[channel] & BIT(attr)) &&
+ 	    (channel < DEFAULT_CHANNEL_NUMS ||
+ 	     (channel >= DEFAULT_CHANNEL_NUMS &&
+-	      (priv->core_mask & BIT(channel - DEFAULT_CHANNEL_NUMS)))))
++	      (priv->core_mask & BIT_ULL(channel - DEFAULT_CHANNEL_NUMS)))))
+ 		return 0444;
+ 
+ 	return 0;
+@@ -361,10 +361,44 @@ static const struct hwmon_ops cputemp_ops = {
+ static int check_resolved_cores(struct peci_cputemp *priv)
+ {
+ 	struct peci_rd_pci_cfg_local_msg msg;
++	struct peci_rd_end_pt_cfg_msg re_msg;
+ 	int ret;
+ 
+ 	/* Get the RESOLVED_CORES register value */
+ 	switch (priv->gen_info->model) {
++	case INTEL_FAM6_SAPPHIRERAPIDS:
++		re_msg.addr = priv->mgr->client->addr;
++		re_msg.msg_type = PECI_ENDPTCFG_TYPE_LOCAL_PCI;
++		re_msg.params.pci_cfg.seg = 0;
++		re_msg.params.pci_cfg.bus = 31;
++		re_msg.params.pci_cfg.device = 30;
++		re_msg.params.pci_cfg.function = 6;
++		re_msg.params.pci_cfg.reg = 0x84;
++		re_msg.rx_len = 4;
++
++		ret = peci_command(priv->mgr->client->adapter,
++				   PECI_CMD_RD_END_PT_CFG, &re_msg);
++		if (ret || re_msg.cc != PECI_DEV_CC_SUCCESS)
++			ret = -EAGAIN;
++		if (ret)
++			return ret;
++
++		priv->core_mask = le32_to_cpup((__le32 *)re_msg.data);
++		priv->core_mask <<= 32;
++
++		re_msg.params.pci_cfg.reg = 0x80;
++
++		ret = peci_command(priv->mgr->client->adapter,
++				   PECI_CMD_RD_END_PT_CFG, &re_msg);
++		if (ret || re_msg.cc != PECI_DEV_CC_SUCCESS)
++			ret = -EAGAIN;
++		if (ret) {
++			priv->core_mask = 0;
++			return ret;
++		}
++
++		priv->core_mask |= le32_to_cpup((__le32 *)re_msg.data);
++		break;
+ 	case INTEL_FAM6_ICELAKE_X:
+ 	case INTEL_FAM6_ICELAKE_XD:
+ 		msg.addr = priv->mgr->client->addr;
+@@ -456,7 +490,8 @@ static int create_module_temp_info(struct peci_cputemp *priv)
+ 	for (i = 0; i < MODTEMP_CHANNEL_NUMS; i++) {
+ 		priv->temp_config[priv->config_idx++] = config_table[channel_core];
+ 
+-		if (i < priv->gen_info->core_mask_bits && priv->core_mask & BIT(i)) {
++		if (i < priv->gen_info->core_mask_bits &&
++		    priv->core_mask & BIT_ULL(i)) {
+ 			ret = create_module_temp_label(priv, i);
+ 			if (ret)
+ 				return ret;
+diff --git a/drivers/hwmon/peci-dimmtemp.c b/drivers/hwmon/peci-dimmtemp.c
+index 8b3a265355e0..bc44428c997b 100644
+--- a/drivers/hwmon/peci-dimmtemp.c
++++ b/drivers/hwmon/peci-dimmtemp.c
+@@ -42,6 +42,7 @@ static const u8 support_model[] = {
+ 	INTEL_FAM6_SKYLAKE_XD,
+ 	INTEL_FAM6_ICELAKE_X,
+ 	INTEL_FAM6_ICELAKE_XD,
++	INTEL_FAM6_SAPPHIRERAPIDS,
+ };
+ 
+ static inline int read_ddr_dimm_temp_config(struct peci_dimmtemp *priv,
+@@ -73,6 +74,71 @@ static int get_dimm_temp(struct peci_dimmtemp *priv, int dimm_no)
+ 	priv->temp[dimm_no].value = cfg_data[dimm_order] * 1000;
+ 
+ 	switch (priv->gen_info->model) {
++	case INTEL_FAM6_SAPPHIRERAPIDS:
++		re_msg.addr = priv->mgr->client->addr;
++		re_msg.rx_len = 4;
++		re_msg.msg_type = PECI_ENDPTCFG_TYPE_LOCAL_PCI;
++		re_msg.params.pci_cfg.seg = 0;
++		re_msg.params.pci_cfg.bus = 30;
++		re_msg.params.pci_cfg.device = 0;
++		re_msg.params.pci_cfg.function = 2;
++		re_msg.params.pci_cfg.reg = 0xd4;
++
++		ret = peci_command(priv->mgr->client->adapter,
++				   PECI_CMD_RD_END_PT_CFG, &re_msg);
++		if (ret || re_msg.cc != PECI_DEV_CC_SUCCESS ||
++		    !(re_msg.data[3] & BIT(7))) {
++			/* Use default or previous value */
++			ret = 0;
++			break;
++		}
++
++		re_msg.params.pci_cfg.reg = 0xd0;
++
++		ret = peci_command(priv->mgr->client->adapter,
++				   PECI_CMD_RD_END_PT_CFG, &re_msg);
++		if (ret || re_msg.cc != PECI_DEV_CC_SUCCESS) {
++			/* Use default or previous value */
++			ret = 0;
++			break;
++		}
++
++		cpu_seg = re_msg.data[2];
++		cpu_bus = re_msg.data[0];
++
++		re_msg.msg_type = PECI_ENDPTCFG_TYPE_MMIO;
++		re_msg.params.mmio.seg = cpu_seg;
++		re_msg.params.mmio.bus = cpu_bus;
++		/*
++		 * Device 26, Offset 219a8: IMC 0 channel 0 -> rank 0
++		 * Device 26, Offset 299a8: IMC 0 channel 1 -> rank 1
++		 * Device 27, Offset 219a8: IMC 1 channel 0 -> rank 2
++		 * Device 27, Offset 299a8: IMC 1 channel 1 -> rank 3
++		 * Device 28, Offset 219a8: IMC 2 channel 0 -> rank 4
++		 * Device 28, Offset 299a8: IMC 2 channel 1 -> rank 5
++		 * Device 29, Offset 219a8: IMC 3 channel 0 -> rank 6
++		 * Device 29, Offset 299a8: IMC 3 channel 1 -> rank 7
++		 */
++		re_msg.params.mmio.device = 0x1a + chan_rank / 2;
++		re_msg.params.mmio.function = 0;
++		re_msg.params.mmio.bar = 0;
++		re_msg.params.mmio.addr_type = PECI_ENDPTCFG_ADDR_TYPE_MMIO_Q;
++		re_msg.params.mmio.offset = 0x219a8 + dimm_order * 4;
++		if (chan_rank % 2)
++			re_msg.params.mmio.offset += 0x8000;
++
++		ret = peci_command(priv->mgr->client->adapter,
++				   PECI_CMD_RD_END_PT_CFG, &re_msg);
++		if (ret || re_msg.cc != PECI_DEV_CC_SUCCESS ||
++		    re_msg.data[1] == 0 || re_msg.data[2] == 0) {
++			/* Use default or previous value */
++			ret = 0;
++			break;
++		}
++
++		priv->temp_max[dimm_no] = re_msg.data[1] * 1000;
++		priv->temp_crit[dimm_no] = re_msg.data[2] * 1000;
++		break;
+ 	case INTEL_FAM6_ICELAKE_X:
+ 	case INTEL_FAM6_ICELAKE_XD:
+ 		re_msg.addr = priv->mgr->client->addr;
+diff --git a/drivers/mfd/intel-peci-client.c b/drivers/mfd/intel-peci-client.c
+index 9b4ed8b0d4ca..83395748db39 100644
+--- a/drivers/mfd/intel-peci-client.c
++++ b/drivers/mfd/intel-peci-client.c
+@@ -62,6 +62,12 @@ static const struct cpu_gen_info cpu_gen_info_table[] = {
+ 		.core_mask_bits = CORE_MASK_BITS_ON_ICXD,
+ 		.chan_rank_max  = CHAN_RANK_MAX_ON_ICXD,
+ 		.dimm_idx_max   = DIMM_IDX_MAX_ON_ICXD },
++	{ /* Sapphire Rapids */
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_SAPPHIRERAPIDS,
++		.core_mask_bits = CORE_MASK_BITS_ON_SPR,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_SPR,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_SPR },
+ };
+ 
+ static int peci_client_get_cpu_gen_info(struct peci_client_manager *priv)
+diff --git a/include/linux/mfd/intel-peci-client.h b/include/linux/mfd/intel-peci-client.h
+index 55dec5be3245..e9ad77b19595 100644
+--- a/include/linux/mfd/intel-peci-client.h
++++ b/include/linux/mfd/intel-peci-client.h
+@@ -20,6 +20,7 @@
+ #define INTEL_FAM6_SKYLAKE_XD		0x56
+ #define INTEL_FAM6_ICELAKE_X		0x6A
+ #define INTEL_FAM6_ICELAKE_XD		0x6C
++#define INTEL_FAM6_SAPPHIRERAPIDS	0x8F
+ #endif
+ 
+ #define INTEL_FAM6             6 /* P6 (Pentium Pro and later) */
+@@ -48,7 +49,11 @@
+ #define CHAN_RANK_MAX_ON_ICXD  4  /* Max number of channel ranks on Icelake D */
+ #define DIMM_IDX_MAX_ON_ICXD   2  /* Max DIMM index per channel on Icelake D */
+ 
+-#define CORE_MASK_BITS_MAX     CORE_MASK_BITS_ON_ICX
++#define CORE_MASK_BITS_ON_SPR  64
++#define CHAN_RANK_MAX_ON_SPR   8  /* Max number of channel ranks on Sapphire Rapids */
++#define DIMM_IDX_MAX_ON_SPR    2  /* Max DIMM index per channel on Sapphire Rapids */
++
++#define CORE_MASK_BITS_MAX     CORE_MASK_BITS_ON_SPR
+ #define CHAN_RANK_MAX          CHAN_RANK_MAX_ON_HSX
+ #define DIMM_IDX_MAX           DIMM_IDX_MAX_ON_HSX
+ #define DIMM_NUMS_MAX          (CHAN_RANK_MAX * DIMM_IDX_MAX)
+-- 
+2.17.1
+

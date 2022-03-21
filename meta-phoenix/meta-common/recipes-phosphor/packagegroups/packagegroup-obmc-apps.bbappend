@@ -11,3 +11,5 @@ RDEPENDS:${PN}-extras:append:brightoncity = " \
         "
 
 RDEPENDS:${PN}-extras:append:archercity = ""
+
+RDEPENDS:${PN}-extras:append:billy = ""
