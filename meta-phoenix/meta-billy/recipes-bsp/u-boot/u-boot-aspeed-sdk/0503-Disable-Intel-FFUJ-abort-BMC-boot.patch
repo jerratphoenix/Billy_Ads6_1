@@ -1,0 +1,30 @@
+From d84f357933fa9fa441699170fbf6bce58c9bc107 Mon Sep 17 00:00:00 2001
+From: Adeli Yeh <Adeli_Yeh@phoenix.com>
+Date: Wed, 13 Oct 2021 14:27:48 +0800
+Subject: [PATCH] Disable Intel FFUJ abort BMC boot
+
+---
+ board/aspeed/ast2600_intel/intel.c | 10 +---------
+ 1 file changed, 1 insertion(+), 9 deletions(-)
+
+diff --git a/board/aspeed/ast2600_intel/intel.c b/board/aspeed/ast2600_intel/intel.c
+index 669b141fe1..9b2dd6dfa0 100644
+--- a/board/aspeed/ast2600_intel/intel.c
++++ b/board/aspeed/ast2600_intel/intel.c
+@@ -109,15 +109,7 @@ int read_ffuj(void)
+ /* gpio_abort is a weak symbol in common/autoboot.c */
+ int gpio_abort(void)
+ {
+-	int value;
+-
+-	if (intel_failed_boot())
+-		return 1;
+-
+-	/* check ffuj to abort the autoboot */
+-	value = read_ffuj();
+-	printf("FFUJ: %d\n", value);
+-	return value <= 0 ? 0 : 1;
++	return 0;
+ }
+ 
+ int read_frontpanel_power_button(void)

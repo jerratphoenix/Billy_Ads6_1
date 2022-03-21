@@ -1,0 +1,146 @@
+From 10e7bfe43e012daafb8e97db87290678a8303497 Mon Sep 17 00:00:00 2001
+From: Kian_Lee <Kian_Lee@phoenix.com>
+Date: Tue, 23 Nov 2021 00:48:12 -0500
+Subject: [PATCH] Get_Mac_Address_From_EEPROM
+
+---
+ drivers/net/aspeed_mdio.h       |  5 +++
+ drivers/net/ftgmac100.c         | 70 +++++++++++++++++++++++++++++++++
+ include/configs/aspeed-common.h |  9 +++++
+ 3 files changed, 84 insertions(+)
+
+diff --git a/drivers/net/aspeed_mdio.h b/drivers/net/aspeed_mdio.h
+index d1aae4936e..42e72895ac 100644
+--- a/drivers/net/aspeed_mdio.h
++++ b/drivers/net/aspeed_mdio.h
+@@ -13,5 +13,10 @@ extern int aspeed_mdio_read(struct mii_dev *bus, int phy_addr, int dev_addr,
+ extern int aspeed_mdio_write(struct mii_dev *bus, int phy_addr, int dev_addr,
+ 				int reg_addr, u16 value);
+ 
++/* consult to ASPEED AST2600 A3 Datasheet 16.3 Registers */
++#define AST2600_MAC1 0x1E660000
++#define AST2600_MAC2 0x1E680000
++#define AST2600_MAC3 0x1E670000
++#define AST2600_MAC4 0x1E690000
+ 
+ #endif /* __ASPEED_MDIO_H__ */
+diff --git a/drivers/net/ftgmac100.c b/drivers/net/ftgmac100.c
+index 999941de14..2f0d1fb8b9 100644
+--- a/drivers/net/ftgmac100.c
++++ b/drivers/net/ftgmac100.c
+@@ -22,6 +22,7 @@
+ 
+ #include "ftgmac100.h"
+ #include "aspeed_mdio.h"
++#include <i2c.h>
+ 
+ /* Min frame ethernet frame size without FCS */
+ #define ETH_ZLEN			60
+@@ -576,6 +577,67 @@ static int ftgmac100_ofdata_to_platdata(struct udevice *dev)
+ 
+ 	return clk_get_bulk(dev, &priv->clks);
+ }
++/*
++ * set_eth_mac_from_eeprom , restore MAC address from EEPROM
++ * mac : pointer to AST2600 MAC address
++ * iobase : MAC1 or MAC2 ,iobase
++ *          consult to ASPEED AST2600 Datasheet 16.3 Registers
++ *
++ * returns: 0 on success, not 0 on failure
++ *
++ * config setting as /include/configs/aspeed-common.h
++ *
++ */
++int set_eth_mac_from_eeprom(unsigned char *mac,int iobase)
++{
++    #define ALEN 1
++    #define UNKNOWN_OFFSET -1
++    u8 buf[ETH_ALEN];
++    int ret = 0;
++    int eeprom_offset = UNKNOWN_OFFSET;
++    memset(buf,0,ETH_ALEN);
++
++    if (iobase == AST2600_MAC1)
++    {
++        eeprom_offset = MAC1_EEPROM_OFFSET;
++    } else if (iobase == AST2600_MAC2)
++    {
++        eeprom_offset = MAC2_EEPROM_OFFSET;
++    }
++
++    if (eeprom_offset == UNKNOWN_OFFSET)
++    {
++        printf("%s Un-specific MAC iobase \n",__func__);
++        return UNKNOWN_OFFSET;
++    }
++
++    ret = i2c_set_bus_num(I2C_CH_SET);                      // EEPROM_I2C_BUS
++    if (ret != 0)
++    {
++        printf("i2c_set_bus_num = %x fail , shall be check uboot dts \n",I2C_CH_SET);
++        return -1;
++    }
++
++    i2c_init(I2C_CLK_100K ,I2C_ADDR_SET);                   // Setting I2C to 100K
++
++    ret = i2c_read(I2C_ADDR_SET,                            // read MAC from EEPROM
++                   eeprom_offset,
++                   ALEN,
++                   &buf,
++                   ETH_ALEN);
++    if (ret != 0)
++    {
++        printf("Read EEPROM I2C_BUS = %x I2C_Addr = %x Reg = %x Fail \n",
++                i2c_get_bus_num(),
++                I2C_ADDR_SET,
++                eeprom_offset);
++        return -1;
++    }
++
++    memcpy(mac,buf,ETH_ALEN);
++	printf("eth MAC: %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
++    return 0;
++}
+ 
+ static int ftgmac100_probe(struct udevice *dev)
+ {
+@@ -583,6 +645,7 @@ static int ftgmac100_probe(struct udevice *dev)
+ 	struct ftgmac100_data *priv = dev_get_priv(dev);
+ 	const char *phy_mode;
+ 	int ret;
++    int ret_eeprom;
+ 
+ 	phy_mode = dev_read_string(dev, "phy-mode");
+ 	priv->ncsi_mode = dev_read_bool(dev, "use-ncsi") ||
+@@ -613,6 +676,13 @@ static int ftgmac100_probe(struct udevice *dev)
+ 		goto out;
+ 	}
+ 
++    printf("\nBASE: 0x%X %s \n", priv->iobase,__func__);
++	ret_eeprom = set_eth_mac_from_eeprom(pdata->enetaddr,priv->iobase);
++    if (ret_eeprom != 0)
++    {
++        printf("%s Get MAC Addr from EEPROM fail \n",__func__);
++    }
++
+ out:
+ 	if (ret)
+ 		clk_release_bulk(&priv->clks);
+diff --git a/include/configs/aspeed-common.h b/include/configs/aspeed-common.h
+index 3a9269e577..d0dd4d3b69 100644
+--- a/include/configs/aspeed-common.h
++++ b/include/configs/aspeed-common.h
+@@ -97,4 +97,13 @@
+ #define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + CONFIG_ENV_SIZE)
+ #endif
+ 
++/* Get MAC Address from EEPROM config */
++#define I2C_CLK_100K 100000         // default standard I2C speed 100K
++#define EEPROM_I2C_CHANNEL 0        // Base on MB EEPROM deploy
++#define EEPROM_ADDRESS 0x50         // Base on MB EEPROM deploy
++#define MAC1_EEPROM_OFFSET 0x00     // Base on MB EEPROM deploy
++#define MAC2_EEPROM_OFFSET 0x06     // Base on MB EEPROM deploy
++#define I2C_CH_SET  EEPROM_I2C_CHANNEL
++#define I2C_ADDR_SET    EEPROM_ADDRESS
++
+ #endif	/* __ASPEED_COMMON_CONFIG_H */

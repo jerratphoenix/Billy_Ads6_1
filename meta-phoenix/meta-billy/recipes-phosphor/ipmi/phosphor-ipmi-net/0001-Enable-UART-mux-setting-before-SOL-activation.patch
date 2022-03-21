@@ -1,0 +1,60 @@
+From 1f7994e15f3020198f9a5fb4c66e246509c79fc5 Mon Sep 17 00:00:00 2001
+From: Chalapathi Venkataramashetty <chalapathix.venkataramashetty@intel.com>
+Date: Thu, 26 Aug 2021 21:42:07 +0000
+Subject: [PATCH] Enable UART mux setting before SOL activation
+
+Switching UART routing when starting obmc-service introduces garbled
+character printing out on physical host serial output and it's
+inevitable so this commit moves the routing logic into host console
+connection flow in IPMI SOL to avoid the issue until SOL is actually
+activated.
+
+Tested: SOL activation is working fine using ipmitool
+
+Signed-off-by: Chalapathi Venkataramashetty <chalapathix.venkataramashetty@intel.com>
+---
+ command/payload_cmds.cpp | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/command/payload_cmds.cpp b/command/payload_cmds.cpp
+index 1413e6c..16bac35 100644
+--- a/command/payload_cmds.cpp
++++ b/command/payload_cmds.cpp
+@@ -6,6 +6,8 @@
+ 
+ #include <ipmid/api.h>
+ 
++#include <fstream>
++#include <iostream>
+ #include <ipmid/api-types.hpp>
+ #include <phosphor-logging/log.hpp>
+ 
+@@ -16,6 +18,9 @@ namespace command
+ {
+ 
+ using namespace phosphor::logging;
++static constexpr const char* uartMuxCtrlPath =
++    "/sys/bus/platform/drivers/aspeed-uart-routing/1e78909c.uart_routing/raw";
++static constexpr const char* uartMuxCtrlVal = "0x03450003";
+ 
+ std::vector<uint8_t> activatePayload(const std::vector<uint8_t>& inPayload,
+                                      std::shared_ptr<message::Handler>& handler)
+@@ -86,6 +91,15 @@ std::vector<uint8_t> activatePayload(const std::vector<uint8_t>& inPayload,
+     // Set the current command's socket channel to the session
+     handler->setChannelInSession();
+ 
++    std::ofstream uartMuxFile(uartMuxCtrlPath);
++    if (!uartMuxFile.good())
++    {
++        response->completionCode = IPMI_CC_UNSPECIFIED_ERROR;
++        return outPayload;
++    }
++    uartMuxFile << uartMuxCtrlVal;
++    uartMuxFile.close();
++
+     // Start the SOL payload
+     try
+     {
+-- 
+2.17.1
+

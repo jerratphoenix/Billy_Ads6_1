@@ -1,0 +1,39 @@
+From cc825077a8e19c92e97d521cfcbedeb928d59fa8 Mon Sep 17 00:00:00 2001
+From: "Jason M. Bills" <jason.m.bills@linux.intel.com>
+Date: Mon, 24 May 2021 08:28:12 -0700
+Subject: [PATCH] Ignore SIO Power Good assert from Off
+
+On some platforms, SIO Power Good remains asserted during the Off
+state which is causing the BMC to incorrectly believe that the
+system is on.  This then causes errors when requesting power
+state transitions and when the BMC starts scanning things like
+voltage sensors that are only available when the system is on.
+
+This change removes the handler for the sioPowerGoodAssert
+event from the Off state, so when the signal is asserted while
+the system is off, the BMC will ignore it and remain in the
+Off state.
+
+Change-Id: Ica3317de63d7cb246e6bf67707f28af52a2866e4
+Signed-off-by: Jason M. Bills <jason.m.bills@linux.intel.com>
+---
+ power-control-x86/src/power_control.cpp | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/power-control-x86/src/power_control.cpp b/power-control-x86/src/power_control.cpp
+index 32f0a5b..d138d99 100644
+--- a/power-control-x86/src/power_control.cpp
++++ b/power-control-x86/src/power_control.cpp
+@@ -1620,9 +1620,6 @@ static void powerStateOff(const Event event)
+         case Event::sioS5DeAssert:
+             setPowerState(PowerState::waitForPSPowerOK);
+             break;
+-        case Event::sioPowerGoodAssert:
+-            setPowerState(PowerState::on);
+-            break;
+         case Event::powerButtonPressed:
+             psPowerOKWatchdogTimerStart();
+             setPowerState(PowerState::waitForPSPowerOK);
+-- 
+2.17.1
+

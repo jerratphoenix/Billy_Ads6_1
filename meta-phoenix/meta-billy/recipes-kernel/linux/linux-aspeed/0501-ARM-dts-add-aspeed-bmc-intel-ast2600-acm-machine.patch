@@ -1,0 +1,38 @@
+From 2119197acfe53882183bc4200a36516dfbc421fb Mon Sep 17 00:00:00 2001
+From: Jae Hyun Yoo <jae.hyun.yoo@intel.com>
+Date: Tue, 9 Feb 2021 11:45:43 -0800
+Subject: [PATCH] ARM: dts: add aspeed-bmc-intel-ast2600-acm machine
+
+This commit adds device tree for aspeed-bmc-intel-ast2600-acm machine.
+
+Signed-off-by: Jae Hyun Yoo <jae.hyun.yoo@intel.com>
+---
+ .../arm/boot/dts/aspeed-bmc-intel-ast2600-acm.dts | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+ create mode 100644 arch/arm/boot/dts/aspeed-bmc-intel-ast2600-acm.dts
+
+diff --git a/arch/arm/boot/dts/aspeed-bmc-intel-ast2600-acm.dts b/arch/arm/boot/dts/aspeed-bmc-intel-ast2600-acm.dts
+new file mode 100644
+index 000000000000..4072b60d5c4f
+--- /dev/null
++++ b/arch/arm/boot/dts/aspeed-bmc-intel-ast2600-acm.dts
+@@ -0,0 +1,15 @@
++// SPDX-License-Identifier: GPL-2.0+
++
++#include "aspeed-bmc-intel-ast2600.dts"
++
++&mac3 {
++	status = "okay";
++	use-ncsi;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_rmii4_default>;
++	clocks = <&syscon ASPEED_CLK_GATE_MAC4CLK>,
++		 <&syscon ASPEED_CLK_MAC4RCLK>;
++	clock-names = "MACCLK", "RCLK";
++	phy-mode = "rmii";
++	phy-handle = <&ethphy2>;
++};
+\ No newline at end of file
+-- 
+2.17.1
+
