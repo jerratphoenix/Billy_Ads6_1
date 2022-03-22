@@ -50,6 +50,11 @@
 	    "SensorName": "Host State",
             "Function"  : "get_sys_host_state",
             "ReadingState": "BOTH",
+	},
+	{
+	    "SensorName": "DIMM Presence",
+            "Function": "get_dimm_presence",
+            "ReadingState": "BOTH",
 	}
     ],
     "SDRRepository": [
@@ -2568,6 +2573,24 @@
             "OEM": "0x00",
             "LengthCode": "0x03",
             "SensorName": "PSU"
+        },
+	{
+            "RecordID": "0x00dc",
+            "SDRVersion": "0x51",
+            "RecordType": "0x03",
+            "RecordLength": "0x19",
+            "SensorOwnerID": "0x20",
+            "SensorOwnerLUN": "0x00",
+            "SensorNumber": "0xdc",
+            "EntityID": "0x08",
+            "EntityInstance": "0x01",
+            "SensorType": "0xc0",
+            "Event/ReadingType": "0x6f",
+            "SensorRecordSharing": "0x8100",
+            "Reserved": "0x00",
+            "OEM": "0x00",
+            "LengthCode": "0xcf",
+            "SensorName": "DIMM Presence"
         }
     ]
 }
