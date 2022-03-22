@@ -1,0 +1,53 @@
+From 5a563610db9d29827bca097253478008c1efeecc Mon Sep 17 00:00:00 2001
+From: Jammy Huang <jammy_huang@aspeedtech.com>
+Date: Mon, 27 Dec 2021 11:42:03 +0800
+Subject: [PATCH 23/27] video: aspeed: Fix unstable timing detection
+
+1. Add check for stable signal in resolution detection.
+2. Restore stable count from 15 back 6
+
+Change-Id: Ice880d4b8fa577b112d238407325fb9b494d8a8c
+Signed-off-by: Jammy Huang <jammy_huang@aspeedtech.com>
+(cherry picked from commit 4bf12a97cf37336a059068dca61b01539e6c10e2)
+---
+ drivers/media/platform/aspeed-video.c | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/drivers/media/platform/aspeed-video.c b/drivers/media/platform/aspeed-video.c
+index 41197cb294cc..a98a307d7230 100644
+--- a/drivers/media/platform/aspeed-video.c
++++ b/drivers/media/platform/aspeed-video.c
+@@ -168,9 +168,14 @@
+ 
+ #define VE_MODE_DETECT_STATUS		0x098
+ #define  VE_MODE_DETECT_H_PERIOD	GENMASK(11, 0)
++#define  VE_MODE_DETECT_EXTSRC_ADC	BIT(12)
++#define  VE_MODE_DETECT_H_STABLE	BIT(13)
++#define  VE_MODE_DETECT_V_STABLE	BIT(14)
+ #define  VE_MODE_DETECT_V_LINES		GENMASK(27, 16)
+ #define  VE_MODE_DETECT_STATUS_VSYNC	BIT(28)
+ #define  VE_MODE_DETECT_STATUS_HSYNC	BIT(29)
++#define  VE_MODE_DETECT_VSYNC_RDY	BIT(30)
++#define  VE_MODE_DETECT_HSYNC_RDY	BIT(31)
+ 
+ #define VE_SYNC_STATUS			0x09c
+ #define  VE_SYNC_STATUS_HSYNC		GENMASK(11, 0)
+@@ -986,6 +991,15 @@ static void aspeed_video_get_resolution(struct aspeed_video *video)
+ 			return;
+ 		}
+ 
++		mds = aspeed_video_read(video, VE_MODE_DETECT_STATUS);
++		if (!(mds & VE_MODE_DETECT_H_STABLE) ||
++		    !(mds & VE_MODE_DETECT_V_STABLE) ||
++		    (mds & VE_MODE_DETECT_EXTSRC_ADC)) {
++			v4l2_dbg(1, debug, &video->v4l2_dev, "detect status(%#x) unstable, try again\n",
++				 mds);
++			continue;
++		}
++
+ 		aspeed_video_check_and_set_polarity(video);
+ 
+ 		aspeed_video_enable_mode_detect(video);
+-- 
+2.17.1
+

@@ -1,0 +1,48 @@
+From 58959791aadbd221a240a25772e126c05b1a03cd Mon Sep 17 00:00:00 2001
+From: Jammy Huang <jammy_huang@aspeedtech.com>
+Date: Mon, 1 Nov 2021 17:36:26 +0800
+Subject: [PATCH 03/27] media: aspeed: fix mode-detect always timeout at 2nd
+ run
+
+aspeed_video_get_resolution() will try to do res-detect again if the
+timing got in last try is invalid. But it will always timeout because
+VE_SEQ_CTRL_TRIG_MODE_DET only cleared after 1st mode-detect.
+
+To fix the problem, just clear VE_SEQ_CTRL_TRIG_MODE_DET before set in
+aspeed_video_enable_mode_detect().
+
+Change-Id: I3c5db03f38a4441467416ca3cb46d5c8531f7dd4
+Signed-off-by: Jammy Huang <jammy_huang@aspeedtech.com>
+---
+ drivers/media/platform/aspeed-video.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/media/platform/aspeed-video.c b/drivers/media/platform/aspeed-video.c
+index 855ca5c645db..8d77fc8f365a 100644
+--- a/drivers/media/platform/aspeed-video.c
++++ b/drivers/media/platform/aspeed-video.c
+@@ -539,6 +539,10 @@ static void aspeed_video_enable_mode_detect(struct aspeed_video *video)
+ 	aspeed_video_update(video, VE_INTERRUPT_CTRL, 0,
+ 			    VE_INTERRUPT_MODE_DETECT);
+ 
++	/* Disable mode detect in order to re-trigger */
++	aspeed_video_update(video, VE_SEQ_CTRL,
++			    VE_SEQ_CTRL_TRIG_MODE_DET, 0);
++
+ 	/* Trigger mode detect */
+ 	aspeed_video_update(video, VE_SEQ_CTRL, 0, VE_SEQ_CTRL_TRIG_MODE_DET);
+ }
+@@ -828,10 +832,6 @@ static void aspeed_video_get_resolution(struct aspeed_video *video)
+ 			return;
+ 		}
+ 
+-		/* Disable mode detect in order to re-trigger */
+-		aspeed_video_update(video, VE_SEQ_CTRL,
+-				    VE_SEQ_CTRL_TRIG_MODE_DET, 0);
+-
+ 		aspeed_video_check_and_set_polarity(video);
+ 
+ 		aspeed_video_enable_mode_detect(video);
+-- 
+2.17.1
+

@@ -1,0 +1,67 @@
+From dfa914d17f627bc48c7037c3848b2bb18f23e632 Mon Sep 17 00:00:00 2001
+From: Jammy Huang <jammy_huang@aspeedtech.com>
+Date: Thu, 9 Dec 2021 15:04:07 +0800
+Subject: [PATCH 05/27] media: aspeed: move err-handling together to the bottom
+
+Signed-off-by: Jammy Huang <jammy_huang@aspeedtech.com>
+Change-Id: Iaf447bd97075558a3b6a4d2bf4053a27fa699e96
+---
+ drivers/media/platform/aspeed-video.c | 22 ++++++++++------------
+ 1 file changed, 10 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/media/platform/aspeed-video.c b/drivers/media/platform/aspeed-video.c
+index 04ceee4bb642..7c56c3a7ab59 100644
+--- a/drivers/media/platform/aspeed-video.c
++++ b/drivers/media/platform/aspeed-video.c
+@@ -1665,11 +1665,8 @@ static int aspeed_video_setup_video(struct aspeed_video *video)
+ 
+ 	rc = video->ctrl_handler.error;
+ 	if (rc) {
+-		v4l2_ctrl_handler_free(&video->ctrl_handler);
+-		v4l2_device_unregister(v4l2_dev);
+-
+ 		dev_err(video->dev, "Failed to init controls: %d\n", rc);
+-		return rc;
++		goto err_ctrl_init;
+ 	}
+ 
+ 	v4l2_dev->ctrl_handler = &video->ctrl_handler;
+@@ -1687,11 +1684,8 @@ static int aspeed_video_setup_video(struct aspeed_video *video)
+ 
+ 	rc = vb2_queue_init(vbq);
+ 	if (rc) {
+-		v4l2_ctrl_handler_free(&video->ctrl_handler);
+-		v4l2_device_unregister(v4l2_dev);
+-
+ 		dev_err(video->dev, "Failed to init vb2 queue\n");
+-		return rc;
++		goto err_vb2_init;
+ 	}
+ 
+ 	vdev->queue = vbq;
+@@ -1709,14 +1703,18 @@ static int aspeed_video_setup_video(struct aspeed_video *video)
+ 	video_set_drvdata(vdev, video);
+ 	rc = video_register_device(vdev, VFL_TYPE_VIDEO, 0);
+ 	if (rc) {
+-		v4l2_ctrl_handler_free(&video->ctrl_handler);
+-		v4l2_device_unregister(v4l2_dev);
+-
+ 		dev_err(video->dev, "Failed to register video device\n");
+-		return rc;
++		goto err_video_reg;
+ 	}
+ 
+ 	return 0;
++
++err_video_reg:
++err_vb2_init:
++err_ctrl_init:
++	v4l2_ctrl_handler_free(&video->ctrl_handler);
++	v4l2_device_unregister(v4l2_dev);
++	return rc;
+ }
+ 
+ static int aspeed_video_init(struct aspeed_video *video)
+-- 
+2.17.1
+

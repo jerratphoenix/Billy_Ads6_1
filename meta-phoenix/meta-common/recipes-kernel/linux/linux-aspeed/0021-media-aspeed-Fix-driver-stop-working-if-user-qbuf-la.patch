@@ -1,0 +1,66 @@
+From 3432d33bab26d560c5ed18c37aa6fd82b2bfff0a Mon Sep 17 00:00:00 2001
+From: Jammy Huang <jammy_huang@aspeedtech.com>
+Date: Fri, 24 Dec 2021 16:36:11 +0800
+Subject: [PATCH 21/27] media: aspeed: Fix driver stop working if user qbuf
+ late
+
+If user qbuf too late, driver could go into the condition that
+no-more-buf for next frame in aspeed_video_irq() usually.
+If isr for complete-frame and the start_frame from buf_queue happen
+at the same time, the reg-access could be mess up.
+
+Move the reg-access into protection of the flag, VIDEO_FRAME_INPRG,
+to fix it.
+
+Change-Id: Id5b1638d7d44e9ec4de9654b4c4b54779ccfdab0
+Signed-off-by: Jammy Huang <jammy_huang@aspeedtech.com>
+(cherry picked from commit 865907ea410119be9f48c57e1279af43713d5c56)
+---
+ drivers/media/platform/aspeed-video.c | 24 ++++++++++++------------
+ 1 file changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/media/platform/aspeed-video.c b/drivers/media/platform/aspeed-video.c
+index fc6415228fcc..600df3f17edd 100644
+--- a/drivers/media/platform/aspeed-video.c
++++ b/drivers/media/platform/aspeed-video.c
+@@ -780,6 +780,18 @@ static irqreturn_t aspeed_video_irq(int irq, void *arg)
+ 		u32 frame_size = aspeed_video_read(video,
+ 						   video->comp_size_read);
+ 
++		aspeed_video_update(video, VE_SEQ_CTRL,
++				    VE_SEQ_CTRL_TRIG_CAPTURE |
++				    VE_SEQ_CTRL_FORCE_IDLE |
++				    VE_SEQ_CTRL_TRIG_COMP, 0);
++		aspeed_video_update(video, VE_INTERRUPT_CTRL,
++				    VE_INTERRUPT_COMP_COMPLETE, 0);
++		aspeed_video_write(video, VE_INTERRUPT_STATUS,
++				   VE_INTERRUPT_COMP_COMPLETE);
++		sts &= ~VE_INTERRUPT_COMP_COMPLETE;
++
++		aspeed_video_swap_src_buf(video);
++
+ 		update_perf(&video->perf);
+ 
+ 		spin_lock(&video->lock);
+@@ -811,18 +823,6 @@ static irqreturn_t aspeed_video_irq(int irq, void *arg)
+ 		}
+ 		spin_unlock(&video->lock);
+ 
+-		aspeed_video_update(video, VE_SEQ_CTRL,
+-				    VE_SEQ_CTRL_TRIG_CAPTURE |
+-				    VE_SEQ_CTRL_FORCE_IDLE |
+-				    VE_SEQ_CTRL_TRIG_COMP, 0);
+-		aspeed_video_update(video, VE_INTERRUPT_CTRL,
+-				    VE_INTERRUPT_COMP_COMPLETE, 0);
+-		aspeed_video_write(video, VE_INTERRUPT_STATUS,
+-				   VE_INTERRUPT_COMP_COMPLETE);
+-		sts &= ~VE_INTERRUPT_COMP_COMPLETE;
+-
+-		aspeed_video_swap_src_buf(video);
+-
+ 		if (test_bit(VIDEO_STREAMING, &video->flags) && !empty)
+ 			aspeed_video_start_frame(video);
+ 	}
+-- 
+2.17.1
+
