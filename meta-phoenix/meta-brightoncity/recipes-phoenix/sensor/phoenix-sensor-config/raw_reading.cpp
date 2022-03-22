@@ -150,3 +150,8 @@ int32_t get_sys_host_state(double* reading)
 {
     return api_get_host_running(reading);
 }
+
+int32_t get_dimm_presence(double* reading)
+{
+    return api_get_dimm_presence(reading);
+}
