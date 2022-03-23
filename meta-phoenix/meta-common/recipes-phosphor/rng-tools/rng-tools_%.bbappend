@@ -17,12 +17,20 @@ do_patch:append() {
 }
 
 do_override_hooks () {
-    if [ -r "${DEVTOOL_TEMPDIR}/oe-local-files/hook_add_entropy_buffer.c" ]; then
+    if [ -r "${DEVTOOL_TEMPDIR}" ]; then
         cp ${DEVTOOL_TEMPDIR}/oe-local-files/hook_add_entropy_buffer.c \
+        ${S}/hook_add_entropy_buffer.c
+        cp ${DEVTOOL_TEMPDIR}/oe-local-files/hook_add_entropy_buffer.h \
+        ${S}/hook_add_entropy_buffer.h
+    fi
+
+    if [ -r "${WORKDIR}/hook_add_entropy_buffer.c" ]; then
+        cp ${WORKDIR}/hook_add_entropy_buffer.c \
             ${S}/hook_add_entropy_buffer.c
     fi
-	if [ -r "${DEVTOOL_TEMPDIR}/oe-local-files/hook_add_entropy_buffer.h" ]; then
-        cp ${DEVTOOL_TEMPDIR}/oe-local-files/hook_add_entropy_buffer.h \
+
+    if [ -r "${WORKDIR}/hook_add_entropy_buffer.h" ]; then
+        cp ${WORKDIR}/hook_add_entropy_buffer.h \
             ${S}/hook_add_entropy_buffer.h
     fi
 }
