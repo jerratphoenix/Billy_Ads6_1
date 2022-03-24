@@ -17,7 +17,7 @@ index df844065cd..e7d020aa2a 100755
  	ast2600-tacoma.dtb \
 -	ast2600-intel.dtb
 +	ast2600-intel.dtb \
-+	phoenix-archercity.dtb
++	phoenix-billy.dtb
  
  dtb-$(CONFIG_ARCH_STI) += stih410-b2260.dtb
  
