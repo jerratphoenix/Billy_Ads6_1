@@ -282,7 +282,6 @@
             "Type": "ADC"
         },
         {
-            "CPURequired": 1,
             "Index": 8,
             "Name": "PVCCIN_CPU1",
             "PowerState": "On",
@@ -348,7 +347,6 @@
             "Type": "ADC"
         },
         {
-            "CPURequired": 1,
             "Index": 10,
             "Name": "PVDQ_ABC_CPU1",
             "PowerState": "On",
@@ -381,7 +379,6 @@
             "Type": "ADC"
         },
         {
-            "CPURequired": 1,
             "Index": 12,
             "Name": "PVPP_CPU1_ABC",
             "PowerState": "On",
