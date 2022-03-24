@@ -17,7 +17,7 @@ SRC_URI += " \
         file://aspeed-bmc-phoenix-billy.dts \
         file://aspeed-g6.dtsi \
         file://aspeed-g6-pinctrl.dtsi \
-        file://archercity.cfg \
+        file://billy.cfg \
         file://0001-peci-Add-debug-printing-to-check-caller-PID.patch \
         file://0002-soc-aspeed-add-AST2600-A0-specific-fix-into-mbox-dri.patch \
         file://0003-Fix-libmctp-build-error.patch \

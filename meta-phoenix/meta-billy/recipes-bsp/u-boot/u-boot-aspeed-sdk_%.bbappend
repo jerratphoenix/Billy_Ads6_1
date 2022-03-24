@@ -36,7 +36,7 @@ file://0031-Add-a-workaround-to-fix-AST2600-A0-booting-issue.patch \
 file://0032-Disable-eSPI-initialization-in-u-boot-for-normal-boo.patch \
 file://0033-Disable-debug-interfaces.patch \
 file://0034-Implement-the-IPMI-commands-in-FFUJ-mode-in-u-boot.patch \
-file://0501-Add-phoenix-archercity-device-tree-to-Makefile.patch \
+file://0501-Add-phoenix-billy-device-tree-to-Makefile.patch \
 file://0502-Setup-Kernel-address.patch \
 file://0503-Disable-Intel-FFUJ-abort-BMC-boot.patch \
 file://0504-Get_Mac_Address_From_EEPROM.patch \
