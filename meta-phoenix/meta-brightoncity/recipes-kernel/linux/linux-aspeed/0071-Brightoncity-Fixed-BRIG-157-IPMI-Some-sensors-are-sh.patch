@@ -1,0 +1,38 @@
+From c0f40da564ba2b9d391ffa5cda823f6b970aed1d Mon Sep 17 00:00:00 2001
+From: Arder_Chen <Arder_Chen@phoenix.com>
+Date: Mon, 28 Mar 2022 16:43:09 +0800
+Subject: [PATCH] [Brightoncity] Fixed [BRIG-157] [IPMI] Some sensors are shown
+ in WEB but not shown in IPMI sensor list.
+
+Related issue: [BRIG-157] [IPMI] Some sensors are shown in WEB but not shown in IPMI sensor list.
+
+Modified file:
+1. ServerBMC_GM/build/brightoncity/workspace/sources/linux-aspeed/drivers/hwmon/peci-cputemp.c
+
+Descript:
+1. Remove these sensors in WEB.
+   a. Core x CPU1
+
+Test Step:
+1. Login WEB and check this sensor if still exist in "Health->Sensors" page. It should be not exist.
+---
+ drivers/hwmon/peci-cputemp.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/hwmon/peci-cputemp.c b/drivers/hwmon/peci-cputemp.c
+index 1763b53cc234..293336812c56 100644
+--- a/drivers/hwmon/peci-cputemp.c
++++ b/drivers/hwmon/peci-cputemp.c
+@@ -616,10 +616,10 @@ static int peci_cputemp_probe(struct platform_device *pdev)
+ 	ret = create_module_temp_info(priv);
+ 	if (ret)
+ 		dev_dbg(dev, "Skipped creating core temp info\n");
+-
++        #if 0
+ 	priv->chip.ops = &cputemp_ops;
+ 	priv->chip.info = priv->info;
+-
++        #endif
+ 	priv->info[0] = &priv->temp_info;
+ 
+ 	priv->temp_info.type = hwmon_temp;
