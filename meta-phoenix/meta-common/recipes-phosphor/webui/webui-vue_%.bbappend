@@ -6,6 +6,7 @@ SRC_URI += "file://0001-Change-login-and-header-logo-to-Phoenix.patch \
             file://0004-Improve-power-URI-to-dynamic-get-chassis-id.patch \
             file://0005-Fix-always-erroneous-pop-up-message-when-saving-stat.patch \
             file://0006-Add-ipv6-in-Network-info.patch \
+            file://0007-Remove-repetitive-quick-label-on-the-Inventory-and-L.patch \
            "
 
 
