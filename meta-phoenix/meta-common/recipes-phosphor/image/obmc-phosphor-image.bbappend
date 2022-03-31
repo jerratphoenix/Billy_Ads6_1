@@ -30,3 +30,6 @@ IMAGE_INSTALL:append = " phoenix-ipmi-pef"
 
 # Networking full version and Ethernet related
 IMAGE_INSTALL:append = " ethtool"
+
+#BIOS configuration
+IMAGE_INSTALL:append = " biosconfig-manager"

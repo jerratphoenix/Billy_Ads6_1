@@ -23,3 +23,11 @@ SRC_URI += "file://0001-Merge-from-ptec-bmcweb.patch \
 			file://0024-Improve-TLS-security-settings.patch \
            "
 
+# OOB Bios Config:
+SRC_URI += "file://biosconfig/0001-Define-Redfish-interface-Registries-Bios.patch \
+            file://biosconfig/0002-BaseBiosTable-Add-support-for-PATCH-operation.patch \
+            file://biosconfig/0003-Add-support-to-ResetBios-action.patch \
+            file://biosconfig/0004-Add-support-to-ChangePassword-action.patch \
+            file://biosconfig/0005-Fix-remove-bios-user-pwd-change-option-via-Redfish.patch \
+            file://biosconfig/0006-Add-fix-for-broken-feature-Pending-Attributes.patch \
+"
