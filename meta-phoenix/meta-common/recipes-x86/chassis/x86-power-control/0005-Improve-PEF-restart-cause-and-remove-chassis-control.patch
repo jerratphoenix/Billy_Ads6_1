@@ -1,0 +1,171 @@
+From fa72f805268b70b67948055964b2d9925fd1a946 Mon Sep 17 00:00:00 2001
+From: Brad Ho <brad_ho@phoenix.com>
+Date: Thu, 31 Mar 2022 10:18:36 +0800
+Subject: [PATCH] Improve PEF restart cause and remove chassis control add
+ cause for PEF.
+
+---
+ power-control-x86/src/power_control.cpp | 92 +++++++++++++++++++------
+ 1 file changed, 72 insertions(+), 20 deletions(-)
+
+diff --git a/power-control-x86/src/power_control.cpp b/power-control-x86/src/power_control.cpp
+index c851c7d..01a0143 100755
+--- a/power-control-x86/src/power_control.cpp
++++ b/power-control-x86/src/power_control.cpp
+@@ -107,8 +107,10 @@ static std::string buttonDbusName = "xyz.openbmc_project.Chassis.Buttons";
+ static std::string nmiDbusName = "xyz.openbmc_project.Control.Host.NMI";
+ static std::string rstCauseDbusName =
+     "xyz.openbmc_project.Control.Host.RestartCause";
++static std::string pefDbusName = "xyz.openbmc_project.State.PEF";
+ static std::shared_ptr<sdbusplus::asio::dbus_interface> hostIface;
+ static std::shared_ptr<sdbusplus::asio::dbus_interface> chassisIface;
++static std::shared_ptr<sdbusplus::asio::dbus_interface> pefChassisIface;
+ #ifdef CHASSIS_SYSTEM_RESET
+ static std::shared_ptr<sdbusplus::asio::dbus_interface> chassisSysIface;
+ static std::shared_ptr<sdbusplus::asio::dbus_interface> chassisSlotIface;
+@@ -3216,6 +3218,7 @@ int main(int argc, char* argv[])
+         conn->request_name(buttonDbusName.c_str());
+         conn->request_name(nmiDbusName.c_str());
+         conn->request_name(rstCauseDbusName.c_str());
++        conn->request_name(pefDbusName.c_str());
+     }
+ 
+     hostDbusName += node;
+@@ -3224,6 +3227,7 @@ int main(int argc, char* argv[])
+     buttonDbusName += node;
+     nmiDbusName += node;
+     rstCauseDbusName += node;
++    pefDbusName += node;
+ 
+     // Request all the dbus names
+     conn->request_name(hostDbusName.c_str());
+@@ -3232,6 +3236,7 @@ int main(int argc, char* argv[])
+     conn->request_name(buttonDbusName.c_str());
+     conn->request_name(nmiDbusName.c_str());
+     conn->request_name(rstCauseDbusName.c_str());
++    conn->request_name(pefDbusName.c_str());
+ 
+     if (sioPwrGoodConfig.lineName.empty() ||
+         sioOnControlConfig.lineName.empty() || sioS5Config.lineName.empty())
+@@ -3627,7 +3632,7 @@ int main(int argc, char* argv[])
+                 if (!powerButtonMask)
+                 {
+                     sendPowerControlEvent(Event::powerOffRequest);
+-                    addRestartCause(RestartCause::pefPowerCycle);
++                    addRestartCause(RestartCause::command);
+                 }
+                 else
+                 {
+@@ -3644,7 +3649,7 @@ int main(int argc, char* argv[])
+                 if (!powerButtonMask)
+                 {
+                     sendPowerControlEvent(Event::powerOnRequest);
+-                    addRestartCause(RestartCause::pefPowerCycle);
++                    addRestartCause(RestartCause::command);
+                 }
+                 else
+                 {
+@@ -3661,7 +3666,7 @@ int main(int argc, char* argv[])
+                 if (!powerButtonMask)
+                 {
+                     sendPowerControlEvent(Event::powerCycleRequest);
+-                    addRestartCause(RestartCause::pefPowerCycle);
++                    addRestartCause(RestartCause::command);
+                 }
+                 else
+                 {
+@@ -3671,23 +3676,6 @@ int main(int argc, char* argv[])
+                     return 0;
+                 }
+             }
+-            else if (requested == "xyz.openbmc_project.State.Chassis.Transition."
+-                                  "ForceWarmReboot")
+-            {
+-                // if reset button is masked, ignore this
+-                if (!resetButtonMask)
+-                {
+-                    sendPowerControlEvent(Event::resetRequest);
+-                    addRestartCause(RestartCause::pefReset);
+-                }
+-                else
+-                {
+-                    phosphor::logging::log<phosphor::logging::level::INFO>(
+-                        "Reset Button Masked.");
+-                    throw std::invalid_argument("Transition Request Masked");
+-                    return 0;
+-                }
+-            }
+             else
+             {
+                 phosphor::logging::log<phosphor::logging::level::ERR>(
+@@ -3795,6 +3783,70 @@ int main(int argc, char* argv[])
+         chassisSlotIface->initialize();
+     }
+ #endif
++
++    // PEF Chassis Control Service
++    sdbusplus::asio::object_server pefChassisServer =
++        sdbusplus::asio::object_server(conn);
++
++    // PEF Chassis Control Interface
++    pefChassisIface =
++        pefChassisServer.add_interface("/xyz/openbmc_project/state/pef" + node,
++                                    "xyz.openbmc_project.State.PEF");
++
++    pefChassisIface->register_property(
++        "RequestedPowerTransition",
++        std::string("xyz.openbmc_project.State.Chassis.Transition.Off"),
++        [](const std::string& requested, std::string& resp) {
++            if (requested ==
++                     "xyz.openbmc_project.State.Chassis.Transition.PowerCycle")
++            {
++                // if power button is masked, ignore this
++                if (!powerButtonMask)
++                {
++                    sendPowerControlEvent(Event::powerCycleRequest);
++                    addRestartCause(RestartCause::pefPowerCycle);
++                }
++                else
++                {
++                    phosphor::logging::log<phosphor::logging::level::INFO>(
++                        "Power Button Masked.");
++                    throw std::invalid_argument("Transition Request Masked");
++                    return 0;
++                }
++            }
++            else if (requested == "xyz.openbmc_project.State.Chassis.Transition."
++                                  "ForceWarmReboot")
++            {
++                // if reset button is masked, ignore this
++                if (!resetButtonMask)
++                {
++                    sendPowerControlEvent(Event::resetRequest);
++                    addRestartCause(RestartCause::pefReset);
++                }
++                else
++                {
++                    phosphor::logging::log<phosphor::logging::level::INFO>(
++                        "Reset Button Masked.");
++                    throw std::invalid_argument("Transition Request Masked");
++                    return 0;
++                }
++            }
++            else
++            {
++                phosphor::logging::log<phosphor::logging::level::ERR>(
++                    "Unrecognized chassis state transition request.");
++                throw std::invalid_argument("Unrecognized Transition Request");
++                return 0;
++            }
++            resp = requested;
++            return 1;
++        });
++    pefChassisIface->register_property("CurrentPowerState",
++                                    std::string(getChassisState(powerState)));
++    pefChassisIface->register_property("LastStateChangeTime", getCurrentTimeMs());
++
++    pefChassisIface->initialize();
++
+     // Buttons Service
+     sdbusplus::asio::object_server buttonsServer =
+         sdbusplus::asio::object_server(conn);
