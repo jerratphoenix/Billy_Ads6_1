@@ -389,8 +389,8 @@ pipeline {
             echo "POST"
 
             echo "Archive Artifacts"
-	    archiveArtifacts artifacts: 'build/*/tmp/deploy/images/*/*.mtd*', onlyIfSuccessful: true
-	    archiveArtifacts artifacts: 'build/*/tmp/deploy/licenses/obmc-phosphor-image-*/license.manifest'
+	    archiveArtifacts artifacts: 'build/*/tmp/deploy/images/*/obmc-phosphor-image-*-*.mtd', onlyIfSuccessful: true
+	    archiveArtifacts artifacts: 'build/*/tmp/deploy/licenses/obmc-phosphor-image-*-*/license.manifest'
             script {
             	   if (params.static_analysis == true) {
             	       archiveArtifacts artifacts: 'cppcheck.xml'
