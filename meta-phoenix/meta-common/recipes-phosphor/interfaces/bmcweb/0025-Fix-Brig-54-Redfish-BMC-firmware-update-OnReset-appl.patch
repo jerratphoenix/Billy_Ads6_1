@@ -1,0 +1,35 @@
+From 76eda5266f4ed60fe84e6cba68a228e33d47c534 Mon Sep 17 00:00:00 2001
+From: Chris Yeh <chris_yeh@phoenix.com>
+Date: Fri, 8 Apr 2022 14:20:45 +0800
+Subject: [PATCH] Fix Brig-54 [Redfish] BMC firmware update- "OnReset" apply
+ method behaves in the same way as the "Immediate" method
+
+---
+ redfish-core/lib/update_service.hpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/redfish-core/lib/update_service.hpp b/redfish-core/lib/update_service.hpp
+index 000fde5..1529cd5 100755
+--- a/redfish-core/lib/update_service.hpp
++++ b/redfish-core/lib/update_service.hpp
+@@ -576,7 +576,7 @@ inline void requestRoutesUpdateService(App& app)
+                             "OnReset";
+                     }
+                 },
+-                "xyz.openbmc_project.Settings",
++                "xyz.openbmc_project.Intel_Settings",
+                 "/xyz/openbmc_project/software/apply_time",
+                 "org.freedesktop.DBus.Properties", "Get",
+                 "xyz.openbmc_project.Software.ApplyTime", "RequestedApplyTime");
+@@ -653,7 +653,7 @@ inline void requestRoutesUpdateService(App& app)
+                                     }
+                                     messages::success(asyncResp->res);
+                                 },
+-                                "xyz.openbmc_project.Settings",
++                                "xyz.openbmc_project.Intel_Settings",
+                                 "/xyz/openbmc_project/software/apply_time",
+                                 "org.freedesktop.DBus.Properties", "Set",
+                                 "xyz.openbmc_project.Software.ApplyTime",
+-- 
+2.17.1
+
