@@ -6,8 +6,13 @@
 # IMAGE_INSTALL:append = " default-fru"
 #
 IMAGE_INSTALL:append = " ipmitool"
-IMAGE_INSTALL:append = " phoenix-ipmi-oem"
 IMAGE_INSTALL:append = " phosphor-sel-logger"
+
+# Phoenix OEM command
+# Before production, please remove recipe "phoenix-ipmi-oem" and use phoenix-ipmi-oem-XXXXXXXprebuild
+IMAGE_INSTALL:append = " phoenix-ipmi-oem"
+#IMAGE_INSTALL:append:archercity = " phoenix-ipmi-oem-ast2600prebuild"
+#IMAGE_INSTALL:append:brightoncity = " phoenix-ipmi-oem-ast2500prebuild"
 
 # Intel recipe 
 IMAGE_INSTALL:append = " smbios-mdrv2"
