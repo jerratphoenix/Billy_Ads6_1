@@ -400,13 +400,13 @@
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
-                    "Value": 2.5186
+                    "Value": 2.35
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
-                    "Value": 2.41
+                    "Value": 2.25
                 }
             ],
             "Type": "ADC"
