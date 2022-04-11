@@ -11,21 +11,9 @@ cd ServerBMC_GM
 ```
 
 ### How to build OpenBMC ServerBMC_GM with `"debug-tweaks"` feature enabled.
-target **Phoenix Technologies Ltd. Intel Wolf Pass** (i.e. S2600WF)
+target **Phoenix Technologies Ltd. Baidu ADS6.0** 
 ```bash
-source setup wolfpass
-bitbake obmc-phosphor-image
-```
-
-target **Phoenix Technologies Ltd. Intel Brighton City** 
-```bash
-source setup brightoncity
-bitbake obmc-phosphor-image
-```
-
-target **Phoenix Technologies Ltd. Intel Archer City** 
-```bash
-source setup archercity
+source setup billy
 bitbake obmc-phosphor-image
 ```
 
