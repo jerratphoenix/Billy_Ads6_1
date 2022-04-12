@@ -11,7 +11,7 @@ cd ServerBMC_GM
 ```
 
 ### How to build OpenBMC ServerBMC_GM with `"debug-tweaks"` feature enabled.
-target **Phoenix Technologies Ltd. Baidu ADS6.0** 
+target **Phoenix Technologies Ltd. ADS6.0** 
 ```bash
 source setup billy
 bitbake obmc-phosphor-image
