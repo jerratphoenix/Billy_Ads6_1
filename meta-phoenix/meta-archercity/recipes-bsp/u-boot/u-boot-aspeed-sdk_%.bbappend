@@ -40,6 +40,7 @@ file://0501-Add-phoenix-archercity-device-tree-to-Makefile.patch \
 file://0502-Setup-Kernel-address.patch \
 file://0503-Disable-Intel-FFUJ-abort-BMC-boot.patch \
 file://0504-Get_Mac_Address_From_EEPROM.patch \
+file://0045-Archercity-Enable-devmem-on-the-kernel.patch \
 "
 
 do_copyfile () {
