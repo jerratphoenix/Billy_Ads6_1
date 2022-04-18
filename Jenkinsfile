@@ -155,6 +155,8 @@ pipeline {
                     cppcheck -j 10 --library=googletest --xml --xml-version=2 \
                              --suppress=integerOverflow \
 			     --suppress=*:*.mako.cpp \
+			     --suppress=syntaxError:*/unpack_properties.cpp:48 \
+			     --suppress=syntaxError:*/event.cpp:141 \
                              -i ${WORKSPACE}/meta-arm \
                              -i ${WORKSPACE}/meta-aspeed \
                              -i ${WORKSPACE}/meta-bytedance \
@@ -208,9 +210,10 @@ pipeline {
                              -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/unicore32 \
                              -i ${WORKSPACE}/build/${params.target}/workspace/sources/**/arch/xtensa \
                              ${WORKSPACE} 2>${WORKSPACE}/cppcheck.xml; \
-			     xmlstarlet ed -O -L -d '//error[@id=\"syntaxError\"][contains(@file0, \"unpack_properties.cpp\")][child::location[@line=\"48\"]]' ${WORKSPACE}/cppcheck.xml; \
-                             xmlstarlet ed -O -L -d '//error[@id=\"syntaxError\"][contains(@file0, \"event.cpp\")][child::location[@line=\"141\"]]' ${WORKSPACE}/cppcheck.xml; \
                    "
+			     // xmlstarlet ed -O -L -d '//error[@id=\"syntaxError\"][contains(@file0, \"unpack_properties.cpp\")][child::location[@line=\"48\"]]' ${WORKSPACE}/cppcheck.xml; \
+                             // xmlstarlet ed -O -L -d '//error[@id=\"syntaxError\"][contains(@file0, \"event.cpp\")][child::location[@line=\"141\"]]' ${WORKSPACE}/cppcheck.xml; \
+
 		echo "Initialize and run ESLint"
 		sh "cd ${WORKSPACE}/build/${params.target}/workspace/sources/webui-vue; \
                     sudo npm ci; \
