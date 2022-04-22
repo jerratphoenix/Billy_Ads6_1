@@ -393,6 +393,7 @@ pipeline {
 
             echo "Archive Artifacts"
 	    archiveArtifacts artifacts: 'build/*/tmp/deploy/images/*/obmc-phosphor-image-*-*.mtd', onlyIfSuccessful: true
+	    archiveArtifacts artifacts: 'build/*/tmp/deploy/images/*/obmc-phosphor-image-*-*.mtd.tar', onlyIfSuccessful: true
 	    archiveArtifacts artifacts: 'build/*/tmp/deploy/licenses/obmc-phosphor-image-*-*/license.manifest'
             script {
             	   if (params.static_analysis == true) {
