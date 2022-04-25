@@ -17,6 +17,8 @@ SRC_URI += "file://PtecLanConfig.json \
             file://0075-Add-Custom-OEM-IANA-parameter.patch \
             "
 
+SRC_URI:remove:archercity = "file://0074-Generate-SEL-after-doing-chassis-power-reset.patch"
+
 do_install:append() {
   install -d ${D}${includedir}/phosphor-ipmi-host
   install -m 0644 -D ${S}/sensorhandler.hpp ${D}${includedir}/phosphor-ipmi-host
