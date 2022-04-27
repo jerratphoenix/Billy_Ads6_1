@@ -20,4 +20,5 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 SRC_URI += " file://0006-Modify-dbus-namespace-of-chassis-control-for-guid.patch \
              file://0001-Remove-SOL-service-check.patch \
+             file://0002-Add-dependency-of-phosphor-ipmi-net-service.patch \
            "
