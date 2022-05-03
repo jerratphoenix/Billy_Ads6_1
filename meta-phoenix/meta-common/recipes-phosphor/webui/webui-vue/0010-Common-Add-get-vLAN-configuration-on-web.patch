@@ -1,0 +1,244 @@
+From 5d3ac71b97822c8710cdb57031264bde36976477 Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Tue, 3 May 2022 05:15:31 +0000
+Subject: [PATCH] [Common] Add get vLAN configuration on web.
+
+---
+ src/locales/en-US.json                     |  8 ++-
+ src/store/modules/Settings/NetworkStore.js | 39 +++++++++++
+ src/views/Settings/Network/Network.vue     | 76 ++++++++++++++++++++++
+ 3 files changed, 122 insertions(+), 1 deletion(-)
+ mode change 100644 => 100755 src/locales/en-US.json
+ mode change 100644 => 100755 src/store/modules/Settings/NetworkStore.js
+ mode change 100644 => 100755 src/views/Settings/Network/Network.vue
+
+diff --git a/src/locales/en-US.json b/src/locales/en-US.json
+old mode 100644
+new mode 100755
+index 16762d4..8b70aab
+--- a/src/locales/en-US.json
++++ b/src/locales/en-US.json
+@@ -640,6 +640,7 @@
+     "staticDnsHelper": "Only can configuration on Static mode",
+     "staticDns": "Static DNS",
+     "system": "System",
++    "vlan": "vLAN",
+     "form": {
+       "defaultGateway": "Default gateway",
+       "hostname": "Hostname",
+@@ -661,7 +662,12 @@
+       "DnsRow": "DNS address",
+       "staticIpv4AddressRow": "Static IPv4 address",
+       "staticIpv4SubnetRow": "Static IPV4 subnet",
+-      "subnet": "Subnet mask"
++      "subnet": "Subnet mask",
++      "vlanid": "vLAN ID",
++      "vlanenable": "vLAN Enable",
++      "vlanidRow": "vLANID",
++      "vlanenableRow": "vLANEnable",
++      "deletevlanId": "Delete vLAN ID row"
+     },
+     "toast": {
+       "errorSaveDhcpSettings": "Error enabling DHCP configuration.",
+diff --git a/src/store/modules/Settings/NetworkStore.js b/src/store/modules/Settings/NetworkStore.js
+old mode 100644
+new mode 100755
+index 3b768ae..6a92b69
+--- a/src/store/modules/Settings/NetworkStore.js
++++ b/src/store/modules/Settings/NetworkStore.js
+@@ -8,11 +8,17 @@ const NetworkStore = {
+     defaultGateway: '',
+     ethernetData: [],
+     interfaceOptions: [],
++    vlanethernetData: '',
++    vLANId: '',
++    vLANEnable: '',
+   },
+   getters: {
+     defaultGateway: (state) => state.defaultGateway,
+     ethernetData: (state) => state.ethernetData,
+     interfaceOptions: (state) => state.interfaceOptions,
++    vlanethernetData: (state) => state.vlanethernetData,
++    vLANId: (state) => state.vLANId,
++    vLANEnable: (state) => state.vLANEnable,
+   },
+   mutations: {
+     setDefaultGateway: (state, defaultGateway) =>
+@@ -21,6 +27,10 @@ const NetworkStore = {
+       (state.ethernetData = ethernetData),
+     setInterfaceOptions: (state, interfaceOptions) =>
+       (state.interfaceOptions = interfaceOptions),
++    setvlanEthernetData: (state, vlanethernetData) =>
++      (state.vlanethernetData = vlanethernetData),
++    setvLANId: (state, vLANId) => (state.vLANId = vLANId),
++    setvLANEnable: (state, vLANEnable) => (state.vLANEnable = vLANEnable),
+   },
+   actions: {
+     async getEthernetData({ commit }) {
+@@ -68,6 +78,35 @@ const NetworkStore = {
+         });
+     },
+ 
++    async getvLANs({ commit }) {
++      return await api
++        .get('/redfish/v1/Managers/bmc/EthernetInterfaces/eth0/VLANs')
++        .then((response) =>
++          response.data.Members.map(
++            (vlanInterface) => vlanInterface['@odata.id']
++          )
++        )
++        .then((vlanInterfaceIds) =>
++          api.all(
++            vlanInterfaceIds.map((vlanInterface) => api.get(vlanInterface))
++          )
++        )
++        .then((vlanInterfaces) => {
++          const vlanethernetData = vlanInterfaces.map(
++            (vlanInterface) => vlanInterface.data
++          );
++          const vlaninterfaceOptions = vlanInterfaces.map(
++            (vlanName) => vlanName.data.Id
++          );
++          const vlanEnable = vlanInterfaces.map(
++            (vlanName) => vlanName.data.VLANEnable
++          );
++          commit('setvlanEthernetData', vlanethernetData);
++          commit('setvLANId', vlaninterfaceOptions);
++          commit('setvLANEnable', vlanEnable);
++        });
++    },
++
+     async updateInterfaceSettings({ dispatch, state }, networkSettingsForm) {
+       const updatedAddresses = networkSettingsForm.staticIpv4;
+       const originalAddresses =
+diff --git a/src/views/Settings/Network/Network.vue b/src/views/Settings/Network/Network.vue
+old mode 100644
+new mode 100755
+index 4b62844..f6b78f5
+--- a/src/views/Settings/Network/Network.vue
++++ b/src/views/Settings/Network/Network.vue
+@@ -413,6 +413,51 @@
+             </b-col>
+           </b-row>
+         </page-section>
++        <page-section :section-title="$t('pageNetwork.vlan')">
++          <b-table
++            responsive="md"
++            hover
++            :fields="vLANTableFields"
++            :items="form.vLANItems"
++            :empty-text="$t('global.table.emptyMessage')"
++            class="mb-0"
++            show-empty
++          >
++            <template #cell(VLANId)="{ item, index }">
++              <b-form-input
++                v-model.trim="item.VLANId"
++                :data-test-id="`network-input-vlanid-${index}`"
++                :aria-label="
++                  $t('pageNetwork.table.vlanidRow') + ' ' + (index + 1)
++                "
++                readonly
++              />
++            </template>
++            <template #cell(VLANEnable)="{ item, index }">
++              <b-form-input
++                v-model.trim="item.VLANEnable"
++                :data-test-id="`network-input-vlanenable-${index}`"
++                :aria-label="
++                  $t('pageNetwork.table.vlanenableRow') + ' ' + (index + 1)
++                "
++                readonly
++              />
++            </template>
++            <template #cell(actions)="{ item }">
++              <table-row-action
++                v-for="(action, actionIndex) in item.actions"
++                :key="actionIndex"
++                :value="action.value"
++                :title="action.title"
++                :enabled="false"
++              >
++                <template #icon>
++                  <icon-trashcan v-if="action.value === 'delete'" />
++                </template>
++              </table-row-action>
++            </template>
++          </b-table>
++        </page-section>
+         <b-button
+           variant="primary"
+           type="submit"
+@@ -497,6 +542,17 @@ export default {
+         },
+         { key: 'actions', label: '', tdClass: 'text-right' },
+       ],
++      vLANTableFields: [
++        {
++          key: 'VLANId',
++          label: this.$t('pageNetwork.table.vlanid'),
++        },
++        {
++          key: 'VLANEnable',
++          label: this.$t('pageNetwork.table.vlanenable'),
++        },
++        { key: 'actions', label: '', tdClass: 'text-right' },
++      ],
+       selectedInterfaceIndex: 0,
+       selectedInterface: {},
+       form: {
+@@ -508,6 +564,7 @@ export default {
+         ipv4DhcpTableItems: [],
+         dnsStaticTableItems: [],
+         dnsTableItems: [],
++        vLANItems: [],
+       },
+       loading,
+     };
+@@ -554,6 +611,7 @@ export default {
+       'ethernetData',
+       'interfaceOptions',
+       'defaultGateway',
++      'vlanethernetData',
+     ]),
+     interfaceSelectOptions() {
+       return this.interfaceOptions.map((option, index) => {
+@@ -574,6 +632,7 @@ export default {
+     this.$store
+       .dispatch('network/getEthernetData')
+       .finally(() => this.endLoader());
++    this.$store.dispatch('network/getvLANs').finally(() => this.endLoader());
+   },
+   methods: {
+     selectInterface() {
+@@ -583,6 +642,7 @@ export default {
+       this.getDnsTableItems();
+       this.getDnsStaticTableItems();
+       this.getInterfaceSettings();
++      this.getvLANItems();
+     },
+     getInterfaceSettings() {
+       this.form.gateway = this.defaultGateway;
+@@ -691,6 +751,22 @@ export default {
+     onDeleteIpv4StaticTableRow(action, row) {
+       this.deleteIpv4StaticTableRow(row);
+     },
++    getvLANItems() {
++      const vlan = this.vlanethernetData || [];
++      this.form.vLANItems = vlan.map((vlan_data) => {
++        return {
++          VLANId: vlan_data.VLANId,
++          VLANEnable: vlan_data.VLANEnable,
++          actions: [
++            {
++              value: 'delete',
++              enabled: false,
++              title: this.$t('pageNetwork.table.deletevlanId'),
++            },
++          ],
++        };
++      });
++    },
+     submitForm() {
+       this.$v.$touch();
+       if (this.$v.$invalid) return;
