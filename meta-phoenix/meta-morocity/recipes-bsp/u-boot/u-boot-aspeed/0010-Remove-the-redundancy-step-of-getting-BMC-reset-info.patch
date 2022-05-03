@@ -1,0 +1,26 @@
+From b8c0612187ecb29bc69d98fa1d80f656786ab391 Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Wed, 29 Dec 2021 02:34:05 +0000
+Subject: [PATCH] Remove the redundancy step of getting BMC reset info BMC
+ Reset info will be gotten in ast_g5_intel_late_init().
+
+---
+ arch/arm/mach-aspeed/cpuinfo.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/arch/arm/mach-aspeed/cpuinfo.c b/arch/arm/mach-aspeed/cpuinfo.c
+index 45f70a8183..386df52dbf 100644
+--- a/arch/arm/mach-aspeed/cpuinfo.c
++++ b/arch/arm/mach-aspeed/cpuinfo.c
+@@ -18,8 +18,6 @@ int print_cpuinfo(void)
+ 
+ 	ast_scu_revision_id();
+ 
+-	ast_scu_sys_rest_info();
+-
+ #ifdef AST_SOC_G5
+ 	ast_scu_security_info();
+ #endif
+-- 
+2.17.1
+

@@ -1,0 +1,2765 @@
+diff --git a/Kconfig b/Kconfig
+index 3ceff25032..d6439d01ca 100644
+--- a/Kconfig
++++ b/Kconfig
+@@ -115,6 +115,19 @@ if EXPERT
+ 	  When disabling this, please check if malloc calls, maybe
+ 	  should be replaced by calloc - if one expects zeroed memory.
+ endif
++
++config USE_IRQ
++	bool "Use interrupts"
++	default n
++
++config STACKSIZE_IRQ
++	int "Size for IRQ stack (only if USE_IRQ enabled)"
++	default 16384
++
++config STACKSIZE_FIQ
++	int "Size for FIQ stack (only if USE_IRQ enabled)"
++	default 16384
++
+ endmenu		# General setup
+ 
+ menu "Boot images"
+diff --git a/arch/arm/include/asm/arch-aspeed/ast-g5-intel.h b/arch/arm/include/asm/arch-aspeed/ast-g5-intel.h
+new file mode 100755
+index 0000000000..64f4ed17bf
+--- /dev/null
++++ b/arch/arm/include/asm/arch-aspeed/ast-g5-intel.h
+@@ -0,0 +1,21 @@
++/*
++ * Copyright 2018 Intel Corporation
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version
++ * 2 of the License, or (at your option) any later version.
++ */
++
++#ifndef __AST_INTEL_G5_H__
++#define __AST_INTEL_G5_H__
++
++#define AST_G5_INTEL 1
++
++#ifndef __ASSEMBLY__
++int intel_force_firmware_jumper_enabled(void);
++int intel_failed_boot(void);
++void start_fw_update_loop(void);
++#endif
++
++#endif /* __AST_INTEL_G5_H__ */
+diff --git a/arch/arm/include/asm/arch-aspeed/ast_scu.h b/arch/arm/include/asm/arch-aspeed/ast_scu.h
+old mode 100644
+new mode 100755
+index dcbc6730d4..b94d13e97d
+--- a/arch/arm/include/asm/arch-aspeed/ast_scu.h
++++ b/arch/arm/include/asm/arch-aspeed/ast_scu.h
+@@ -28,6 +28,8 @@
+ #ifndef __AST_SCU_H
+ #define __AST_SCU_H
+ 
++#include <common.h>
++
+ extern void ast_scu_show_system_info (void);
+ extern void ast_scu_sys_rest_info(void);
+ extern void ast_scu_security_info(void);
+@@ -39,11 +41,17 @@ extern u32 ast_get_clk_source(void);
+ extern u32 ast_get_h_pll_clk(void);
+ extern u32 ast_get_m_pll_clk(void);
+ extern u32 ast_get_ahbclk(void);
++extern u32 ast_get_pclk(void);
+ 
+ extern u32 ast_scu_get_vga_memsize(void);
+ 
++extern void ast_scu_init_i2c(void);
+ extern void ast_scu_init_eth(u8 num);
+ extern void ast_scu_multi_func_eth(u8 num);
+ extern void ast_scu_multi_func_romcs(u8 num);
++extern void ast_scu_multi_func_sgpio(void);
++extern void ast_scu_multi_func_i2c(u8 bus_no);
++
++void ast_config_uart5_clk(void);
+ 
+ #endif
+diff --git a/arch/arm/include/asm/arch-aspeed/platform.h b/arch/arm/include/asm/arch-aspeed/platform.h
+old mode 100644
+new mode 100755
+index 1c02914fcb..4e4140d8e4
+--- a/arch/arm/include/asm/arch-aspeed/platform.h
++++ b/arch/arm/include/asm/arch-aspeed/platform.h
+@@ -27,6 +27,10 @@
+ #include <asm/arch/ast2400_platform.h>
+ #elif defined(AST_SOC_G5)
+ #include <asm/arch/ast_g5_platform.h>
++#include <asm/arch/ast-g5-intel.h>
++#define CONFIG_BOARD_EARLY_INIT_F	1	/* Call board_early_init_f */
++#define CONFIG_BOARD_LATE_INIT		1	/* Call board_late_init */
++#define CONFIG_DISPLAY_CPUINFO		1
+ #else
+ #err "No define for platform.h"
+ #endif
+diff --git a/arch/arm/include/asm/arch-aspeed/regs-iic.h b/arch/arm/include/asm/arch-aspeed/regs-iic.h
+new file mode 100755
+index 0000000000..5eb3f0a828
+--- /dev/null
++++ b/arch/arm/include/asm/arch-aspeed/regs-iic.h
+@@ -0,0 +1,204 @@
++/* arch/arm/plat-aspeed/include/mach/regs-iic.h
++ *
++ * Copyright (c) 2012 ASPEED Technology Inc. <ryan_chen@aspeedtech.com>
++ *		http://www.aspeedtech.com/
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * ASPEED I2C Controller
++*/
++
++#ifndef __ASM_ARCH_REGS_IIC_H
++#define __ASM_ARCH_REGS_IIC_H __FILE__
++
++#ifdef CONFIG_ARCH_AST1010
++#define AST_I2C_DMA_SIZE 512
++#else
++#define AST_I2C_DMA_SIZE 4096
++#endif
++#define AST_I2C_PAGE_SIZE 256
++
++#if defined(CONFIG_ARCH_AST2300)
++#define NUM_BUS 9
++#elif defined(CONFIG_ARCH_AST2400)
++#define NUM_BUS 14
++#elif defined(CONFIG_ARCH_AST1010)
++#define NUM_BUS 15
++#elif defined(CONFIG_ARCH_AST1520) || defined(CONFIG_ARCH_AST3200) || defined(CONFIG_ARCH_AST2500)
++#define NUM_BUS 14
++#elif defined(CONFIG_ARCH_AST1220)
++#define NUM_BUS 10
++#else
++#err "NO define NUM_BUS"
++#endif
++
++/* I2C Register */
++#define I2C_FUN_CTRL_REG		0x00
++#define I2C_AC_TIMING_REG1		0x04
++#define I2C_AC_TIMING_REG2		0x08
++#define I2C_INTR_CTRL_REG		0x0c
++#define I2C_INTR_STS_REG		0x10
++#define I2C_CMD_REG			0x14
++#define I2C_DEV_ADDR_REG		0x18
++#define I2C_BUF_CTRL_REG		0x1c
++#define I2C_BYTE_BUF_REG		0x20
++#define I2C_DMA_BASE_REG		0x24
++#define I2C_DMA_LEN_REG		0x28
++
++
++/* Gloable Register Definition */
++/* 0x00 : I2C Interrupt Status Register  */
++/* 0x08 : I2C Interrupt Target Assignment  */
++#if defined(CONFIG_ARCH_AST2400)
++#define AST_I2CG_INTR14			(0x1 << 13)
++#define AST_I2CG_INTR13			(0x1 << 12)
++#define AST_I2CG_INTR12			(0x1 << 11)
++#define AST_I2CG_INTR11			(0x1 << 10)
++#define AST_I2CG_INTR10			(0x1 << 9)
++#elif defined(CONFIG_ARCH_AST1010)
++#define AST_I2CG_INTR14			(0x1 << 13)
++#define AST_I2CG_INTR13			(0x1 << 12)
++#define AST_I2CG_INTR12			(0x1 << 11)
++#define AST_I2CG_INTR11			(0x1 << 10)
++#define AST_I2CG_INTR10			(0x1 << 9)
++#endif
++#define AST_I2CG_INTR09			(0x1 << 8)
++#define AST_I2CG_INTR08			(0x1 << 7)
++#define AST_I2CG_INTR07			(0x1 << 6)
++#define AST_I2CG_INTR06			(0x1 << 5)
++#define AST_I2CG_INTR05			(0x1 << 4)
++#define AST_I2CG_INTR04			(0x1 << 3)
++#define AST_I2CG_INTR03			(0x1 << 2)
++#define AST_I2CG_INTR02			(0x1 << 1)
++#define AST_I2CG_INTR01			(0x1)
++
++/* Device Register Definition */
++/* 0x00 : I2CD Function Control Register  */
++#define AST_I2CD_BUFF_SEL_MASK			(0x7 << 20)
++#define AST_I2CD_BUFF_SEL(x)			(x << 20) // page 0 ~ 7
++#define AST_I2CD_M_SDA_LOCK_EN			(0x1 << 16)
++#define AST_I2CD_MULTI_MASTER_DIS		(0x1 << 15)
++#define AST_I2CD_M_SCL_DRIVE_EN			(0x1 << 14)
++#define AST_I2CD_MSB_STS			(0x1 << 9)
++#define AST_I2CD_SDA_DRIVE_1T_EN		(0x1 << 8)
++#define AST_I2CD_M_SDA_DRIVE_1T_EN		(0x1 << 7)
++#define AST_I2CD_M_HIGH_SPEED_EN		(0x1 << 6)
++#define AST_I2CD_DEF_ADDR_EN			(0x1 << 5)
++#define AST_I2CD_DEF_ALERT_EN			(0x1 << 4)
++#define AST_I2CD_DEF_ARP_EN			(0x1 << 3)
++#define AST_I2CD_DEF_GCALL_EN			(0x1 << 2)
++#define AST_I2CD_SLAVE_EN			(0x1 << 1)
++#define AST_I2CD_MASTER_EN			(0x1)
++
++/* 0x04 : I2CD Clock and AC Timing Control Register #1 */
++#define AST_I2CD_tBUF				(0x1 << 28) // 0~7
++#define AST_I2CD_tHDSTA				(0x1 << 24) // 0~7
++#define AST_I2CD_tACST				(0x1 << 20) // 0~7
++#define AST_I2CD_tCKHIGH			(0x1 << 16) // 0~7
++#define AST_I2CD_tCKLOW				(0x1 << 12) // 0~7
++#define AST_I2CD_tHDDAT				(0x1 << 10) // 0~7
++#define AST_I2CD_CLK_TO_BASE_DIV		(0x1 << 8)  // 0~3
++#define AST_I2CD_CLK_BASE_DIV			(0x1)      // 0~0xf
++
++/* 0x08 : I2CD Clock and AC Timing Control Register #2 */
++#define AST_I2CD_tTIMEOUT			(0x1) // 0~7
++#define AST_NO_TIMEOUT_CTRL			0x0
++
++
++/* 0x0c : I2CD Interrupt Control Register  */
++#define AST_I2CD_SDA_DL_TO_INTR_EN		(0x1 << 14)
++#define AST_I2CD_BUS_RECOVER_INTR_EN		(0x1 << 13)
++#define AST_I2CD_SMBUS_ALT_INTR_EN		(0x1 << 12)
++#define AST_I2CD_SLAVE_MATCH_INTR_EN		(0x1 << 7)
++#define AST_I2CD_SCL_TO_INTR_EN			(0x1 << 6)
++#define AST_I2CD_ABNORMAL_INTR_EN		(0x1 << 5)
++#define AST_I2CD_NORMAL_STOP_INTR_EN		(0x1 << 4)
++#define AST_I2CD_ARBIT_LOSS_INTR_EN		(0x1 << 3)
++#define AST_I2CD_RX_DOWN_INTR_EN		(0x1 << 2)
++#define AST_I2CD_TX_NAK_INTR_EN			(0x1 << 1)
++#define AST_I2CD_TX_ACK_INTR_EN			(0x1)
++
++/* 0x10 : I2CD Interrupt Status Register   : WC */
++#define AST_I2CD_INTR_STS_SDA_DL_TO		(0x1 << 14)
++#define AST_I2CD_INTR_STS_BUS_RECOVER		(0x1 << 13)
++#define AST_I2CD_INTR_STS_SMBUS_ALT		(0x1 << 12)
++#define AST_I2CD_INTR_STS_SMBUS_ARP_ADDR	(0x1 << 11)
++#define AST_I2CD_INTR_STS_SMBUS_DEV_ALT		(0x1 << 10)
++#define AST_I2CD_INTR_STS_SMBUS_DEF_ADDR	(0x1 << 9)
++#define AST_I2CD_INTR_STS_GCALL_ADDR		(0x1 << 8)
++#define AST_I2CD_INTR_STS_SLAVE_MATCH		(0x1 << 7)
++#define AST_I2CD_INTR_STS_SCL_TO		(0x1 << 6)
++#define AST_I2CD_INTR_STS_ABNORMAL		(0x1 << 5)
++#define AST_I2CD_INTR_STS_NORMAL_STOP		(0x1 << 4)
++#define AST_I2CD_INTR_STS_ARBIT_LOSS		(0x1 << 3)
++#define AST_I2CD_INTR_STS_RX_DOWN		(0x1 << 2)
++#define AST_I2CD_INTR_STS_TX_NAK		(0x1 << 1)
++#define AST_I2CD_INTR_STS_TX_ACK		(0x1)
++
++/* 0x14 : I2CD Command/Status Register   */
++#define AST_I2CD_SDA_OE				(0x1 << 28)
++#define AST_I2CD_SDA_O				(0x1 << 27)
++#define AST_I2CD_SCL_OE				(0x1 << 26)
++#define AST_I2CD_SCL_O				(0x1 << 25)
++#define AST_I2CD_TX_TIMING			(0x1 << 24) // 0 ~3
++#define AST_I2CD_TX_STATUS			(0x1 << 23)
++// Tx State Machine
++#define AST_I2CD_IDLE					0x0
++#define AST_I2CD_MACTIVE				0x8
++#define AST_I2CD_MSTART					0x9
++#define AST_I2CD_MSTARTR				0xa
++#define AST_I2CD_MSTOP					0xb
++#define AST_I2CD_MTXD					0xc
++#define AST_I2CD_MRXACK					0xd
++#define AST_I2CD_MRXD					0xe
++#define AST_I2CD_MTXACK					0xf
++#define AST_I2CD_SWAIT					0x1
++#define AST_I2CD_SRXD					0x4
++#define AST_I2CD_STXACK					0x5
++#define AST_I2CD_STXD					0x6
++#define AST_I2CD_SRXACK					0x7
++#define AST_I2CD_RECOVER				0x3
++
++#define AST_I2CD_SCL_LINE_STS				(0x1 << 18)
++#define AST_I2CD_SDA_LINE_STS				(0x1 << 17)
++#define AST_I2CD_BUS_BUSY_STS				(0x1 << 16)
++#define AST_I2CD_SDA_OE_OUT_DIR				(0x1 << 15)
++#define AST_I2CD_SDA_O_OUT_DIR				(0x1 << 14)
++#define AST_I2CD_SCL_OE_OUT_DIR				(0x1 << 13)
++#define AST_I2CD_SCL_O_OUT_DIR				(0x1 << 12)
++#define AST_I2CD_BUS_RECOVER_CMD_EN			(0x1 << 11)
++#define AST_I2CD_S_ALT_EN				(0x1 << 10)
++// 0 : DMA Buffer, 1: Pool Buffer
++//AST1070 DMA register
++#define AST_I2CD_RX_DMA_ENABLE				(0x1 << 9)
++#define AST_I2CD_TX_DMA_ENABLE				(0x1 << 8)
++
++/* Command Bit */
++#define AST_I2CD_RX_BUFF_ENABLE				(0x1 << 7)
++#define AST_I2CD_TX_BUFF_ENABLE				(0x1 << 6)
++#define AST_I2CD_M_STOP_CMD				(0x1 << 5)
++#define AST_I2CD_M_S_RX_CMD_LAST			(0x1 << 4)
++#define AST_I2CD_M_RX_CMD				(0x1 << 3)
++#define AST_I2CD_S_TX_CMD				(0x1 << 2)
++#define AST_I2CD_M_TX_CMD				(0x1 << 1)
++#define AST_I2CD_M_START_CMD				(0x1)
++
++/* 0x18 : I2CD Slave Device Address Register   */
++
++/* 0x1C : I2CD Pool Buffer Control Register   */
++#define AST_I2CD_RX_BUF_ADDR_GET(x)			((x >> 24) & 0xff)
++#define AST_I2CD_RX_BUF_END_ADDR_SET(x)			(x << 16)
++#define AST_I2CD_TX_DATA_BUF_END_SET(x)			((x & 0xff) << 8)
++#define AST_I2CD_TX_DATA_BUF_GET(x)			((x >> 8) & 0xff)
++#define AST_I2CD_BUF_BASE_ADDR_SET(x)			(x & 0x3f)
++
++/* 0x20 : I2CD Transmit/Receive Byte Buffer Register   */
++#define AST_I2CD_GET_MODE(x)				((x >> 8) & 0x1)
++
++#define AST_I2CD_RX_BYTE_BUFFER				(0xff << 8)
++#define AST_I2CD_TX_BYTE_BUFFER				(0xff)
++
++
++#endif /* __ASM_ARCH_REGS_IIC_H */
+diff --git a/arch/arm/include/asm/arch-aspeed/regs-lpc.h b/arch/arm/include/asm/arch-aspeed/regs-lpc.h
+new file mode 100755
+index 0000000000..b0162ae4f3
+--- /dev/null
++++ b/arch/arm/include/asm/arch-aspeed/regs-lpc.h
+@@ -0,0 +1,29 @@
++/* arch/arm/mach-aspeed/include/mach/regs-sdmc.h
++ *
++ * Copyright (C) 2018  IBM Corp
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ *   History      :
++ *    1. 2018/07/23 Andrew Jeffery Create
++ *
++ ******************************************************************************/
++#ifndef __AST_REGS_LPC_H
++#define __AST_REGS_LPC_H
++
++/*
++ *  Register for LPC
++ */
++
++#define AST_LPC_HICR5		0x80
++#define AST_LPC_HICRB		0x100
++
++/*	AST_LPC_HICR5 : 0x80	Host Interface Control Register 5 */
++#define LPC_HICR5_ENFWH		(0x1 << 10)
++
++/*	AST_LPC_HICRB : 0x100	Host Interface Control Register B */
++#define LPC_HICRB_ILPC2AHB	(0x1 << 6)
++
++#endif
+diff --git a/arch/arm/include/asm/arch-aspeed/regs-scu.h b/arch/arm/include/asm/arch-aspeed/regs-scu.h
+old mode 100644
+new mode 100755
+index b714fa9234..1bdb1d8574
+--- a/arch/arm/include/asm/arch-aspeed/regs-scu.h
++++ b/arch/arm/include/asm/arch-aspeed/regs-scu.h
+@@ -466,7 +466,9 @@
+ #define SCU_MISC_JTAG__M_TO_PCIE_EN	(0x1 << 14)
+ #define SCU_MISC_VUART_TO_CTRL		(0x1 << 13)
+ #define SCU_MISC_DIV13_EN		(0x1 << 12)
++#define SCU_MISC_DEBUG_UART             (0x1 << 10)
+ #define SCU_MISC_Y_CLK_INVERT		(0x1 << 11)
++#define SCU_MISC_UART_DEBUG_DIS		(0x1 << 10)
+ #define SCU_MISC_OUT_DELAY		(0x1 << 9)
+ #define SCU_MISC_PCI_TO_AHB_DIS		(0x1 << 8)
+ #define SCU_MISC_2D_CRT_EN		(0x1 << 7)
+@@ -529,6 +531,11 @@
+ /* AST_SCU_MAC_CLK			0x48 - MAC interface clock delay setting register */
+ 
+ /* AST_SCU_MISC2_CTRL			0x4C - Misc. 2 Control register */
++#define SCU_UART5_HS_CLOCK		(1 << 28)
++#define SCU_UART4_HS_CLOCK		(1 << 27)
++#define SCU_UART3_HS_CLOCK		(1 << 26)
++#define SCU_UART2_HS_CLOCK		(1 << 25)
++#define SCU_UART1_HS_CLOCK		(1 << 24)
+ #ifdef AST_SOC_G5
+ #define SCU_PCIE_MAPPING_HIGH		(1 << 15)
+ #define SCU_MALI_DTY_MODE		(1 << 8)
+@@ -548,10 +555,13 @@
+ /* AST_SCU_VGA_SCRATCH7			0x6c - VGA Scratch register */
+ 
+ /* AST_SCU_HW_STRAP1			0x70 - hardware strapping register */
++#define SCU_HW_STRAP_LPC_DEC_SUPER_IO	(0x1 << 20)
+ #ifdef AST_SOC_G5
+ 
+ #define CLK_25M_IN			(0x1 << 23)
+ 
++#define SCU_HW_STRAP_FAST_RESET		(1 << 27)
++#define SCU_HW_STRAP_ESPI_ENABLED	(1 << 25)
+ #define SCU_HW_STRAP_2ND_BOOT_WDT	(0x1 << 17)
+ #define SCU_HW_STRAP_SUPER_IO_CONFIG	(0x1 << 16)
+ #define SCU_HW_STRAP_VGA_CLASS_CODE	(0x1 << 15)
+@@ -593,7 +603,6 @@
+ 
+ #define SCU_HW_STRAP_GPIOE_PT_EN	(0x1 << 22)
+ #define SCU_HW_STRAP_GPIOD_PT_EN	(0x1 << 21)
+-#define SCU_HW_STRAP_LPC_DEC_SUPER_IO	(0x1 << 20)
+ #define SCU_HW_STRAP_ACPI_DIS		(0x1 << 19)
+ 
+ /* bit 23, 18 [1,0] */
+@@ -940,6 +949,11 @@
+ 
+ /* AST_SCU_UART24_REF			0x160 - Generate UART 24Mhz Ref from H-PLL when CLKIN is 25Mhz */
+ /* AST_SCU_PCIE_CONFIG_SET		0x180 - PCI-E Configuration Setting Control Register */
++#define SCU_PCIE_CONFIG_SET_BMC_DMA     (0x1 << 14)
++#define SCU_PCIE_CONFIG_SET_BMC_MMIO    (0x1 << 9)
++#define SCU_PCIE_CONFIG_SET_BMC_EN      (0x1 << 8)
++#define SCU_PCIE_CONFIG_SET_VGA_MMIO    (0x1 << 1)
++
+ /* AST_SCU_BMC_MMIO_DEC			0x184 - BMC MMIO Decode Setting Register */
+ /* AST_SCU_DEC_AREA1			0x188 - 1st relocated controller decode area location */
+ /* AST_SCU_DEC_AREA2			0x18C - 2nd relocated controller decode area location */
+diff --git a/arch/arm/include/asm/arch-aspeed/regs-sdmc.h b/arch/arm/include/asm/arch-aspeed/regs-sdmc.h
+old mode 100644
+new mode 100755
+index 2cc26d29aa..2773d3c19e
+--- a/arch/arm/include/asm/arch-aspeed/regs-sdmc.h
++++ b/arch/arm/include/asm/arch-aspeed/regs-sdmc.h
+@@ -13,11 +13,14 @@
+ #ifndef __AST_REGS_SDMC_H
+ #define __AST_REGS_SDMC_H
+ 
++#include <asm/arch/aspeed.h>
++
+ /*
+  *  Register for SDMC
+  */
+ #define AST_SDMC_PROTECT	0x00		/* protection key register */
+ #define AST_SDMC_CONFIG		0x04		/* Configuration register */
++#define AST_SDMC_GFX_PROT	0x08		/* Graphics protection register */
+ 
+ /*	AST_SDMC_PROTECT: 0x00  - protection key register */
+ #define SDMC_PROTECT_UNLOCK			0xFC600309
+@@ -29,4 +32,18 @@
+ #define SDMC_CONFIG_CACHE_EN		(0x1 << 10)
+ #define SDMC_CONFIG_EEC_EN		(0x1 << 7)
+ 
++/*	AST_SDMC_GFX_PROT : 0x08 - Graphics protection register */
++#define SDMC_GFX_PROT_VGA_CURSOR	(0x1 << 0)
++#define SDMC_GFX_PROT_VGA_CG_READ	(0x1 << 1)
++#define SDMC_GFX_PROT_VGA_ASCII_READ	(0x1 << 2)
++#define SDMC_GFX_PROT_VGA_CRT		(0x1 << 3)
++
++#if defined(AST_SOC_G5)
++#define SDMC_GFX_PROT_PCIE		(0x1 << 16)
++#define SDMC_GFX_PROT_XDMA		(0x1 << 17)
++#elif defined(AST_SOC_G4)
++#define SDMC_GFX_PROT_PCIE		(0x1 << 10)
++#define SDMC_GFX_PROT_XDMA		(0x1 << 16)
++#endif
++
+ #endif
+diff --git a/arch/arm/lib/interrupts.c b/arch/arm/lib/interrupts.c
+index ed83043abb..10ce2035a6 100644
+--- a/arch/arm/lib/interrupts.c
++++ b/arch/arm/lib/interrupts.c
+@@ -94,6 +94,17 @@ int disable_interrupts (void)
+ 			     : "memory");
+ 	return (old & 0x80) == 0;
+ }
++
++int global_interrupts_enabled(void)
++{
++       unsigned long old;
++       __asm__ __volatile__("mrs %0, cpsr\n"
++                            : "=r" (old)
++                            :
++                            : "memory");
++       return (old & 0x80) == 0;
++}
++		
+ #else
+ int interrupt_init (void)
+ {
+diff --git a/arch/arm/mach-aspeed/Makefile b/arch/arm/mach-aspeed/Makefile
+old mode 100644
+new mode 100755
+index 7d8930beb9..b9fcf41d8c
+--- a/arch/arm/mach-aspeed/Makefile
++++ b/arch/arm/mach-aspeed/Makefile
+@@ -11,7 +11,7 @@
+ #
+ 
+ 
+-obj-y += timer.o reset.o cpuinfo.o ast-scu.o ast-ahbc.o ast-sdmc.o
++obj-y += timer.o reset.o cpuinfo.o ast-scu.o ast-ahbc.o ast-sdmc.o utils.o
+ obj-$(CONFIG_AST_SPI_NOR) += flash.o
+ obj-$(CONFIG_ARCH_AST2500) += platform_g5.o
+ obj-$(CONFIG_ARCH_AST2400) += platform_g4.o
+diff --git a/arch/arm/mach-aspeed/ast-scu.c b/arch/arm/mach-aspeed/ast-scu.c
+old mode 100644
+new mode 100755
+index a53aa796ea..ff90c0fc7e
+--- a/arch/arm/mach-aspeed/ast-scu.c
++++ b/arch/arm/mach-aspeed/ast-scu.c
+@@ -112,6 +112,12 @@ static struct soc_id soc_map_table[] = {
+ 	SOC_ID("AST2530-A2", 0x04030403),
+ };
+ 
++void ast_scu_init_i2c(void)
++{
++	ast_scu_write(ast_scu_read(AST_SCU_RESET) & ~SCU_RESET_I2C,
++		      AST_SCU_RESET);
++}
++
+ void ast_scu_init_eth(u8 num)
+ {
+ /* Set MAC delay Timing */
+@@ -292,6 +298,23 @@ u32 ast_get_ahbclk(void)
+ 	return ((hpll / axi_div) / ahb_div);
+ }
+ 
++u32 ast_get_pclk(void)
++{
++	unsigned int div, hpll;
++
++	hpll = ast_get_h_pll_clk();
++	div = SCU_GET_PCLK_DIV(ast_scu_read(AST_SCU_CLK_SEL));
++#ifdef AST_SOC_G5
++	div = (div+1) << 2;
++#else
++	div = (div+1) << 1;
++#endif
++
++	debug("HPLL=%d, Div=%d, PCLK=%d\n", hpll, div, hpll/div);
++	return (hpll/div);
++}
++
++
+ #else /* ! AST_SOC_G5 */
+ 
+ u32 ast_get_h_pll_clk(void)
+@@ -396,49 +419,30 @@ void ast_scu_multi_func_eth(u8 num)
+ {
+ 	switch (num) {
+ 	case 0:
+-		if (ast_scu_read(AST_SCU_HW_STRAP1) & SCU_HW_STRAP_MAC0_RGMII) {
++		if (ast_scu_read(AST_SCU_HW_STRAP1) & SCU_HW_STRAP_MAC0_RGMII)
+ 			printf("MAC0 : RGMII\n");
+-			ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL1) |
+-				      SCU_FUN_PIN_MAC0_PHY_LINK,
+-				      AST_SCU_FUN_PIN_CTRL1);
+-		} else {
++		else
+ 			printf("MAC0 : RMII/NCSI\n");
+-			ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL1) &
+-				      ~SCU_FUN_PIN_MAC0_PHY_LINK,
+-				      AST_SCU_FUN_PIN_CTRL1);
+-		}
+-
+-#ifdef AST_SOC_G5
+-		ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL1) |
+-			      SCU_FUN_PIN_MAC0_PHY_LINK, AST_SCU_FUN_PIN_CTRL1);
+ 
+-#endif
++		ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL1) &
++			      ~SCU_FUN_PIN_MAC0_PHY_LINK,
++			      AST_SCU_FUN_PIN_CTRL1);
+ 		ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL3) |
+ 			      SCU_FUN_PIN_MAC0_MDIO | SCU_FUN_PIN_MAC0_MDC,
+ 			      AST_SCU_FUN_PIN_CTRL3);
+-
+ 		break;
+ 	case 1:
+-		if (ast_scu_read(AST_SCU_HW_STRAP1) & SCU_HW_STRAP_MAC1_RGMII) {
++		if (ast_scu_read(AST_SCU_HW_STRAP1) & SCU_HW_STRAP_MAC1_RGMII)
+ 			printf("MAC1 : RGMII\n");
+-			ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL1) |
+-				      SCU_FUN_PIN_MAC1_PHY_LINK,
+-				      AST_SCU_FUN_PIN_CTRL1);
+-		} else {
++		else
+ 			printf("MAC1 : RMII/NCSI\n");
+-			ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL1) &
+-				      ~SCU_FUN_PIN_MAC1_PHY_LINK,
+-				      AST_SCU_FUN_PIN_CTRL1);
+-		}
+ 
+-		ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL1) |
+-			      SCU_FUN_PIN_MAC1_PHY_LINK,
++		ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL1) &
++			      ~SCU_FUN_PIN_MAC1_PHY_LINK,
+ 			      AST_SCU_FUN_PIN_CTRL1);
+-
+ 		ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL5) |
+ 			      SCU_FUC_PIN_MAC1_MDIO,
+ 			      AST_SCU_FUN_PIN_CTRL5);
+-
+ 		break;
+ 	}
+ }
+@@ -449,6 +453,113 @@ void ast_scu_multi_func_romcs(u8 num)
+ 		      SCU_FUN_PIN_ROMCS(num), AST_SCU_FUN_PIN_CTRL3);
+ }
+ 
++void ast_scu_multi_func_sgpio(void)
++{
++	ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL2) |
++			SCU_FUN_PIN_SGPMI | SCU_FUN_PIN_SGPMO |
++			SCU_FUN_PIN_SGPMLD | SCU_FUN_PIN_SGPMCK,
++			AST_SCU_FUN_PIN_CTRL2);
++}
++
++extern void ast_scu_multi_func_i2c(u8 bus_no)
++{
++#ifdef CONFIG_ARCH_AST1010
++	ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL4) |
++				SCU_FUN_PIN_SCL13 |
++				SCU_FUN_PIN_SDA13 |
++				SCU_FUN_PIN_SCL14 |
++				SCU_FUN_PIN_SDA14,
++			AST_SCU_FUN_PIN_CTRL4);
++
++	ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL2) |
++				SCU_FUN_PIN_SCL1 |
++				SCU_FUN_PIN_SDA1 |
++				SCU_FUN_PIN_SCL2 |
++				SCU_FUN_PIN_SDA2 |
++				SCU_FUN_PIN_SCL3 |
++				SCU_FUN_PIN_SDA3 |
++				SCU_FUN_PIN_SCL4 |
++				SCU_FUN_PIN_SDA4 |
++				SCU_FUN_PIN_SCL5 |
++				SCU_FUN_PIN_SDA5 |
++				SCU_FUN_PIN_SCL6 |
++				SCU_FUN_PIN_SDA6 |
++				SCU_FUN_PIN_SCL7 |
++				SCU_FUN_PIN_SDA7 |
++				SCU_FUN_PIN_SCL8 |
++				SCU_FUN_PIN_SDA8 |
++				SCU_FUN_PIN_SALT1 |
++				SCU_FUN_PIN_SALT2 |
++				SCU_FUN_PIN_SALT3 |
++				SCU_FUN_PIN_SALT4,
++			AST_SCU_FUN_PIN_CTRL2);
++
++	ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL1) |
++				SCU_FUN_PIN_SCL9 |
++				SCU_FUN_PIN_SDA9 |
++				SCU_FUN_PIN_SCL10 |
++				SCU_FUN_PIN_SDA10 |
++				SCU_FUN_PIN_SCL11 |
++				SCU_FUN_PIN_SDA11 |
++				SCU_FUN_PIN_SCL12 |
++				SCU_FUN_PIN_SDA12,
++			AST_SCU_FUN_PIN_CTRL1);
++#else
++	//TODO check ... //In AST2400 Due to share pin with SD , please not enable I2C 10 ~14
++	// AST 2400 have 14 , AST 2300 9 ...
++	u32 pin_ctrl = ast_scu_read(AST_SCU_FUN_PIN_CTRL5);
++	switch (bus_no) {
++	case 0:
++		break;
++	case 1:
++		break;
++	case 2:
++		pin_ctrl |= SCU_FUC_PIN_I2C3;
++		break;
++	case 3:
++		pin_ctrl |= SCU_FUC_PIN_I2C4;
++		break;
++	case 4:
++		pin_ctrl |= SCU_FUC_PIN_I2C5;
++		break;
++	case 5:
++		pin_ctrl |= SCU_FUC_PIN_I2C6;
++		break;
++	case 6:
++		pin_ctrl |= SCU_FUC_PIN_I2C7;
++		break;
++	case 7:
++		pin_ctrl |= SCU_FUC_PIN_I2C8;
++		break;
++	case 8:
++		pin_ctrl |= SCU_FUC_PIN_I2C9;
++		break;
++	case 9:
++		pin_ctrl |= SCU_FUC_PIN_I2C10;
++		pin_ctrl &= ~SCU_FUC_PIN_SD1;
++		break;
++	case 10:
++		pin_ctrl |= SCU_FUC_PIN_I2C11;
++		pin_ctrl &= ~SCU_FUC_PIN_SD1;
++		break;
++	case 11:
++		pin_ctrl |= SCU_FUC_PIN_I2C12;
++		pin_ctrl &= ~SCU_FUC_PIN_SD1;
++		break;
++	case 12:
++		pin_ctrl |= SCU_FUC_PIN_I2C13;
++		pin_ctrl &= ~SCU_FUC_PIN_SD1;
++		break;
++	case 13:
++		pin_ctrl |= SCU_FUC_PIN_I2C14;
++		break;
++	}
++
++    ast_scu_write(pin_ctrl, AST_SCU_FUN_PIN_CTRL5);
++#endif
++}
++
++
+ u32 ast_scu_revision_id(void)
+ {
+ 	int i;
+@@ -485,7 +596,47 @@ void ast_scu_security_info(void)
+ void ast_scu_sys_rest_info(void)
+ {
+ 	u32 rest = ast_scu_read(AST_SCU_SYS_CTRL);
++	bool unknown_flag = true;
+ 
++#ifdef AST_SOC_G5
++	printf("RST : 0x%02x (", rest);
++	if (rest & SCU_SYS_EXT_RESET_FLAG) {
++		unknown_flag = false;
++		printf("External");
++	}
++	if (rest & SCU_SYS_WDT_RESET_FLAG) {
++		if (unknown_flag)
++			printf("WDT1");
++		else
++			printf("|WDT1");
++		unknown_flag = false;
++	}
++	if (rest & SCU_SYS_WDT2_RESET_FLAG) {
++		if (unknown_flag)
++			printf("WDT2");
++		else
++			printf("|WDT2");
++		unknown_flag = false;
++	}
++	if (rest & SCU_SYS_WDT3_RESET_FLAG) {
++		if (unknown_flag)
++			printf("WDT3");
++		else
++			printf("|WDT3");
++		unknown_flag = false;
++	}
++	if (rest & SCU_SYS_PWR_RESET_FLAG) {
++		if (unknown_flag)
++			printf("Power On");
++		else
++			printf("|Power On");
++		unknown_flag = false;
++	}
++	if (unknown_flag) {
++		printf("Unknown");
++	}
++	printf(")\n");
++#else
+ 	if (rest & SCU_SYS_EXT_RESET_FLAG) {
+ 		printf("RST : External\n");
+ 		ast_scu_write(SCU_SYS_EXT_RESET_FLAG, AST_SCU_SYS_CTRL);
+@@ -498,6 +649,7 @@ void ast_scu_sys_rest_info(void)
+ 	} else {
+ 		printf("RST : CLK en\n");
+ 	}
++#endif
+ }
+ 
+ u32 ast_scu_get_vga_memsize(void)
+@@ -539,24 +691,30 @@ void ast_scu_get_who_init_dram(void)
+ 	}
+ }
+ 
+-void ast_enable_pass_through(void)
++void ast_config_uart5_clk(void)
+ {
+-       //Enable GPIOE pin mode, SCU80[16:23] = 00 */
+-       ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL1) & (~0x00FF0000),
+-               AST_SCU_FUN_PIN_CTRL1);
+-
+-       //Enable all pass through pins by setting SCU8C[15:12] = 0x3.
+-       //Pass-through pins set:
+-       //GPIOE0 -> GPIOE1
+-       //GPIOE2 -> GPIOE3
+-       ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL4) | (0x3000),
+-               AST_SCU_FUN_PIN_CTRL4);
+-
+-       //Disable HWStrap for GPIOE pass-through mode
+-       //The write operation to SCU70(0x1e6e2070) only can set to '1'.
+-       //To clear to '0', it must write '1' to 0x1e6e207c
+-       if (ast_scu_read(AST_SCU_HW_STRAP1) & (0x1 << 22)){
+-               ast_scu_write((0x1 << 22), AST_SCU_REVISION_ID);
+-       }
++	ast_scu_write(ast_scu_read(AST_SCU_MISC2_CTRL) &
++				~(1 << 28), AST_SCU_MISC2_CTRL);
+ }
+ 
++
++void ast_enable_pass_through(void)
++{
++	//Enable GPIOE pin mode, SCU80[16:23] = 00 */
++	ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL1) & (~0x00FF0000),
++		AST_SCU_FUN_PIN_CTRL1);
++
++	//Enable all pass through pins by setting SCU8C[15:12] = 0x3.
++	//Pass-through pins set:
++	//GPIOE0 -> GPIOE1
++	//GPIOE2 -> GPIOE3
++	ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL4) | (0x3000),
++		AST_SCU_FUN_PIN_CTRL4);
++
++	//Disable HWStrap for GPIOE pass-through mode
++	//The write operation to SCU70(0x1e6e2070) only can set to '1'.
++	//To clear to '0', it must write '1' to 0x1e6e207c
++	if (ast_scu_read(AST_SCU_HW_STRAP1) & (0x1 << 22)){
++		ast_scu_write((0x1 << 22), AST_SCU_REVISION_ID);
++	}
++}
+diff --git a/arch/arm/mach-aspeed/platform_g5.S b/arch/arm/mach-aspeed/platform_g5.S
+old mode 100644
+new mode 100755
+index 2ac1ca4721..b4043534b0
+--- a/arch/arm/mach-aspeed/platform_g5.S
++++ b/arch/arm/mach-aspeed/platform_g5.S
+@@ -139,7 +139,7 @@
+   But if FW has other initial code executed before platform.S, then it should use WDT_SOC mode.
+   Use WDT_Full may clear the initial result of prior initial code.
+  ******************************************************************************/
+-//#define ASTMMC_INIT_RESET_MODE_FULL
++#define ASTMMC_INIT_RESET_MODE_FULL
+ 
+ /******************************************************************************
+   There is a compatibility issue for Hynix DDR4 SDRAM.
+@@ -563,6 +563,17 @@ wait_first_reset:
+      *******************************************/
+ 
+ bypass_first_reset:
++    /* Timing from ESPI master requires OOB channel ready bit be set early */
++    ldr   r0, =0x1e6e2070             @ check strapping for eSPI mode
++    tst   r0, #0x02000000             @ Test for bit 25 - eSPI Mode
++    beq   espi_early_init_done        @ if bit 25 clear, dont set OOB ready
++
++    ldr   r0, =0x1e6ee000
++    ldr   r1, [r0]                    @ ESPI000: ESPI Engine Control Reg
++    orr   r1, r1, #0x00000010         @ Set OOB Channel Ready bit
++    str   r1, [r0]
++espi_early_init_done:
++
+     /* Enable Timer separate clear mode */
+     ldr   r0, =0x1e782038
+     mov   r1, #0xAE
+@@ -2421,6 +2432,18 @@ spi_cbr_end:
+     bic r1, r1, #0x00400000
+     str r1, [r0]
+ 
++    ldr   r0, =0x1e6ed07c                        @ Enable PCIe L1 support
++    ldr   r1, =0xa8
++    str   r1, [r0]
++
++    ldr   r0, =0x1e6ed068
++    ldr   r1, =0xc81f0a
++    str   r1, [r0]
++
++    ldr   r0, =0x1e6ed07c
++    mov   r1, #0
++    str   r1, [r0]
++
+ /******************************************************************************
+  Configure MAC timing
+  ******************************************************************************/
+diff --git a/arch/arm/mach-aspeed/utils.S b/arch/arm/mach-aspeed/utils.S
+new file mode 100755
+index 0000000000..a06d72552e
+--- /dev/null
++++ b/arch/arm/mach-aspeed/utils.S
+@@ -0,0 +1,53 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (C) ASPEED Technology Inc.
++ * Chia-Wei Wang <chiawei_wang@aspeedtech.com>
++ */
++
++#include <config.h>
++#include <asm/armv7.h>
++#include <linux/linkage.h>
++
++#define AST_FMC_BASE		(0x1E620000)
++#define AST_FMC_INT_CTRL_STAT	(AST_FMC_BASE + 0x008)
++#define AST_FMC_DMA_CTRL	(AST_FMC_BASE + 0x080)
++#define AST_FMC_DMA_FLASH_ADDR	(AST_FMC_BASE + 0x084)
++#define AST_FMC_DMA_DRAM_ADDR	(AST_FMC_BASE + 0x088)
++#define AST_FMC_DMA_LENGTH	(AST_FMC_BASE + 0x08C)
++
++/*
++ * void aspeed_spi_fastcpy(u32 mem_addr, u32 spi_addr, u32 count)
++ *
++ * perform FMC SPI DMA to speed up flash copy.
++ * @dst: destination memory address
++ * @src: source SPI address
++ * @count: number of bytes to be copied, 4-byte aligned
++ *
++ * NOTE that the caller must ensure the validity of parameters.
++ */
++ENTRY(aspeed_spi_fastcpy)
++	ldr	r3, =AST_FMC_DMA_DRAM_ADDR
++	str	r0, [r3]
++
++	ldr	r3, =AST_FMC_DMA_FLASH_ADDR
++	str	r1, [r3]
++
++	ldr	r3, =AST_FMC_DMA_LENGTH
++	str	r2, [r3]
++
++	ldr	r0, =AST_FMC_DMA_CTRL
++	mov	r1, #1
++	str	r1, [r0]
++
++	ldr	r0, =AST_FMC_INT_CTRL_STAT
++polling:
++	ldr	r1, [r0]
++	tst	r1, #(1 << 11)
++	beq	polling
++
++	ldr	r0, =AST_FMC_DMA_CTRL
++	mov	r1, #0
++	str	r1, [r0]
++
++	mov	pc, lr
++ENDPROC(aspeed_spi_fastcpy)
+diff --git a/board/aspeed/ast-g5/Makefile b/board/aspeed/ast-g5/Makefile
+old mode 100644
+new mode 100755
+index d1d7f8525e..90224333c4
+--- a/board/aspeed/ast-g5/Makefile
++++ b/board/aspeed/ast-g5/Makefile
+@@ -1 +1,6 @@
+-obj-y   = ast-g5.o
++obj-y += ast-g5.o
++obj-y += ast-g5-intel.o
++obj-y += ast-g5-espi.o
++obj-y += ast-g5-irq.o
++obj-y += ast-g5-gpio.o
++obj-y += ast-g5-timer.o
+diff --git a/board/aspeed/ast-g5/ast-g5-espi.c b/board/aspeed/ast-g5/ast-g5-espi.c
+new file mode 100755
+index 0000000000..7c82cdfd65
+--- /dev/null
++++ b/board/aspeed/ast-g5/ast-g5-espi.c
+@@ -0,0 +1,248 @@
++/*
++ * Copyright 2018 Intel Corporation
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version
++ * 2 of the License, or (at your option) any later version.
++ */
++
++#include <common.h>
++#include <asm/io.h>
++#include <asm/arch/regs-scu.h>
++#include <asm/arch/ast_scu.h>
++#include <asm/arch/aspeed.h>
++
++#include "ast-g5.h"
++
++#define DEBUG_ESPI_ENABLED 1
++#ifdef DEBUG_ESPI_ENABLED
++#define DBG_ESPI debug
++#else
++#define DBG_ESPI(...)
++#endif
++/* eSPI controller registers */
++#define ESPI000 0x000 /* Engine Control. */
++#define ESPI004 0x004 /* Engine Status. */
++#define ESPI008 0x008 /* Interrupt Status. */
++#define ESPI00C 0x00C /* Interrupt Enable. */
++#define ESPI010 0x010 /* DMA Addr of Peripheral Channel Posted Rx pkt */
++#define ESPI014 0x014 /* Control of Peripheral Channel Posted Rx pkt. */
++#define ESPI018 0x018 /* Data port of Peripheral Channel Posted Rx pkt. */
++#define ESPI020 0x020 /* DMA Addr of Peripheral Channel Posted Tx pkt. */
++#define ESPI024 0x024 /* Control of Peripheral Channel Posted Tx pkt. */
++#define ESPI028 0x028 /* Data port of Peripheral Channel Posted Tx pkt. */
++#define ESPI030 0x030 /* DMA Addr of Peripheral Channel Non-Posted Tx pkt. */
++#define ESPI034 0x034 /* Control of Peripheral Channel Non-Posted Tx pkt. */
++#define ESPI038 0x038 /* Data port of Peripheral Channel Non-Posted Tx pkt. */
++#define ESPI040 0x040 /* DMA Addr of OOB Channel Rx pkt. */
++#define ESPI044 0x044 /* Control of OOB Channel Rx pkt. */
++#define ESPI048 0x048 /* Data port of OOB Channel Rx pkt. */
++#define ESPI050 0x050 /* DMA Addr of OOB Channel Tx pkt. */
++#define ESPI054 0x054 /* Control of OOB Channel Tx pkt. */
++#define ESPI058 0x058 /* Data port of OOB Channel Tx pkt. */
++#define ESPI060 0x060 /* DMA Addr of Flash Channel Rx pkt. */
++#define ESPI064 0x064 /* Control of Flash Channel Rx pkt. */
++#define ESPI068 0x068 /* Data port of Flash Channel Rx pkt. */
++#define ESPI070 0x070 /* DMA Addr of Flash Channel Tx pkt. */
++#define ESPI074 0x074 /* Control of Flash Channel Tx pkt. */
++#define ESPI078 0x078 /* Data port of Flash Channel Tx pkt. */
++#define ESPI084 0x084 /* Mapping Src Addr of Peripheral Channel Rx pkt. */
++#define ESPI088 0x088 /* Mapping Tgt Addr of Peripheral Channel Rx pkt. */
++#define ESPI08C 0x08C /* Mapping Addr Mask of Peripheral Channel Rx pkt. */
++#define ESPI090 0x090 /* Mapping Target Addr and Mask of Flash Channel. */
++#define ESPI094 0x094 /* Interrupt enable of System Event from Master. */
++#define ESPI098 0x098 /* System Event from and to Master. */
++#define ESPI09C 0x09C /* GPIO through Virtual Wire Channel. */
++#define ESPI0A0 0x0A0 /* General Capabilities and Configurations. */
++#define ESPI0A4 0x0A4 /* Channel 0 Capabilities and Configurations. */
++#define ESPI0A8 0x0A8 /* Channel 1 Capabilities and Configurations. */
++#define ESPI0AC 0x0AC /* Channel 2 Capabilities and Configurations. */
++#define ESPI0B0 0x0B0 /* Channel 3 Capabilities and Configurations. */
++#define ESPI0B4 0x0B4 /* GPIO Direction of Virtual Wire Channel. */
++#define ESPI0B8 0x0B8 /* GPIO Selection of Virtual Wire Channel. */
++#define ESPI0BC 0x0BC /* GPIO Reset Selection of Virtual Wire Channel. */
++#define ESPI100 0x100 /* Interrupt enable of System Event 1 from Master. */
++#define ESPI104 0x104 /* System Event 1 from and to Master. */
++#define ESPI110 0x110 /* Interrupt type 0 of System Event from Master. */
++#define ESPI114 0x114 /* Interrupt type 1 of System Event from Master. */
++#define ESPI118 0x118 /* Interrupt type 2 of System Event from Master. */
++#define ESPI11C 0x11C /* Interrupt status of System Event from Master. */
++#define ESPI120 0x120 /* Interrupt type 0 of System Event 1 from Master. */
++#define ESPI124 0x124 /* Interrupt type 1 of System Event 1 from Master. */
++#define ESPI128 0x128 /* Interrupt type 2 of System Event 1 from Master. */
++#define ESPI12C 0x12C /* Interrupt status of System Event 1 from Master. */
++#define ESPICFG004 0x004 /* Device Identification. */
++#define ESPICFG008 0x008 /* General Capabilities and Configurations. */
++#define ESPICFG010 0x010 /* Channel 0 Capabilities and Configurations. */
++#define ESPICFG020 0x020 /* Channel 1 Capabilities and Configurations. */
++#define ESPICFG030 0x030 /* Channel 2 Capabilities and Configurations. */
++#define ESPICFG040 0x040 /* Channel 3 Capabilities and Configurations. */
++#define ESPICFG044 0x044 /* Channel 3 Capabilities and Configurations 2. */
++#define ESPICFG800 0x800 /* GPIO Direction of Virtual Wire Channel. */
++#define ESPICFG804 0x804 /* GPIO Selection of Virtual Wire Channel. */
++#define ESPICFG808 0x808 /* GPIO Reset Selection of Virtual Wire Channel. */
++#define ESPICFG810 0x810 /* Mapping Src Addr of Peripheral Channel Rx pkt */
++#define ESPICFG814 0x814 /* Mapping Tgt Addr of Peripheral Channel Rx pkt */
++#define ESPICFG818 0x818 /* Mapping Addr Mask of Peripheral Channel Rx pkt */
++
++/* ESPI000 bits */
++#define AST_ESPI_OOB_CHRDY (1 << 4)
++#define AST_ESPI_FLASH_SW_CHRDY (0x1 << 7)
++#define AST_ESPI_FLASH_SW_READ (0x1 << 10)
++#define ASPEED_ESPI_CTRL_SW_RESET GENMASK(31, 24)
++
++/* ESPI00C bits (Interrupt Enable) */
++#define AST_ESPI_IEN_SYS_EV (1 << 8)
++#define AST_ESPI_IEN_GPIO_EV (1 << 9)
++#define AST_ESPI_IEN_HW_RST (1 << 31)
++
++/* ESPI008 bits ISR */
++#define AST_ESPI_VW_SYS_EVT (1 << 8)
++#define AST_ESPI_VW_SYS_EV1 (1 << 22)
++
++/* ESPI098 and ESPI11C bits */
++#define AST_ESPI_OOB_RST_WARN (1 << 6)
++#define AST_ESPI_HOST_RST_WARN (1 << 8)
++#define AST_ESPI_OOB_RST_ACK (1 << 16)
++#define AST_ESPI_SL_BT_DONE (1 << 20)
++#define AST_ESPI_SL_BT_STATUS (1 << 23)
++#define AST_ESPI_HOST_RST_ACK (1 << 27)
++
++/* ESPI104 bits */
++#define AST_ESPI_SUS_WARN (1 << 0)
++#define AST_ESPI_SUS_ACK (1 << 20)
++
++/* LPC chip ID */
++#define SCR0SIO 0x170
++#define IRQ_SRC_ESPI 23 /* IRQ 23 */
++
++static void espi_handshake_ack(void)
++{
++	// IRQ only serviced if strapped, so no strap check
++	if (!(readl(AST_ESPI_BASE + ESPI098) & AST_ESPI_SL_BT_STATUS)) {
++		DBG_ESPI("Setting espi slave boot done\n");
++		uint32_t v = readl(AST_ESPI_BASE + ESPI098)
++			     | AST_ESPI_SL_BT_STATUS | AST_ESPI_SL_BT_DONE;
++		writel(v, AST_ESPI_BASE + ESPI098);
++	}
++
++	if (readl(AST_ESPI_BASE + ESPI104) & AST_ESPI_SUS_WARN) {
++		DBG_ESPI("Boot SUS WARN set %08x\n",
++			 readl(AST_ESPI_BASE + ESPI104));
++		uint32_t v = readl(AST_ESPI_BASE + ESPI104) | AST_ESPI_SUS_ACK;
++		writel(v, AST_ESPI_BASE + ESPI104);
++	}
++}
++
++static int espi_irq_handler(struct pt_regs *regs)
++{
++	uint32_t irq_status = readl(AST_ESPI_BASE + ESPI008);
++	DBG_ESPI("ISR irq_status : 0x%08X\n", irq_status);
++
++	if (irq_status & AST_ESPI_VW_SYS_EV1) {
++		uint32_t sys1_status = readl(AST_ESPI_BASE + ESPI12C);
++		uint32_t sys1_event = readl(AST_ESPI_BASE + ESPI104);
++
++		DBG_ESPI("sys1_status : 0x%08X\n", sys1_status);
++		if (sys1_status & AST_ESPI_SUS_WARN) {
++			DBG_ESPI("SUS WARN ev: %08X\n", sys1_event);
++			if (sys1_event & AST_ESPI_SUS_WARN) {
++				uint32_t v = readl(AST_ESPI_BASE + ESPI104)
++						 | AST_ESPI_SUS_ACK;
++				writel(v, AST_ESPI_BASE + ESPI104);
++			}
++		}
++		writel(sys1_status, AST_ESPI_BASE + ESPI12C); // clear status
++	}
++
++	if (irq_status & AST_ESPI_VW_SYS_EVT) {
++		uint32_t sys_status = readl(AST_ESPI_BASE + ESPI11C);
++		uint32_t sys_event = readl(AST_ESPI_BASE + ESPI098);
++
++		if (!(sys_event & AST_ESPI_SL_BT_STATUS)) {
++			DBG_ESPI("Setting espi slave boot done\n");
++			uint32_t v = readl(AST_ESPI_BASE + ESPI098)
++					| AST_ESPI_SL_BT_STATUS | AST_ESPI_SL_BT_DONE;
++			writel(v, AST_ESPI_BASE + ESPI098);
++		 }
++
++		DBG_ESPI("sys_status : 0x%08X\n", sys_status);
++		if (sys_status & AST_ESPI_HOST_RST_WARN) {
++				DBG_ESPI("HOST_RST_WARN ev: %08X\n", sys_event);
++				if (sys_event & AST_ESPI_HOST_RST_WARN) {
++						uint32_t v = readl(AST_ESPI_BASE + ESPI098)
++										| AST_ESPI_HOST_RST_ACK;
++						writel(v, AST_ESPI_BASE + ESPI098);
++				}
++		}
++		if (sys_status & AST_ESPI_OOB_RST_WARN) {
++			DBG_ESPI("OOB_RST_WARN ev: %08X\n", sys_event);
++			if (sys_event & AST_ESPI_OOB_RST_WARN) {
++				uint32_t v = readl(AST_ESPI_BASE + ESPI098)
++							| AST_ESPI_OOB_RST_ACK;
++				writel(v, AST_ESPI_BASE + ESPI098);
++			}
++		}
++		writel(sys_status, AST_ESPI_BASE + ESPI11C); // clear status
++	}
++
++	if (irq_status & AST_ESPI_IEN_HW_RST) {
++		uint32_t v = readl(AST_ESPI_BASE + ESPI000);
++		writel(v & ~ASPEED_ESPI_CTRL_SW_RESET, AST_ESPI_BASE + ESPI000);
++		writel(v | ASPEED_ESPI_CTRL_SW_RESET, AST_ESPI_BASE + ESPI000);
++		espi_handshake_ack();
++	}
++
++	writel(irq_status, AST_ESPI_BASE + ESPI008); // clear irq_status
++	return 0;
++}
++
++void espi_init(void)
++{
++	if (readl(AST_SCU_BASE + AST_SCU_HW_STRAP1)
++	    & SCU_HW_STRAP_ESPI_ENABLED) {
++		uint32_t v;
++		DBG_ESPI("espi_init\n");
++
++		/* Block flash access from Host */
++		v = readl(AST_ESPI_BASE + ESPI000) & ~AST_ESPI_FLASH_SW_CHRDY;
++		v |= AST_ESPI_FLASH_SW_READ;
++		writel(v, AST_ESPI_BASE + ESPI000);
++
++		/* Set SIO register 0x28 to 0xa8 as a faked ASPEED ChipID for
++		 * BIOS using in eSPI mode */
++		v = readl(AST_LPC_BASE + SCR0SIO) & ~0x000000ff;
++		writel(v, AST_LPC_BASE + SCR0SIO);
++		v = readl(AST_LPC_BASE + SCR0SIO) | 0xa8;
++		writel(v, AST_LPC_BASE + SCR0SIO);
++
++		v = readl(AST_ESPI_BASE + ESPI000) | AST_ESPI_OOB_CHRDY;
++		writel(v, AST_ESPI_BASE + ESPI000);
++
++		writel(0, AST_ESPI_BASE + ESPI110);
++		writel(0, AST_ESPI_BASE + ESPI114);
++		writel(AST_ESPI_HOST_RST_WARN | AST_ESPI_OOB_RST_WARN,
++		       AST_ESPI_BASE + ESPI118);
++		writel(AST_ESPI_HOST_RST_WARN | AST_ESPI_OOB_RST_WARN,
++		       AST_ESPI_BASE + ESPI094);
++
++		writel(AST_ESPI_SUS_WARN,
++		       AST_ESPI_BASE + ESPI120); // int type 0 susp warn
++		writel(0, AST_ESPI_BASE + ESPI124);
++		writel(0, AST_ESPI_BASE + ESPI128);
++		writel(AST_ESPI_SUS_WARN,
++		       AST_ESPI_BASE
++			       + ESPI100); // Enable sysev1 ints for susp warn
++
++		writel(AST_ESPI_IEN_SYS_EV | AST_ESPI_IEN_HW_RST
++			   | AST_ESPI_VW_SYS_EV1,
++			   AST_ESPI_BASE + ESPI00C); // Enable events
++
++		espi_handshake_ack();
++
++		request_irq(IRQ_SRC_ESPI, espi_irq_handler);
++	} else {
++		DBG_ESPI("No espi strap\n");
++	}
++}
+diff --git a/board/aspeed/ast-g5/ast-g5-gpio.c b/board/aspeed/ast-g5/ast-g5-gpio.c
+new file mode 100755
+index 0000000000..dc6962f4ba
+--- /dev/null
++++ b/board/aspeed/ast-g5/ast-g5-gpio.c
+@@ -0,0 +1,202 @@
++/*
++ * Copyright 2018 Intel Corporation
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version
++ * 2 of the License, or (at your option) any later version.
++ */
++
++#include <common.h>
++#include <asm/io.h>
++#include <asm/arch/regs-scu.h>
++#include <asm/arch/ast_scu.h>
++#include <asm/arch/aspeed.h>
++
++#include "ast-g5.h"
++#include "ast-g5-gpio.h"
++
++typedef struct _gpio_bases {
++	uint32_t u32ddr;      /* data and direction registers */
++	uint32_t u32intcfg;   /* interrupt config */
++	uint32_t u32debounce; /* debounce config */
++	uint32_t u32cmdsrc;   /* command source config */
++} sGPIO_BASES;
++
++static const sGPIO_BASES GPIO_BASES[] = {
++	/* ABCD */
++	{AST_GPIO_BASE + 0x0000, AST_GPIO_BASE + 0x0008,
++	 AST_GPIO_BASE + 0x0040, AST_GPIO_BASE + 0x0060},
++	/* EFGH */
++	{AST_GPIO_BASE + 0x0020, AST_GPIO_BASE + 0x0028,
++	 AST_GPIO_BASE + 0x0048, AST_GPIO_BASE + 0x0068},
++	/* IJKL */
++	{AST_GPIO_BASE + 0x0070, AST_GPIO_BASE + 0x0098,
++	 AST_GPIO_BASE + 0x00b0, AST_GPIO_BASE + 0x0090},
++	/* MNOP */
++	{AST_GPIO_BASE + 0x0078, AST_GPIO_BASE + 0x00e8,
++	 AST_GPIO_BASE + 0x0100, AST_GPIO_BASE + 0x00e0},
++	/* QRST */
++	{AST_GPIO_BASE + 0x0080, AST_GPIO_BASE + 0x0118,
++	 AST_GPIO_BASE + 0x0130, AST_GPIO_BASE + 0x0110},
++	/* UVWX */
++	{AST_GPIO_BASE + 0x0088, AST_GPIO_BASE + 0x0148,
++	 AST_GPIO_BASE + 0x0160, AST_GPIO_BASE + 0x0140},
++	/* YZAB */
++	{AST_GPIO_BASE + 0x01e0, AST_GPIO_BASE + 0x0178,
++	 AST_GPIO_BASE + 0x0190, AST_GPIO_BASE + 0x0170},
++	/* AC__ */
++	{AST_GPIO_BASE + 0x01e8, AST_GPIO_BASE + 0x01a8,
++	 AST_GPIO_BASE + 0x01c0, AST_GPIO_BASE + 0x01a0},
++};
++
++static size_t gpio_max = 0;
++static const GPIOValue * gpio_table = NULL;
++
++void gpio_set_value(int n, int asserted)
++{
++	uint8_t port;
++	uint8_t pin;
++	uint32_t base;
++	uint8_t shift;
++	uint8_t assert;
++	uint32_t gpio_value;
++
++	if (n >= gpio_max || !gpio_table) {
++		return;
++	}
++	port = GPIO_PORT(gpio_table[n].u8PortPin);
++	assert = GPIO_ASSERT(gpio_table[n].u8PinCFG);
++	pin = GPIO_PIN(gpio_table[n].u8PortPin);
++	base = GPIO_BASES[GPIO_GROUP(port)].u32ddr;
++	shift = GPIO_SHIFT(port, pin);
++
++	gpio_value = readl(base + GPIO_DATA_VALUE);
++	if ((assert && asserted) || !(assert || asserted)) {
++		// set the bit
++		gpio_value |= (1 << shift);
++	} else {
++		// clear the bit
++		gpio_value &= ~(1 << shift);
++	}
++	writel(gpio_value, base + GPIO_DATA_VALUE);
++}
++
++int gpio_get_value(int n)
++{
++	uint8_t port;
++	uint8_t pin;
++	uint32_t base;
++	uint8_t shift;
++	uint8_t assert;
++	uint32_t gpio_value;
++
++	if (n >= gpio_max || !gpio_table) {
++		return -1;
++	}
++	port = GPIO_PORT(gpio_table[n].u8PortPin);
++	assert = GPIO_ASSERT(gpio_table[n].u8PinCFG);
++	pin = GPIO_PIN(gpio_table[n].u8PortPin);
++	base = GPIO_BASES[GPIO_GROUP(port)].u32ddr;
++	shift = GPIO_SHIFT(port, pin);
++
++	gpio_value = readl(base + GPIO_DATA_VALUE);
++	gpio_value >>= shift;
++	gpio_value &= 1;
++	// the output here is the logical output, which is
++	// NOT (value XOR assert)
++	// This just gets there without a conditional
++	gpio_value ^= assert;
++	return !gpio_value;
++}
++
++void gpio_init(const GPIOValue* table, size_t count)
++{
++	uint32_t pclk, value;
++	int i;
++
++	gpio_table = table;
++	gpio_max = count;
++	/* set up the debounce timers (in units of PCLK cycles) */
++	pclk = ast_get_ahbclk();
++	/* GPIO_DEBOUNCE_120us */
++	writel((pclk / 1000000) * 120, AST_GPIO_BASE + GPIO_DEBOUNCE_TIMER_0);
++	/* GPIO_DEBOUNCE_8ms */
++	writel((pclk / 1000000) * 8000, AST_GPIO_BASE + GPIO_DEBOUNCE_TIMER_1);
++	/* GPIO_DEBOUNCE_16ms */
++	writel((pclk / 1000000) * 16000, AST_GPIO_BASE + GPIO_DEBOUNCE_TIMER_2);
++
++	for (i = 0; i < gpio_max; i++) {
++		uint8_t port;
++		uint8_t pin;
++		uint32_t base;
++		uint8_t shift;
++		uint8_t assert;
++		uint8_t init_val;
++
++		port = GPIO_PORT(gpio_table[i].u8PortPin);
++		pin = GPIO_PIN(gpio_table[i].u8PortPin);
++		base = GPIO_BASES[GPIO_GROUP(port)].u32ddr;
++		shift = GPIO_SHIFT(port, pin);
++
++		/* set direction */
++		value = readl(base + GPIO_DIRECTION);
++		if (gpio_table[i].u8PinCFG & GPCFG_OUTPUT_EN)
++			value |= (1 << shift);
++		else
++			value &= ~(1 << shift);
++		writel(value, base + GPIO_DIRECTION);
++
++		/* set data value */
++		value = readl(base + GPIO_DATA_VALUE);
++		assert = GPIO_ASSERT(gpio_table[i].u8PinCFG);
++		init_val = gpio_table[i].u8Value;
++		if ((assert && init_val) || !(assert || init_val))
++			value |= (1 << shift);
++		else
++			value &= ~(1 << shift);
++		writel(value, base + GPIO_DATA_VALUE);
++
++		/* set debounce */
++		base = GPIO_BASES[GPIO_GROUP(port)].u32debounce;
++		value = readl(base + GPIO_DEBOUNCE_SEL_0);
++		if (gpio_table[i].u8Debounce & 0x01)
++			value |= (1 << shift);
++		else
++			value &= ~(1 << shift);
++		writel(value, base + GPIO_DEBOUNCE_SEL_0);
++		value = readl(base + GPIO_DEBOUNCE_SEL_1);
++		if (gpio_table[i].u8Debounce & 0x02)
++			value |= (1 << shift);
++		else
++			value &= ~(1 << shift);
++		writel(value, base + GPIO_DEBOUNCE_SEL_1);
++	}
++}
++
++int do_gpio(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
++{
++	int n;
++	if (argc < 3) {
++		return 1;
++	}
++	n = simple_strtoul(argv[2], NULL, 0);
++	if (argv[1][0] == 'g') {
++		printf("%d\n", gpio_get_value(n));
++		return 0;
++	}
++	if (argc < 4) {
++		return 1;
++	}
++	if (argv[1][0] == 's') {
++		int value;
++		value = simple_strtoul(argv[3], NULL, 0);
++		gpio_set_value(n, value);
++		return 0;
++	}
++
++	return 1;
++}
++U_BOOT_CMD(gpio, 4, 0, do_gpio,
++		"do stuff with gpios <set|get> [n] [value]",
++		"");
+diff --git a/board/aspeed/ast-g5/ast-g5-gpio.h b/board/aspeed/ast-g5/ast-g5-gpio.h
+new file mode 100755
+index 0000000000..7f0c06d88f
+--- /dev/null
++++ b/board/aspeed/ast-g5/ast-g5-gpio.h
+@@ -0,0 +1,109 @@
++#ifndef __HW_GPIO_H__
++#define __HW_GPIO_H__
++
++#define GPIO_PORT_A 0
++#define GPIO_PORT_B 1
++#define GPIO_PORT_C 2
++#define GPIO_PORT_D 3
++#define GPIO_PORT_E 4
++#define GPIO_PORT_F 5
++#define GPIO_PORT_G 6
++#define GPIO_PORT_H 7
++#define GPIO_PORT_I 8
++#define GPIO_PORT_J 9
++#define GPIO_PORT_K 10
++#define GPIO_PORT_L 11
++#define GPIO_PORT_M 12
++#define GPIO_PORT_N 13
++#define GPIO_PORT_O 14
++#define GPIO_PORT_P 15
++#define GPIO_PORT_Q 16
++#define GPIO_PORT_R 17
++#define GPIO_PORT_S 18
++#define GPIO_PORT_T 19
++#define GPIO_PORT_U 20
++#define GPIO_PORT_V 21
++#define GPIO_PORT_W 22
++#define GPIO_PORT_X 23
++#define GPIO_PORT_Y 24
++#define GPIO_PORT_Z 25
++#define GPIO_PORT_AA 26
++#define GPIO_PORT_AB 27
++#define GPIO_PORT_AC 28
++
++#define GPIO_PIN_0 0
++#define GPIO_PIN_1 1
++#define GPIO_PIN_2 2
++#define GPIO_PIN_3 3
++#define GPIO_PIN_4 4
++#define GPIO_PIN_5 5
++#define GPIO_PIN_6 6
++#define GPIO_PIN_7 7
++
++#define GPIO_DEBOUNCE_TIMER_0 0x50
++#define GPIO_DEBOUNCE_TIMER_1 0x54
++#define GPIO_DEBOUNCE_TIMER_2 0x58
++
++/* relative to u32ddr base */
++#define GPIO_DATA_VALUE 0x00
++#define GPIO_DIRECTION 0x04
++/* relative to u32intcfg base */
++#define GPIO_INT_ENABLE 0x00
++#define GPIO_INT_SENSE0 0x04
++#define GPIO_INT_SENSE1 0x18
++#define GPIO_INT_SENSE2 0x1c
++#define GPIO_INT_STATUS 0x20
++#define GPIO_RESET_TOL 0x24
++/* relative to u32debounce base */
++#define GPIO_DEBOUNCE_SEL_0 0
++#define GPIO_DEBOUNCE_SEL_1 4
++/* relative to u32cmdsrc base */
++#define GPIO_CMD_SRC_0 0
++#define GPIO_CMD_SRC_1 4
++
++#define PORT_PIN(PORT, PIN) (((PORT) << 3) | ((PIN)&0x07))
++#define GPIO_PIN(N) (N & 0x07)
++#define GPIO_PORT(N) (N >> 3)
++#define GPIO_SHIFT(PORT, PIN) ((PIN) + (((PORT) % 4) * 8))
++#define GPIO_GROUP(PORT) ((PORT) / 4)
++#define GPIO_ASSERT(N) (((N) >> 4) & 0x01)
++
++#define ID_LED_PORT_PIN PORT_PIN(GPIO_PORT_S, GPIO_PIN_6)
++#define GRN_LED_PORT_PIN PORT_PIN(GPIO_PORT_S, GPIO_PIN_4)
++#define AMB_LED_PORT_PIN PORT_PIN(GPIO_PORT_S, GPIO_PIN_5)
++#define PLATFORM_ID0_PORT_PIN PORT_PIN(GPIO_PORT_B, GPIO_PIN_0)
++#define PLATFORM_ID1_PORT_PIN PORT_PIN(GPIO_PORT_B, GPIO_PIN_1)
++#define PLATFORM_ID2_PORT_PIN PORT_PIN(GPIO_PORT_B, GPIO_PIN_2)
++#define PLATFORM_ID3_PORT_PIN PORT_PIN(GPIO_PORT_B, GPIO_PIN_3)
++#define PLATFORM_ID4_PORT_PIN PORT_PIN(GPIO_PORT_B, GPIO_PIN_4)
++#define FORCE_BMC_UPDATE_PORT_PIN PORT_PIN(GPIO_PORT_D, GPIO_PIN_0)
++#define TPM_EN_PULSE_PORT_PIN PORT_PIN(GPIO_PORT_D, GPIO_PIN_6)
++#define FP_PWR_BTN_PORT_PIN PORT_PIN(GPIO_PORT_E, GPIO_PIN_2)
++#define PLATFORM_ID5_PORT_PIN PORT_PIN(GPIO_PORT_G, GPIO_PIN_5)
++
++// GPIO Configuration Register bits
++#define GPCFG_EVENT_TO_SMI (1 << 7) // 1 == enabled
++#define GPCFG_EVENT_TO_IRQ (1 << 6) // 1 == enabled
++#define GPCFG_DEBOUNCE_EN (1 << 5)  // 1 == input debounce, 0 == pulse output
++#define GPCFG_ACTIVE_HIGH (1 << 4)  // 1 == Active high
++#define GPCFG_LEVEL_TRIG (1 << 3)   // 1 == level (default), 0 == edge
++#define GPCFG_OUTPUT_EN (1 << 0) // 1 == Output enabled
++
++// GPIO Debounce and Blink Configuration Register bits
++#define GPIO_DEBOUNCE_NONE 0x00
++#define GPIO_DEBOUNCE_60US 0x01
++#define GPIO_DEBOUNCE_8MS 0x02
++#define GPIO_DEBOUNCE_16MS 0x03
++
++typedef struct {
++	uint8_t u8PortPin;
++	uint8_t u8PinCFG;
++	uint8_t u8Value;
++	uint8_t u8Debounce;
++} GPIOValue;
++
++void gpio_init(const GPIOValue* table, size_t count);
++void gpio_set_value(int n, int asserted);
++int gpio_get_value(int n);
++
++#endif /* __HW_GPIO_H__ */
+diff --git a/board/aspeed/ast-g5/ast-g5-intel.c b/board/aspeed/ast-g5/ast-g5-intel.c
+new file mode 100755
+index 0000000000..b8aa5478d5
+--- /dev/null
++++ b/board/aspeed/ast-g5/ast-g5-intel.c
+@@ -0,0 +1,683 @@
++/*
++ * Copyright 2018 Intel Corporation
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version
++ * 2 of the License, or (at your option) any later version.
++ */
++
++#include <common.h>
++#include <asm/io.h>
++#include <asm/arch/regs-scu.h>
++#include <asm/arch/ast_scu.h>
++#include <asm/arch/aspeed.h>
++
++#include "ast-g5.h"
++#include "ast-g5-gpio.h"
++#include "ast-g5-timer.h"
++
++/* Names to match the GPIOs */
++enum gpio_names {
++	GPIO_ID_LED = 0,
++	GPIO_GREEN_LED,
++	GPIO_AMBER_LED,
++	GPIO_FF_UPD_JUMPER,
++	GPIO_ENABLE_TPM_PULSE,
++	GPIO_FP_PWR_BTN,
++	GPIO_PLATFORM_ID_0,
++	GPIO_PLATFORM_ID_1,
++	GPIO_PLATFORM_ID_2,
++	GPIO_PLATFORM_ID_3,
++	GPIO_PLATFORM_ID_4,
++	GPIO_PLATFORM_ID_5,
++};
++
++#define GPIO_CFG_DEFAULT (GPCFG_ACTIVE_HIGH | GPCFG_LEVEL_TRIG)
++// Active High, Level, Output Disabled
++
++#define GPIO_CFG_LOW_INPUT (GPCFG_LEVEL_TRIG)
++// Active Low, Level, Output Disabled
++
++#define GPIO_CFG_FP_LED (GPCFG_OUTPUT_EN)
++// Active High, Pull-up, Level, Output Enabled
++
++// Format is:
++// GPIO PORT, GPIO PIN Number, GPIO PIN Configuration, GPIO PIN Value, GPIO
++// Debounce/Blink Setting
++static const GPIOValue gpio_table[] = {
++	/* ID LED pin S6 - low asserted, 0=on */
++	[GPIO_ID_LED] = {ID_LED_PORT_PIN, GPIO_CFG_FP_LED, 0,
++			 GPIO_DEBOUNCE_NONE},
++
++	/* Green LED pin S4 - high asserted, 0=off */
++	[GPIO_GREEN_LED] = {GRN_LED_PORT_PIN, GPIO_CFG_FP_LED, 1,
++			    GPIO_DEBOUNCE_NONE},
++
++	/* Amber LED pin S5 - high asserted, 0=off */
++	[GPIO_AMBER_LED] = {AMB_LED_PORT_PIN, GPIO_CFG_FP_LED, 1,
++			    GPIO_DEBOUNCE_NONE},
++
++	/* Force Update Jumper -- pin D0 */
++	[GPIO_FF_UPD_JUMPER] = {FORCE_BMC_UPDATE_PORT_PIN, GPIO_CFG_LOW_INPUT, 0,
++				GPIO_DEBOUNCE_8MS},
++
++	/* Enable Pulse -- pin D6 */
++	[GPIO_ENABLE_TPM_PULSE] = {TPM_EN_PULSE_PORT_PIN, GPCFG_OUTPUT_EN, 0,
++				   GPIO_DEBOUNCE_NONE},
++	/* Front Panel Power Button -- pin E2 */
++	[GPIO_FP_PWR_BTN] = {FP_PWR_BTN_PORT_PIN, GPIO_CFG_LOW_INPUT, 0,
++				   GPIO_DEBOUNCE_8MS},
++
++	/* Platform ID Pins */
++	[GPIO_PLATFORM_ID_0] = {PLATFORM_ID0_PORT_PIN, GPIO_CFG_DEFAULT, 0,
++					GPIO_DEBOUNCE_8MS},
++	[GPIO_PLATFORM_ID_1] = {PLATFORM_ID1_PORT_PIN, GPIO_CFG_DEFAULT, 0,
++					GPIO_DEBOUNCE_8MS},
++	[GPIO_PLATFORM_ID_2] = {PLATFORM_ID2_PORT_PIN, GPIO_CFG_DEFAULT, 0,
++					GPIO_DEBOUNCE_8MS},
++	[GPIO_PLATFORM_ID_3] = {PLATFORM_ID3_PORT_PIN, GPIO_CFG_DEFAULT, 0,
++					GPIO_DEBOUNCE_8MS},
++	[GPIO_PLATFORM_ID_4] = {PLATFORM_ID4_PORT_PIN, GPIO_CFG_DEFAULT, 0,
++					GPIO_DEBOUNCE_8MS},
++	[GPIO_PLATFORM_ID_5] = {PLATFORM_ID5_PORT_PIN, GPIO_CFG_DEFAULT, 0,
++					GPIO_DEBOUNCE_8MS},
++
++
++};
++
++#define LPC_SNOOP_ADDR 0x80
++#define HICR5 0x080   /* Host Interface Control Register 5 */
++#define HICR6 0x084   /* Host Interface Control Register 6 */
++#define HICR7 0x088   /* Host Interface Control Register 7 */
++#define HICR8 0x08c   /* Host Interface Control Register 8 */
++#define SNPWADR 0x090 /* LPC Snoop Address Register */
++#define SNPWDR 0x094  /* LPC Snoop Data Register */
++#define HICR9 0x098   /* Host Interface Control Register 9 */
++#define HICRA 0x09c   /* Host Interface Control Register A */
++#define LHCR0 0x0a0   /* LPC Host Control Register 0 */
++#define LHCR1 0x0a4   /* LPC Host Control Register 1 */
++#define LHCR2 0x0a8   /* LPC Host Control Register 2 */
++#define LHCR3 0x0ac   /* LPC Host Control Register 3 */
++#define LHCR4 0x0b0   /* LPC Host Control Register 4 */
++#define LHCR5 0x0b4   /* LPC Host Control Register 5 */
++#define LHCR6 0x0b8   /* LPC Host Control Register 6 */
++#define LHCR7 0x0bc   /* LPC Host Control Register 7 */
++#define LHCR8 0x0c0   /* LPC Host Control Register 8 */
++#define PCCR6 0x0c4   /* Post Code Control Register 6 */
++#define LHCRA 0x0c8   /* LPC Host Control Register A */
++#define LHCRB 0x0cc   /* LPC Host Control Register B */
++#define PCCR4 0x0d0   /* Post Code Control Register 4 */
++#define PCCR5 0x0d4   /* Post Code Control Register 5 */
++#define HICRB 0x100   /* Host Interface Control Register B */
++#define HICRC 0x104   /* Host Interface Control Register C */
++/* HICR5 Bits */
++#define HICR5_EN_SIOGIO (1 << 31)	   /* Enable SIOGIO */
++#define HICR5_EN80HGIO (1 << 30)	    /* Enable 80hGIO */
++#define HICR5_SEL80HGIO (0x1f << 24)	/* Select 80hGIO */
++#define SET_SEL80HGIO(x) ((x & 0x1f) << 24) /* Select 80hGIO Offset */
++#define HICR5_UNKVAL_MASK 0x1FFF0000 /* Bits with unknown values on reset */
++#define HICR5_ENINT_SNP0W (1 << 1)   /* Enable Snooping address 0 */
++#define HICR5_EN_SNP0W (1 << 0)      /* Enable Snooping address 0 */
++
++/* HRCR6 Bits */
++#define HICR6_STR_SNP0W (1 << 0) /* Interrupt Status Snoop address 0 */
++#define HICR6_STR_SNP1W (1 << 1) /* Interrupt Status Snoop address 1 */
++
++/* HICRB Bits */
++#define HICRB_EN80HSGIO (1 << 13) /* Enable 80hSGIO */
++
++#define SGPIO_CLK_DIV(N) ((N) << 16)
++#define SGPIO_BYTES(N) ((N) << 6)
++#define SGPIO_ENABLE 1
++#define GPIO254 0x254
++
++#define HOST_SERIAL_A_HIGH_SPEED (1 << 0)
++#define HOST_SERIAL_B_HIGH_SPEED (1 << 1)
++
++#define WATCHDOG_RESET_BIT 0x8
++#define BOOT_FAILURE_LIMIT 0x3
++
++#define COOPER_CITY_BOARD_ID 40
++
++static int get_boot_failures(void)
++{
++	return getenv_ulong("bootfailures", 10, 0);
++}
++
++static void set_boot_failures(u32 count)
++{
++	if (count > BOOT_FAILURE_LIMIT)
++		return;
++
++	setenv_ulong("bootfailures", count);
++	saveenv();
++}
++
++
++static void sgpio_init(void)
++{
++	uint32_t value;
++	/*
++    33.4.2
++    LPC port80h direct to SGPIO
++    In AST2500 SGPIO, it supports output data from 80h. It always uses SGPIOA.
++    1. Configure LPC snoop function.
++	(a) Set SNPWADR(0x1e789090)[15:0] to 0x80.
++	(b) Set HICR5(0x1e789080)[0] to 1 to enable snoop.
++    2. Configure SGPIO
++	(a) Set GPIO254[9:6] to larger than or equal to 0x1.
++	(b) Set GPIO254[0] to 1 to enable SGPIO.
++    3. Set SuperIO
++	(a) Set SIOR7 30h to 0x40.
++    */
++	/* make sure multi-pin stuff goes in our favor */
++	ast_scu_multi_func_sgpio();
++
++	/* set lpc snoop #0 to port 0x80 */
++	value = readl(AST_LPC_BASE + SNPWADR) & 0xffff0000;
++	writel(value | LPC_SNOOP_ADDR, AST_LPC_BASE + SNPWADR);
++
++	/* clear interrupt status */
++	value = readl(AST_LPC_BASE + HICR6);
++	value |= HICR6_STR_SNP0W | HICR6_STR_SNP1W;
++	writel(value, AST_LPC_BASE + HICR6);
++
++	/* enable lpc snoop #0 and SIOGIO */
++	value = readl(AST_LPC_BASE + HICR5) & ~(HICR5_UNKVAL_MASK);
++	value |= HICR5_EN_SIOGIO | HICR5_EN_SNP0W;
++	writel(value, AST_LPC_BASE + HICR5);
++
++
++	/* enable port80h snoop on SGPIO */
++	value = readl(AST_LPC_BASE + HICRB) | HICRB_EN80HSGIO;
++	writel(value, AST_LPC_BASE + HICRB);
++
++	/* set the gpio clock to pclk/(2*(5+1)) or ~2 MHz */
++	value = SGPIO_CLK_DIV(256) | SGPIO_BYTES(10) | SGPIO_ENABLE;
++	writel(value, AST_GPIO_BASE + GPIO254);
++}
++
++/* running the timer at 48 hertz will easily give a 24Hz blink */
++#define TICK_HZ 48
++#define BLINK_DELAY(HZ) ((int)((TICK_HZ / (HZ)) / 2) - 1)
++typedef enum {
++	/*
++	 *  Identifies the control request for the ID LED.
++	 */
++	EIDLED_Initialize = 0,
++	EIDLED_Tick,
++	EIDLED_Toggle,
++	EIDLED_Off,
++	EIDLED_On,
++	EIDLED_Blink,
++	EIDLED_Blink_24HZ = EIDLED_Blink + BLINK_DELAY(24),
++	EIDLED_Blink_12HZ = EIDLED_Blink + BLINK_DELAY(12),
++	EIDLED_Blink_6HZ = EIDLED_Blink + BLINK_DELAY(6),
++	EIDLED_Blink_3HZ = EIDLED_Blink + BLINK_DELAY(3),
++	EIDLED_Blink_1HZ = EIDLED_Blink + BLINK_DELAY(1),
++	EIDLED_Blink_0_5HZ = EIDLED_Blink + BLINK_DELAY(0.5),
++} EIDLEDControl;
++
++struct led_info {
++	int gpio;
++	EIDLEDControl mode;
++	int count;
++	int state;
++};
++
++static struct led_info s_led_info[] = {
++	/* BMC Executing bootloader (Default) :-
++	 * ChassisID: Blinking Blue 3Hz, StatusLED: Blinking Green 1Hz */
++	[GPIO_ID_LED] = {GPIO_ID_LED, EIDLED_Blink_3HZ, 1, 0},
++	[GPIO_GREEN_LED] = {GPIO_GREEN_LED, EIDLED_Blink_1HZ, 0, 0},
++	[GPIO_AMBER_LED] = {GPIO_AMBER_LED, EIDLED_Off, 0, 0},
++};
++
++extern void gpio_set_value(int n, int asserted);
++void id_led_control(int id, int action)
++{
++	if (id >= ARRAY_SIZE(s_led_info)) {
++		return;
++	}
++	/* don't bother with LEDs that are not initialized */
++	if (EIDLED_Initialize == s_led_info[id].mode) {
++		return;
++	}
++
++	/* check for a blinker action */
++	if (EIDLED_Tick == action) {
++		if (s_led_info[id].mode < EIDLED_Blink) {
++			return;
++		}
++		/* check countdown for blink */
++		if (s_led_info[id].count == 0) {
++			s_led_info[id].count =
++				s_led_info[id].mode - EIDLED_Blink;
++			s_led_info[id].state = !s_led_info[id].state;
++		} else {
++			s_led_info[id].count--;
++			return;
++		}
++	} else if (EIDLED_Toggle == action) {
++		s_led_info[id].state = !s_led_info[id].state;
++		s_led_info[id].mode =
++			s_led_info[id].state ? EIDLED_On : EIDLED_Off;
++	} else if (action > EIDLED_Toggle) {
++		s_led_info[id].mode = action;
++		if (EIDLED_Off == action) {
++			s_led_info[id].state = 0;
++		} else if (EIDLED_On == action) {
++			s_led_info[id].state = 1;
++		} else if (action >= EIDLED_Blink) {
++			s_led_info[id].count = action - EIDLED_Blink;
++			/* wait for the next tick */
++			return;
++		}
++	} else if (EIDLED_Initialize == action) {
++		if (s_led_info[id].mode >= EIDLED_Blink) {
++			s_led_info[id].count =
++				s_led_info[id].mode - EIDLED_Blink;
++		}
++	}
++	gpio_set_value(s_led_info[id].gpio, s_led_info[id].state);
++}
++
++static void enable_onboard_tpm(void)
++{
++	gpio_set_value(GPIO_ENABLE_TPM_PULSE, 1);
++	mdelay(50);
++	gpio_set_value(GPIO_ENABLE_TPM_PULSE, 0);
++}
++
++static void timer8_irq_handler(void *regs)
++{
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(s_led_info); i++) {
++		id_led_control(i, EIDLED_Tick);
++	}
++}
++
++void timer8_init(void)
++{
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(s_led_info); i++) {
++		id_led_control(i, EIDLED_Initialize);
++	}
++
++	/* set up the timer to fire at TICK_HZ HZ */
++	timer_enable(TIMER_8, TICK_HZ, timer8_irq_handler);
++}
++
++int intel_force_firmware_jumper_enabled(void)
++{
++	return gpio_get_value(GPIO_FF_UPD_JUMPER);
++}
++
++int intel_failed_boot(void)
++{
++	return get_boot_failures() >= BOOT_FAILURE_LIMIT;
++}
++
++int intel_get_platform_id(void)
++{
++	int id = 0;
++	int temp = 0;
++	int gpios[] = {GPIO_PLATFORM_ID_0,
++				   GPIO_PLATFORM_ID_1,
++				   GPIO_PLATFORM_ID_2,
++				   GPIO_PLATFORM_ID_3,
++				   GPIO_PLATFORM_ID_4,
++				   GPIO_PLATFORM_ID_5};
++	int ii;
++	for (ii = 0; ii < ARRAY_SIZE(gpios); ii++){
++		temp = gpio_get_value(gpios[ii]);
++		if(temp < 0)
++			return temp;
++		id |= temp << ii;
++	}
++	return id;
++}
++
++void arch_preboot_os(void)
++{
++	// last second before booting... set the LEDs
++	id_led_control(GPIO_ID_LED, EIDLED_On);
++	id_led_control(GPIO_GREEN_LED, EIDLED_On);
++	id_led_control(GPIO_AMBER_LED, EIDLED_Off);
++}
++
++/* PWM offsets */
++
++#define PWM_BASE_ADDR 0x1E786000
++#define PWM_CONTROL 0x00
++#define PWM_CLOCK_SELECTION 0x04
++#define PWM_DUTY_CYCLE 0x08
++#define PWM_M0 0x10
++#define PWM_M1 0x14
++#define PWM_N0 0x18
++#define PWM_N1 0x1c
++#define PWM_CONTROL_EXT 0x40
++#define PWM_CLOCK_SEL_EXT 0x44
++#define PWM_O0 0x50
++#define PWM_O1 0x54
++#define PWM_CHANNEL_COUNT 8
++
++#define PWM_CLK_ENABLE BIT(0)
++#define PWM_DUTY(PCT) (((PCT) * 128) / 100)
++#define DEFAULT_PWM_DUTY_VALUE PWM_DUTY(57)
++#define ELEVATED_PWM_DUTY_VALUE PWM_DUTY(80)
++
++
++static inline uint32_t ast_scu_read(uint32_t reg)
++{
++	uint32_t val = readl(AST_SCU_BASE + reg);
++
++	debug("ast_scu_read : reg = 0x%08x, val = 0x%08x\n", reg, val);
++	return val;
++}
++
++static inline void ast_scu_write(uint32_t val, uint32_t reg)
++{
++	debug("ast_scu_write : reg = 0x%08x, val = 0x%08x\n", reg, val);
++
++	writel(SCU_PROTECT_UNLOCK, AST_SCU_BASE);
++	writel(val, AST_SCU_BASE + reg);
++#ifdef CONFIG_AST_SCU_LOCK
++	writel(0xaa, AST_SCU_BASE);
++#endif
++}
++
++static void set_pwm_duty_cycle(int duty)
++{
++	uint32_t chan;
++	uint32_t val;
++
++	/* enable pwm channels */
++	for (chan = 0; chan < PWM_CHANNEL_COUNT; chan++) {
++		uint32_t base = chan < 4 ? PWM_BASE_ADDR : PWM_BASE_ADDR + 0x40;
++		uint8_t ch_duty_shift = 16 * (chan & 0x1);
++		uint8_t ch_pair = (chan & 0x3) / 2;
++
++		/* enable pwm for the channel */
++		val = readl(base);
++		val |= ((1 << (chan & 0x3)) << 8);
++		writel(val, base);
++
++		/* set duty cycle */
++		val = readl(base + PWM_DUTY_CYCLE + ch_pair * 4);
++		val &= ~(0xffff << ch_duty_shift);
++		val |= (((uint32_t)duty) << 8) << ch_duty_shift;
++		writel(val, base + PWM_DUTY_CYCLE + ch_pair * 4);
++	}
++
++}
++
++
++static void update_bootargs_cmd(const char *key, const char *value)
++{
++	int buf_len;
++	char *buf;
++	char *cmdline;
++	char comp_key[128];
++
++	if (!key || (key[0] == '\0')) {
++		printf("%s - Empty key not allowed\n", __func__);
++		return;
++	}
++
++	cmdline = getenv("bootargs");
++
++	/* Allocate space for maximum possible new command line */
++	if (value)
++		buf_len = strlen(cmdline) + strlen(key) + 3 + strlen(value);
++	else
++		buf_len = strlen(cmdline) + strlen(key) + 3;
++
++	buf = malloc(buf_len);
++	if (!buf) {
++		printf("%s: out of memory\n", __func__);
++		return;
++	}
++	memset(buf, 0, buf_len);
++
++	if (!cmdline) {
++		/* lets add key-value, though bootargs are empty */
++		snprintf(buf, buf_len, "%s=%s", key, (value ? value : ""));
++		setenv("bootargs", buf);
++		free(buf);
++		return;
++	}
++
++	snprintf(comp_key, sizeof(comp_key), "%s=", key);
++	char *start = strstr(cmdline, comp_key);
++
++	/* Check for full word match. Match should be start of cmdline
++	 * or there should be space before match */
++	if (start && ((start == cmdline) || (*(start-1) == ' '))) {
++		char *end = strchr(start, ' ');
++		strncpy(buf, cmdline, (start - cmdline));
++
++		if (end)
++			snprintf(buf, buf_len, "%s%s=%s %s", buf, key,
++				 (value ? value : ""), end+1);
++		else
++			snprintf(buf, buf_len, "%s%s=%s", buf, key,
++				 (value ? value : ""));
++	} else {
++		snprintf(buf, buf_len, "%s %s=%s", cmdline, key,
++			 (value ? value : ""));
++	}
++
++	setenv("bootargs", buf);
++	free(buf);
++}
++
++static bool is_mfg_mode_phy_req(void)
++{
++	/*
++	 * Assume mfg mode physical request is made, if power button
++	 * is pressed continously for 15 seconds, indicate the
++	 * same in bootargs
++	 */
++	const uint32_t delay_in_ms = 100;
++	const uint32_t read_count = ((15 * 1000) / delay_in_ms);
++	const uint32_t delay_for_indication = 10 * 1000;
++	for (uint32_t count = 0; count < read_count; ++count) {
++		if (!gpio_get_value(GPIO_FP_PWR_BTN))
++			return false;
++
++		mdelay(delay_in_ms);
++	}
++	debug("is_mfg_mode_phy_req : detected mfg mode request\n");
++	id_led_control(GPIO_GREEN_LED, EIDLED_Blink_3HZ);
++	/* Delay the boot to do physical indication for mfg mode */
++	mdelay(delay_for_indication);
++
++	return true;
++}
++
++void ast_g5_intel_late_init(void)
++{
++	char value[32];
++	u32 reset_reason = 0;
++	u32 boot_failures = 0;
++
++	/* By default host serail A and B use normal speed */
++	uint32_t host_serial_cfg = 0;
++	char *host_serial_cfg_txt = NULL;
++
++	/* Config the uart clock source based on environment configuration */
++	host_serial_cfg_txt = getenv("hostserialcfg");
++
++	if (host_serial_cfg_txt != NULL)
++		host_serial_cfg = simple_strtoul(host_serial_cfg_txt, NULL, 16);
++
++	if (host_serial_cfg > (HOST_SERIAL_A_HIGH_SPEED | HOST_SERIAL_B_HIGH_SPEED)) {
++		printf("Invalided hostserialcfg %x, use default!\n", host_serial_cfg);
++		host_serial_cfg = 0;
++	}
++
++	/* SOL implementation requires uart1/uart3/uart4 have the same clock
++	 * source for data forwarding, config uart3 and uart4
++	 */
++	if (host_serial_cfg & HOST_SERIAL_A_HIGH_SPEED) {
++		ast_scu_write(ast_scu_read(AST_SCU_MISC2_CTRL) |
++			SCU_UART1_HS_CLOCK | SCU_UART3_HS_CLOCK |
++			SCU_UART4_HS_CLOCK, AST_SCU_MISC2_CTRL);
++	} else {
++		ast_scu_write(ast_scu_read(AST_SCU_MISC2_CTRL) &
++				~SCU_UART1_HS_CLOCK & ~SCU_UART3_HS_CLOCK &
++				~SCU_UART4_HS_CLOCK, AST_SCU_MISC2_CTRL);
++	}
++
++	if (host_serial_cfg & HOST_SERIAL_B_HIGH_SPEED) {
++		ast_scu_write(ast_scu_read(AST_SCU_MISC2_CTRL) |
++				SCU_UART2_HS_CLOCK, AST_SCU_MISC2_CTRL);
++	} else {
++		ast_scu_write(ast_scu_read(AST_SCU_MISC2_CTRL) &
++				~SCU_UART2_HS_CLOCK, AST_SCU_MISC2_CTRL);
++	}
++
++	/* save and clear reset status */
++	reset_reason = ast_scu_read(AST_SCU_SYS_CTRL);
++	snprintf(value, sizeof(value), "0x%x", reset_reason);
++	ast_scu_write(0, AST_SCU_SYS_CTRL);
++
++	update_bootargs_cmd("resetreason", value);
++
++	boot_failures = get_boot_failures();
++
++	if (reset_reason & WATCHDOG_RESET_BIT)
++		set_boot_failures(boot_failures + 1);
++	else
++		set_boot_failures(0);
++
++	/* Update the special mode in bootargs */
++	if (is_mfg_mode_phy_req())
++		update_bootargs_cmd("special", "mfg");
++	else
++		update_bootargs_cmd("special", NULL);
++}
++
++static void uart_init(void)
++{
++	u32 val;
++
++	/* Enable UART1 and UART2 for BIOS messages */
++	val = ast_scu_read(AST_SCU_FUN_PIN_CTRL2);
++
++	/* UART1 */
++	val |= (SCU_FUN_PIN_UART1_NCTS | SCU_FUN_PIN_UART1_NDCD |
++		SCU_FUN_PIN_UART1_NDSR | SCU_FUN_PIN_UART1_NRI |
++		SCU_FUN_PIN_UART1_NDTR | SCU_FUN_PIN_UART1_NRTS |
++		SCU_FUN_PIN_UART1_TXD | SCU_FUN_PIN_UART1_RXD);
++	/* UART2 */
++	val |= (SCU_FUN_PIN_UART2_NCTS | SCU_FUN_PIN_UART2_NDCD |
++		SCU_FUN_PIN_UART2_NDSR | SCU_FUN_PIN_UART2_NRI |
++		SCU_FUN_PIN_UART2_NDTR | SCU_FUN_PIN_UART2_NRTS |
++		SCU_FUN_PIN_UART2_TXD | SCU_FUN_PIN_UART2_RXD);
++	ast_scu_write(val, AST_SCU_FUN_PIN_CTRL2);
++}
++
++static void pwm_init(void)
++{
++	uint32_t val;
++
++	/* select pwm 0-7 */
++	val = ast_scu_read(AST_SCU_FUN_PIN_CTRL3);
++	val |= (SCU_FUN_PIN_VPIG7 | SCU_FUN_PIN_VPIG6 | SCU_FUN_PIN_VPIG5
++		| SCU_FUN_PIN_VPIG4 | SCU_FUN_PIN_VPIG3 | SCU_FUN_PIN_VPIG2
++		| SCU_FUN_PIN_VPIG1 | SCU_FUN_PIN_VPIG0);
++	ast_scu_write(val, AST_SCU_FUN_PIN_CTRL3);
++
++	/* disable video output mux */
++	val = ast_scu_read(AST_SCU_FUN_PIN_CTRL5);
++	val &= 0xffffffcf;
++	ast_scu_write(val, AST_SCU_FUN_PIN_CTRL5);
++	val = readl(AST_SCU_FUN_PIN_CTRL6);
++	val &= 0xfffffffc;
++	ast_scu_write(val, AST_SCU_FUN_PIN_CTRL6);
++
++	/* SCU reset of PWM module */
++	val = ast_scu_read(AST_SCU_RESET);
++	val |= SCU_RESET_PWM;
++	ast_scu_write(val, AST_SCU_RESET);
++	val &= ~SCU_RESET_PWM;
++	ast_scu_write(val, AST_SCU_RESET);
++
++	/* set M, N, and 0 clock regs to 0 */
++	writel(0, PWM_BASE_ADDR + PWM_M0);
++	writel(0, PWM_BASE_ADDR + PWM_N0);
++	writel(0, PWM_BASE_ADDR + PWM_O0);
++
++	/* disable fans and tachos, set M type control */
++	writel(0x1, PWM_BASE_ADDR + PWM_CONTROL);
++	writel(0x1, PWM_BASE_ADDR + PWM_CONTROL_EXT);
++
++	set_pwm_duty_cycle(DEFAULT_PWM_DUTY_VALUE);
++
++	/* set up clock type M: period = 127 units at 24MHz/8 (resulting ~23kHz period) */
++	writel(0x7f30, PWM_BASE_ADDR + PWM_CLOCK_SELECTION);
++
++	/* enable pwm-tacho */
++
++	val = readl(PWM_BASE_ADDR + PWM_CONTROL);
++	val |= PWM_CLK_ENABLE;
++	writel(val, PWM_BASE_ADDR + PWM_CONTROL);
++}
++
++#define AST_MBX_COUNT 16
++#define MB_HINIT_BP_REG1 (0)
++#define MB_HINIT_BP_REG2 (1)  // reserved for future bit definition.
++#define MB_FW_MJ_VER_REG (2)
++#define MB_FW_MN_VER_REG (3)
++#define MB_HINIT_ERR_REG (4)
++#define MB_BOOTL_BP_REG1 (5)
++#define MB_BOOTL_BP_REG2 (6)  // tracks which image selected
++#define MB_BOOTL_ERR_REG (7)
++#define MB_RUNTM_BP_REG1 (8)
++#define MB_RUNTM_BP_REG2 (9)  // reserved for future bit definition.
++#define MB_RUNTM_ERR_REG (10)
++static void mailbox_init(void)
++{
++	/* clear out default mbox values */
++	int i;
++	for (i = 0; i < AST_MBX_COUNT; i++)
++	{
++		writel(0, AST_MBX_BASE + 4 * i);
++	}
++	/* by the time this is called, all the hardware init is done
++	 * so we can mark that as complete */
++	writel(0xff, AST_MBX_BASE + 4 * MB_HINIT_BP_REG1);
++	/* mark progress up through booting linux */
++	writel(0x1f, AST_MBX_BASE + 4 * MB_BOOTL_BP_REG1);
++}
++
++extern void espi_init(void);
++void ast_g5_intel(void)
++{
++	/* Disable uart port debug function */
++	ast_scu_write(ast_scu_read(AST_SCU_MISC1_CTRL) |
++		      SCU_MISC_UART_DEBUG_DIS, AST_SCU_MISC1_CTRL);
++
++	uart_init();
++	mailbox_init();
++	pwm_init();
++	gpio_init(gpio_table, ARRAY_SIZE(gpio_table));
++	espi_init();
++	sgpio_init();
++	timer8_init();
++	enable_onboard_tpm();
++	if (intel_force_firmware_jumper_enabled()) {
++		/* FFUJ mode:- ChassisID: Solid Blue, StatusLED: Solid Amber */
++		id_led_control(GPIO_ID_LED, EIDLED_On);
++		id_led_control(GPIO_GREEN_LED, EIDLED_Off);
++		id_led_control(GPIO_AMBER_LED, EIDLED_On);
++		if (intel_get_platform_id() == COOPER_CITY_BOARD_ID)
++			set_pwm_duty_cycle(ELEVATED_PWM_DUTY_VALUE);
++		/* TODO: need to stop the booting here. */
++	}
++}
+diff --git a/board/aspeed/ast-g5/ast-g5-irq.c b/board/aspeed/ast-g5/ast-g5-irq.c
+new file mode 100755
+index 0000000000..860f16cf05
+--- /dev/null
++++ b/board/aspeed/ast-g5/ast-g5-irq.c
+@@ -0,0 +1,176 @@
++/*
++ * Copyright 2018 Intel Corporation
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version
++ * 2 of the License, or (at your option) any later version.
++ */
++
++#include <common.h>
++#include <netdev.h>
++
++#include <asm/arch/ast_scu.h>
++#include <asm/arch/ast-sdmc.h>
++#include <asm/io.h>
++
++#include "ast-g5.h"
++#include "ast-g5-irq.h"
++
++DECLARE_GLOBAL_DATA_PTR;
++
++#ifdef CONFIG_USE_IRQ
++
++#define VIC_STATUS_L 0x80
++#define VIC_STATUS_H 0x84
++#define VIC_IRQ_SELECTION_L 0x98
++#define VIC_IRQ_SELECTION_H 0x9C
++#define VIC_ENABLE_L 0xA0
++#define VIC_ENABLE_H 0xA4
++#define VIC_ENABLE_CLEAR_L 0xA8
++#define VIC_ENABLE_CLEAR_H 0xAC
++#define VIC_INTERRUPT_CLEAR_L 0xD8
++#define VIC_INTERRUPT_CLEAR_H 0xDC
++
++#define VIC_CLEAR_ALL (~0)
++
++int arch_interrupt_init_early(void)
++{
++	writel(VIC_CLEAR_ALL, AST_VIC_BASE + VIC_ENABLE_CLEAR_L);
++	writel(VIC_CLEAR_ALL, AST_VIC_BASE + VIC_ENABLE_CLEAR_H);
++	return 0;
++}
++int arch_interrupt_init(void)
++{
++	return 0;
++}
++
++#define AST_IRQ_START_L 0
++#define AST_IRQ_END_L 31
++#define AST_IRQ_START_H 32
++#define AST_IRQ_END_H 63
++#define AST_IRQ_COUNT 64
++static interrupt_handler_t *handlers[AST_IRQ_COUNT] = {NULL};
++static unsigned long irq_total = 0;
++static unsigned long irq_counts[AST_IRQ_COUNT] = {0};
++
++int request_irq(int irq, interrupt_handler_t *handler)
++{
++	if (irq < AST_IRQ_START_L || irq > AST_IRQ_END_H) {
++		printf("irq %d out of range\n", irq);
++		return -1;
++	}
++	if (handlers[irq]) {
++		printf("irq %d already in use (%p)\n", irq, handlers[irq]);
++		return -1;
++	}
++	handlers[irq] = handler;
++	if (irq < AST_IRQ_START_H) {
++		writel((1 << irq), AST_VIC_BASE + VIC_ENABLE_L);
++	} else {
++		writel((1 << (irq - AST_IRQ_START_H)),
++		       AST_VIC_BASE + VIC_ENABLE_H);
++	}
++	return 0;
++}
++
++int release_irq(int irq)
++{
++	if (irq < AST_IRQ_START_L || irq > AST_IRQ_END_H) {
++		return -1;
++	}
++	if (handlers[irq]) {
++		handlers[irq] = NULL;
++		if (irq < AST_IRQ_START_H) {
++			writel((1 << irq), AST_VIC_BASE + VIC_ENABLE_CLEAR_L);
++		} else {
++			writel((1 << (irq - AST_IRQ_START_H)),
++			       AST_VIC_BASE + VIC_ENABLE_CLEAR_H);
++		}
++	}
++	return 0;
++}
++
++extern int global_interrupts_enabled(void);
++int do_irqinfo(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
++{
++	int i;
++	int enabled = global_interrupts_enabled();
++	unsigned long long irqs_enabled =
++		((unsigned long long)readl(AST_VIC_BASE + VIC_ENABLE_H))
++			<< AST_IRQ_START_H
++		| readl(AST_VIC_BASE + VIC_ENABLE_L);
++	printf("interrupts %sabled\n", (enabled ? "en" : "dis"));
++	for (i = AST_IRQ_START_L; i < AST_IRQ_COUNT; i++) {
++		printf("% 2i (% 3s): %lu\n", i,
++		       ((irqs_enabled & 1) ? "on" : "off"), irq_counts[i]);
++		irqs_enabled >>= 1;
++	}
++	printf("total: %lu\n", irq_total);
++	return 0;
++}
++
++void do_irq(struct pt_regs *pt_regs)
++{
++	uint32_t irq = readl(AST_VIC_BASE + VIC_STATUS_L);
++	int i;
++	irq_total++;
++	if (irq) {
++		// handler irq0-31
++		for (i = AST_IRQ_START_L; i <= AST_IRQ_END_L; i++) {
++			if (irq & (1 << i)) {
++				irq_counts[i]++;
++				/* mask */
++				writel((1 << i),
++				       AST_VIC_BASE + VIC_ENABLE_CLEAR_L);
++				if (handlers[i]) {
++					handlers[i](pt_regs);
++					/* clear */
++					writel((1 << i),
++					       AST_VIC_BASE
++						       + VIC_INTERRUPT_CLEAR_L);
++					/* unmask */
++					writel((1 << i),
++					       AST_VIC_BASE + VIC_ENABLE_L);
++				} else {
++					printf("unexpected interrupt %i; masking\n",
++					       i);
++					/* clear; do not unmask */
++					writel((1 << i),
++					       AST_VIC_BASE
++						       + VIC_INTERRUPT_CLEAR_L);
++				}
++			}
++		}
++	}
++	irq = readl(AST_VIC_BASE + VIC_STATUS_H);
++	if (irq) {
++		// handler irq32-63
++		for (i = AST_IRQ_START_H; i <= AST_IRQ_END_H; i++) {
++			if (irq & (1 << (i - AST_IRQ_START_H))) {
++				irq_counts[i]++;
++				/* mask */
++				writel((1 << (i - AST_IRQ_START_H)),
++				       AST_VIC_BASE + VIC_ENABLE_CLEAR_H);
++				if (handlers[i]) {
++					handlers[i](pt_regs);
++					/* clear */
++					writel((1 << (i - AST_IRQ_START_H)),
++					       AST_VIC_BASE
++						       + VIC_INTERRUPT_CLEAR_H);
++					/* unmask */
++					writel((1 << (i - AST_IRQ_START_H)),
++					       AST_VIC_BASE + VIC_ENABLE_H);
++				} else {
++					printf("unexpected interrupt %i; masking\n",
++					       i);
++					/* clear; do not unmask */
++					writel((1 << (i - AST_IRQ_START_H)),
++					       AST_VIC_BASE
++						       + VIC_INTERRUPT_CLEAR_H);
++				}
++			}
++		}
++	}
++}
++#endif
+diff --git a/board/aspeed/ast-g5/ast-g5-irq.h b/board/aspeed/ast-g5/ast-g5-irq.h
+new file mode 100755
+index 0000000000..703eeabf13
+--- /dev/null
++++ b/board/aspeed/ast-g5/ast-g5-irq.h
+@@ -0,0 +1,39 @@
++/*
++ * Copyright 2018 Intel Corporation
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version
++ * 2 of the License, or (at your option) any later version.
++ */
++
++#ifndef __AST_G5_IRQ_H__
++#define __AST_G5_IRQ_H__
++
++#include <common.h>
++
++#ifdef CONFIG_USE_IRQ
++
++int arch_interrupt_init_early(void);
++
++int request_irq(int irq, interrupt_handler_t *handler);
++
++int release_irq(int irq);
++
++#else /* CONFIG_USE_IRQ */
++
++int arch_interrupt_init_early(void) {
++	return 0;
++}
++
++int request_irq(int irq, interrupt_handler_t *handler) {
++	return -1;
++}
++
++int release_irq(int irq) {
++	return -1;
++}
++
++#endif /* CONFIG_USE_IRQ */
++
++#endif /* __AST_G5_IRQ_H__ */
+diff --git a/board/aspeed/ast-g5/ast-g5-timer.c b/board/aspeed/ast-g5/ast-g5-timer.c
+new file mode 100755
+index 0000000000..56157222d9
+--- /dev/null
++++ b/board/aspeed/ast-g5/ast-g5-timer.c
+@@ -0,0 +1,66 @@
++/*
++ * Copyright 2018 Intel Corporation
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version
++ * 2 of the License, or (at your option) any later version.
++ */
++
++#include <common.h>
++#include <asm/io.h>
++#include <asm/arch/regs-scu.h>
++#include <asm/arch/ast_scu.h>
++#include <asm/arch/aspeed.h>
++
++#include "ast-g5.h"
++#include "ast-g5-timer.h"
++#include "ast-g5-irq.h"
++
++static const int timer_irqs[] = {16, 17, 18, 35, 37, 37, 38, 39};
++/* offsets from AST_TIMER_BASE for each timer */
++static const uint32_t timer_bases[] = {0, 0x10, 0x20, 0x40,
++				       0x50, 0x60, 0x70, 0x80};
++#define TIMER_1MHZ_CLK_COUNT 1000000u
++#define TIMER_ENABLE 1
++#define TIMER_1MHZ_CLK_SEL 2
++#define TIMER_ENABLE_IRQ 4
++#define TIMER_ENABLE_PULSE 8
++#define TIMER_CONTROL 0x30
++#define TIMER_RELOAD 0x04
++
++void timer_enable(int n, uint32_t freq, interrupt_handler_t *handler)
++{
++	if (n < 0 || n > 7) {
++		return;
++	}
++	uint32_t tctrl = readl(AST_TIMER_BASE + TIMER_CONTROL);
++	writel(tctrl & ~(0x0f << (n * 4)), AST_TIMER_BASE + TIMER_CONTROL);
++
++	// figure out best base for requested frequency
++	// (this will give 1MHz clock preference if period is within 1ms of
++	// requested)
++	uint32_t v = TIMER_1MHZ_CLK_COUNT / freq;
++	if (v > 1000 || v * freq == TIMER_1MHZ_CLK_COUNT) {
++		tctrl |= (TIMER_1MHZ_CLK_SEL << (n * 4));
++	} else {
++		uint32_t pclk = ast_get_ahbclk();
++		v = pclk / freq;
++	}
++	writel(v, AST_TIMER_BASE + timer_bases[n] + TIMER_RELOAD);
++	if (handler) {
++		request_irq(timer_irqs[n], handler);
++		tctrl |= (TIMER_ENABLE_IRQ << (n * 4));
++	}
++	tctrl |= (TIMER_ENABLE << (n * 4));
++	writel(tctrl, AST_TIMER_BASE + TIMER_CONTROL);
++}
++
++void timer_disable(int n)
++{
++	if (n < 0 || n > 7) {
++		return;
++	}
++	uint32_t tctrl = readl(AST_TIMER_BASE + TIMER_CONTROL);
++	writel(tctrl & ~(0x0f << (n * 4)), AST_TIMER_BASE + TIMER_CONTROL);
++}
+diff --git a/board/aspeed/ast-g5/ast-g5-timer.h b/board/aspeed/ast-g5/ast-g5-timer.h
+new file mode 100755
+index 0000000000..4b1ac28a9f
+--- /dev/null
++++ b/board/aspeed/ast-g5/ast-g5-timer.h
+@@ -0,0 +1,27 @@
++/*
++ * Copyright 2018 Intel Corporation
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version
++ * 2 of the License, or (at your option) any later version.
++ */
++
++#ifndef __AST_G5_TIMER_H__
++#define __AST_G5_TIMER_H__
++
++#include <common.h>
++
++#define TIMER_1 0
++#define TIMER_2 1
++#define TIMER_3 2
++#define TIMER_4 3
++#define TIMER_5 4
++#define TIMER_6 5
++#define TIMER_7 6
++#define TIMER_8 7
++
++void timer_enable(int n, uint32_t freq, interrupt_handler_t handler);
++void timer_disable(int n);
++
++#endif /* __AST_G5_TIMER_H__ */
+diff --git a/board/aspeed/ast-g5/ast-g5.c b/board/aspeed/ast-g5/ast-g5.c
+old mode 100644
+new mode 100755
+index 10090a26f4..7dbde24174
+--- a/board/aspeed/ast-g5/ast-g5.c
++++ b/board/aspeed/ast-g5/ast-g5.c
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright 2016 IBM Corporation
++ * Copyright 2016,2018 IBM Corporation
+  *
+  * This program is free software; you can redistribute it and/or
+  * modify it under the terms of the GNU General Public License
+@@ -12,18 +12,83 @@
+ 
+ #include <asm/arch/ast_scu.h>
+ #include <asm/arch/ast-sdmc.h>
++#include <asm/arch/regs-lpc.h>
++#include <asm/arch/regs-scu.h>
++#include <asm/arch/regs-sdmc.h>
+ #include <asm/io.h>
+ 
++#include "ast-g5.h"
++
+ DECLARE_GLOBAL_DATA_PTR;
+ 
++extern void ast_g5_intel(void);
++extern void ast_g5_intel_late_init(void);
++
++int board_early_init_f(void)
++{
++	/* make sure uart5 is using 24MHz clock */
++	ast_config_uart5_clk();
++	/*enable pass through*/
++	ast_enable_pass_through();
++	arch_interrupt_init_early();
++
++	return 0;
++}
++
+ int board_init(void)
+ {
++	bool sdmc_unlocked;
++	u32 val;
++
++	val = readl(AST_LPC_BASE + AST_LPC_HICRB);
++	val |= LPC_HICRB_ILPC2AHB;
++	writel(val, AST_LPC_BASE + AST_LPC_HICRB);
++
++	/* P2A, PCIe BMC */
++	val = readl(AST_SCU_BASE + AST_SCU_PCIE_CONFIG_SET);
++	val &= ~(SCU_PCIE_CONFIG_SET_BMC_DMA
++			| SCU_PCIE_CONFIG_SET_BMC_MMIO
++			| SCU_PCIE_CONFIG_SET_BMC_EN
++			| SCU_PCIE_CONFIG_SET_VGA_MMIO);
++	writel(val, AST_SCU_BASE + AST_SCU_PCIE_CONFIG_SET);
++
++	/* Debug UART */
++	val = readl(AST_SCU_BASE + AST_SCU_MISC1_CTRL);
++	val |= SCU_MISC_DEBUG_UART;
++	writel(val, AST_SCU_BASE + AST_SCU_MISC1_CTRL);
++
++	/* X-DMA */
++	sdmc_unlocked = readl(AST_SDMC_BASE + AST_SDMC_PROTECT);
++	if (!sdmc_unlocked)
++		writel(SDMC_PROTECT_UNLOCK, AST_SDMC_BASE + AST_SDMC_PROTECT);
++
++	val = readl(AST_SDMC_BASE + AST_SDMC_GFX_PROT);
++	val |= (SDMC_GFX_PROT_VGA_CURSOR
++			| SDMC_GFX_PROT_VGA_CG_READ
++			| SDMC_GFX_PROT_VGA_ASCII_READ
++			| SDMC_GFX_PROT_VGA_CRT
++			| SDMC_GFX_PROT_PCIE
++			| SDMC_GFX_PROT_XDMA);
++	writel(val, AST_SDMC_BASE + AST_SDMC_GFX_PROT);
++
++	if (!sdmc_unlocked)
++		writel(~SDMC_PROTECT_UNLOCK, AST_SDMC_BASE + AST_SDMC_PROTECT);
++
++	/* LPC2AHB */
++	val = readl(AST_LPC_BASE + AST_LPC_HICR5);
++	val &= ~LPC_HICR5_ENFWH;
++	writel(val, AST_LPC_BASE + AST_LPC_HICR5);
++
+ 	gd->bd->bi_boot_params = CONFIG_SYS_SDRAM_BASE + 0x100;
+ 	gd->flags = 0;
+ 
+-       /*enable pass through*/
+-       ast_enable_pass_through();
++	ast_g5_intel();
++	return 0;
++}
+ 
++int board_late_init(void)
++{
++	ast_g5_intel_late_init();
+ 	return 0;
+ }
+ 
+diff --git a/board/aspeed/ast-g5/ast-g5.h b/board/aspeed/ast-g5/ast-g5.h
+new file mode 100755
+index 0000000000..28fe5eafcb
+--- /dev/null
++++ b/board/aspeed/ast-g5/ast-g5.h
+@@ -0,0 +1,9 @@
++#ifndef _AST_G5_H_
++#define _AST_G5_H_
++
++#include <common.h>
++#include "ast-g5-irq.h"
++#include "ast-g5-gpio.h"
++#include "ast-g5-timer.h"
++
++#endif /* _AST_G5_H_ */
+diff --git a/cmd/Kconfig b/cmd/Kconfig
+index d69b817c82..33be2407d2 100644
+--- a/cmd/Kconfig
++++ b/cmd/Kconfig
+@@ -313,6 +313,11 @@ endmenu
+ 
+ menu "Device access commands"
+ 
++config CMD_IRQ
++	bool "interrupts - enable/disable interrupts"
++	depends on USE_IRQ
++	default y
++
+ config CMD_DM
+ 	bool "dm - Access to driver model information"
+ 	depends on DM
+diff --git a/common/bootm.c b/common/bootm.c
+old mode 100644
+new mode 100755
+index 2431019b3f..46909ecdbb
+--- a/common/bootm.c
++++ b/common/bootm.c
+@@ -602,7 +602,6 @@ int do_bootm_states(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[],
+ 		    int states, bootm_headers_t *images, int boot_progress)
+ {
+ 	boot_os_fn *boot_fn;
+-	ulong iflag = 0;
+ 	int ret = 0, need_boot_fn;
+ 
+ 	images->state |= states;
+@@ -626,7 +625,6 @@ int do_bootm_states(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[],
+ 	if (!ret && (states & BOOTM_STATE_LOADOS)) {
+ 		ulong load_end;
+ 
+-		iflag = bootm_disable_interrupts();
+ 		ret = bootm_load_os(images, &load_end, 0);
+ 		if (ret == 0)
+ 			lmb_reserve(&images->lmb, images->os.load,
+@@ -670,8 +668,6 @@ int do_bootm_states(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[],
+ 			BOOTM_STATE_OS_BD_T | BOOTM_STATE_OS_PREP |
+ 			BOOTM_STATE_OS_FAKE_GO | BOOTM_STATE_OS_GO);
+ 	if (boot_fn == NULL && need_boot_fn) {
+-		if (iflag)
+-			enable_interrupts();
+ 		printf("ERROR: booting os '%s' (%d) is not supported\n",
+ 		       genimg_get_os_name(images->os.os), images->os.os);
+ 		bootstage_error(BOOTSTAGE_ID_CHECK_BOOT_OS);
+@@ -711,9 +707,6 @@ int do_bootm_states(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[],
+ 
+ 	/* Deal with any fallout */
+ err:
+-	if (iflag)
+-		enable_interrupts();
+-
+ 	if (ret == BOOTM_ERR_UNIMPLEMENTED)
+ 		bootstage_error(BOOTSTAGE_ID_DECOMP_UNIMPL);
+ 	else if (ret == BOOTM_ERR_RESET)
+diff --git a/common/bootm_os.c b/common/bootm_os.c
+old mode 100644
+new mode 100755
+index 9ec84bd0db..b56eb39780
+--- a/common/bootm_os.c
++++ b/common/bootm_os.c
+@@ -476,6 +476,7 @@ __weak void arch_preboot_os(void)
+ int boot_selected_os(int argc, char * const argv[], int state,
+ 		     bootm_headers_t *images, boot_os_fn *boot_fn)
+ {
++	disable_interrupts();
+ 	arch_preboot_os();
+ 	boot_fn(state, argc, argv, images);
+ 
+diff --git a/configs/ast_g5_ncsi_2boot_defconfig b/configs/ast_g5_ncsi_2boot_defconfig
+index 2d28c86966..d5b7894a9e 100644
+--- a/configs/ast_g5_ncsi_2boot_defconfig
++++ b/configs/ast_g5_ncsi_2boot_defconfig
+@@ -33,3 +33,4 @@ CONFIG_CMD_CRC32=y
+ CONFIG_LOOPW=y
+ CONFIG_CMD_MEMTEST=y
+ CONFIG_CMD_MX_CYCLIC=y
++CONFIG_USE_IRQ=y
+diff --git a/configs/ast_g5_ncsi_defconfig b/configs/ast_g5_ncsi_defconfig
+index 74029ed514..9481e5fb6e 100644
+--- a/configs/ast_g5_ncsi_defconfig
++++ b/configs/ast_g5_ncsi_defconfig
+@@ -11,3 +11,4 @@ CONFIG_HUSH_PARSER=y
+ CONFIG_OF_LIBFDT=y
+ CONFIG_SPI_FLASH=y
+ CONFIG_SYS_NS16550=y
++CONFIG_USE_IRQ=y
+diff --git a/configs/ast_g5_phy_defconfig b/configs/ast_g5_phy_defconfig
+old mode 100644
+new mode 100755
+index 767f3af605..9edfc0ba67
+--- a/configs/ast_g5_phy_defconfig
++++ b/configs/ast_g5_phy_defconfig
+@@ -12,3 +12,5 @@ CONFIG_HUSH_PARSER=y
+ CONFIG_OF_LIBFDT=y
+ CONFIG_SPI_FLASH=y
+ CONFIG_SYS_NS16550=y
++CONFIG_USE_IRQ=y
++CONFIG_LIB_RAND=y
+diff --git a/configs/ast_g5_phy_defconfig.bak b/configs/ast_g5_phy_defconfig.bak
+new file mode 100755
+index 0000000000..4aefcf49e8
+--- /dev/null
++++ b/configs/ast_g5_phy_defconfig.bak
+@@ -0,0 +1,15 @@
++CONFIG_ARM=y
++CONFIG_TARGET_AST_G5=y
++CONFIG_ASPEED_NET_PHY=y
++CONFIG_SYS_PROMPT="ast# "
++CONFIG_CMD_BOOTEFI=n
++CONFIG_CMD_DHCP=y
++CONFIG_CMD_PING=y
++CONFIG_EFI_LOADER=n
++CONFIG_FIT=y
++CONFIG_FIT_VERBOSE=y
++CONFIG_HUSH_PARSER=y
++CONFIG_OF_LIBFDT=y
++CONFIG_SPI_FLASH=y
++CONFIG_SYS_NS16550=y
++CONFIG_USE_IRQ=y

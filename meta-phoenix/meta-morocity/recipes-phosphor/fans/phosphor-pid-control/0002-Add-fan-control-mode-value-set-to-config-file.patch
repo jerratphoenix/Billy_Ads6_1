@@ -1,0 +1,158 @@
+From 6e102900f86e78acdd0eee790d9df39037f0adcd Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Wed, 17 Nov 2021 08:34:12 +0000
+Subject: [PATCH] Add fan control mode value set to config file.
+
+---
+ pid/pidloop.cpp        | 81 ++++++++++++++++++++++++++++++++++++++++++
+ pid/zone.hpp           |  5 ++-
+ pid/zone_interface.hpp |  3 ++
+ 3 files changed, 88 insertions(+), 1 deletion(-)
+
+diff --git a/pid/pidloop.cpp b/pid/pidloop.cpp
+index fc899f9..6cb91f5 100755
+--- a/pid/pidloop.cpp
++++ b/pid/pidloop.cpp
+@@ -29,10 +29,82 @@
+ #include <sstream>
+ #include <thread>
+ #include <vector>
++#include <fstream> 
++#include <iostream>
++#include <sys/stat.h>
++
++static constexpr char modeConfig[] = "/etc/mode.conf";
+ 
+ namespace pid_control
+ {
+ 
++std::vector<uint8_t> readFanZoneModeConfig()
++{
++    std::vector<uint8_t> zoneInfo;
++    uint8_t mode;
++
++    std::ifstream zoneModeFile(modeConfig, std::ios::binary);
++    if(!zoneModeFile)
++    {
++        std::cout << "Error to read fan zone mode file." << std::endl;
++        return zoneInfo;
++    }
++
++    /*Future can extend zones to set. ex. zoen1, zone2...*/
++    while(zoneModeFile >> mode)
++    {
++        zoneInfo.push_back(mode);
++    }
++    
++    return zoneInfo;
++}
++
++void writeFanZoneModeConfig(uint8_t mode)
++{
++    std::vector<uint8_t> lastTmp = readFanZoneModeConfig();
++
++    /* Only change mode will enter*/
++    if( lastTmp.front() ^ mode )
++    {
++        std::ofstream zoneModeFile(modeConfig, std::ios::binary);
++        if(!zoneModeFile)
++        {
++            std::cout << "Error to write fan zone mode file." << std::endl;
++        }
++        
++        lastTmp.front() = mode;
++        for(const auto &e : lastTmp)
++        {
++            zoneModeFile << e << std::endl;
++        }
++
++        zoneModeFile.close();
++    }
++}
++
++void createFanZoneModeConfig()
++{
++    struct stat info;
++
++    /* 0 = auto mode, 1 = manual mode, 2 = full mode, 3 = quiet mode */
++    uint8_t defaultMode = 0;
++
++    /* File exist then skip */
++    if(stat(modeConfig, &info) != 0)
++    {
++        std::ofstream zoneModeFile(modeConfig, std::ios_base::app | std::ios::binary);
++        if(!zoneModeFile)
++        {
++            std::cout << "Error to create fan zone mode file." << std::endl;
++        }
++
++        /*Set default auto mode*/
++        zoneModeFile << defaultMode << std::endl;
++
++        zoneModeFile.close();
++    }
++}
++
+ static void processThermals(std::shared_ptr<ZoneInterface> zone)
+ {
+     // Get the latest margins.
+@@ -62,6 +134,14 @@ void pidControlLoop(std::shared_ptr<ZoneInterface> zone,
+ 
+         zone->initializeCache();
+         processThermals(zone);
++        createFanZoneModeConfig();
++
++        /* Read last mode from config file, if have the last mode write to dBus and zone object*/
++        std::vector<uint8_t> lastMode = readFanZoneModeConfig();
++        if(!lastMode.empty())
++        {
++            zone->manual(lastMode.front());
++        }
+     }
+ 
+     timer->expires_after(std::chrono::milliseconds(100));
+@@ -108,6 +188,7 @@ void pidControlLoop(std::shared_ptr<ZoneInterface> zone,
+                 case fullMode:
+                 case quiteMode:
+                     zone->processFans();
++                    writeFanZoneModeConfig(zone->getManualMode());
+                     break;
+                 default:
+                     break;
+diff --git a/pid/zone.hpp b/pid/zone.hpp
+index d4ef540..7d5175b 100755
+--- a/pid/zone.hpp
++++ b/pid/zone.hpp
+@@ -73,6 +73,9 @@ class DbusPidZone : public ZoneInterface, public ModeObject
+     void dumpCache(void);
+     void processFans(void) override;
+     void processThermals(void) override;
++    void createFanZoneModeConfig();
++    void writeFanZoneModeConfig(uint8_t mode);
++    std::vector<uint8_t> readFanZoneModeConfig();
+ 
+     void addFanPID(std::unique_ptr<Controller> pid);
+     void addThermalPID(std::unique_ptr<Controller> pid);
+@@ -84,7 +87,7 @@ class DbusPidZone : public ZoneInterface, public ModeObject
+     void writeLog(const std::string& value) override;
+ 
+     /* Method for setting the manual mode over dbus */
+-    uint8_t manual(uint8_t value);
++    uint8_t manual(uint8_t value) override;
+     /* Method for reading whether in fail-safe mode over dbus */
+     bool failSafe() const override;
+ 
+diff --git a/pid/zone_interface.hpp b/pid/zone_interface.hpp
+index f30a2fe..73d6a51 100755
+--- a/pid/zone_interface.hpp
++++ b/pid/zone_interface.hpp
+@@ -76,6 +76,9 @@ class ZoneInterface
+      */
+     virtual uint8_t getManualMode(void) const = 0;
+ 
++    /** Set manual mode from config file. */
++    virtual uint8_t manual(uint8_t value) = 0;
++
+     /** For each fan pid, do processing. */
+     virtual void processFans(void) = 0;
+     /** For each thermal pid, do processing. */

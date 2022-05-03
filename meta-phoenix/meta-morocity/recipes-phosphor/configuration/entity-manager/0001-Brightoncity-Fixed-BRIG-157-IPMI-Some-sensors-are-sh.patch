@@ -1,0 +1,64 @@
+From 91c15eee8b15ebe0e12f42f39a56a5e883121e45 Mon Sep 17 00:00:00 2001
+From: Arder_Chen <Arder_Chen@phoenix.com>
+Date: Mon, 28 Mar 2022 15:45:56 +0800
+Subject: [PATCH] [Brightoncity] Fixed [BRIG-157] [IPMI] Some sensors are shown
+ in WEB but not shown in IPMI sensor list.
+
+Related issue: [BRIG-157] [IPMI] Some sensors are shown in WEB but not shown in IPMI sensor list.
+
+Modified file:
+ServerBMC_GM/build/brightoncity/workspace/sources/entity-manager/configurations/Intel Front Panel.json
+
+Descript:
+1. Remove these sensors in WEB.
+   a. Front Panel Temp
+
+Test Step:
+1. Login WEB and check this sensor if still exist in "Health->Sensors" page. It should be not exist.
+---
+ configurations/Intel Front Panel.json | 32 ---------------------------
+ 1 file changed, 32 deletions(-)
+
+diff --git a/configurations/Intel Front Panel.json b/configurations/Intel Front Panel.json
+index ade49fa..f6f25d8 100644
+--- a/configurations/Intel Front Panel.json	
++++ b/configurations/Intel Front Panel.json	
+@@ -5,38 +5,6 @@
+             "Bus": "$bus",
+             "Name": "Front Panel FRU",
+             "Type": "EEPROM"
+-        },
+-        {
+-            "Address": "0x4D",
+-            "Bus": "$bus",
+-            "Name": "Front Panel Temp",
+-            "Thresholds": [
+-                {
+-                    "Direction": "greater than",
+-                    "Name": "upper critical",
+-                    "Severity": 1,
+-                    "Value": 55
+-                },
+-                {
+-                    "Direction": "greater than",
+-                    "Name": "upper non critical",
+-                    "Severity": 0,
+-                    "Value": 50
+-                },
+-                {
+-                    "Direction": "less than",
+-                    "Name": "lower non critical",
+-                    "Severity": 0,
+-                    "Value": 5
+-                },
+-                {
+-                    "Direction": "less than",
+-                    "Name": "lower critical",
+-                    "Severity": 1,
+-                    "Value": 0
+-                }
+-            ],
+-            "Type": "TMP75"
+         }
+     ],
+     "Name": "Intel Front Panel",

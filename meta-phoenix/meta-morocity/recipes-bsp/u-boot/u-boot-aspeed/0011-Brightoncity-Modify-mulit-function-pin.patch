@@ -1,0 +1,102 @@
+From 9c5db9b0d24bff3a997e2f109ae4190117ec21b7 Mon Sep 17 00:00:00 2001
+From: Chris Yeh <chris_yeh@phoenix.com>
+Date: Wed, 19 Jan 2022 10:03:50 +0800
+Subject: [PATCH] [Brightoncity] Modify mulit-function pin
+
+- Set FWSPICS1, FWSPICS2, Uart2 pingroup, PWM6, PWM7, SGPIOP2, MDC1 and MDIO1 to GPIO usage
+---
+ arch/arm/mach-aspeed/ast-scu.c     | 20 +++++++++++++++-----
+ board/aspeed/ast-g5/ast-g5-intel.c | 15 ++++++---------
+ 2 files changed, 21 insertions(+), 14 deletions(-)
+
+diff --git a/arch/arm/mach-aspeed/ast-scu.c b/arch/arm/mach-aspeed/ast-scu.c
+index 3f789d5a1f..0dea1f0ec3 100755
+--- a/arch/arm/mach-aspeed/ast-scu.c
++++ b/arch/arm/mach-aspeed/ast-scu.c
+@@ -427,9 +427,6 @@ void ast_scu_multi_func_eth(u8 num)
+ 		ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL1) &
+ 			      ~SCU_FUN_PIN_MAC0_PHY_LINK,
+ 			      AST_SCU_FUN_PIN_CTRL1);
+-		ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL3) |
+-			      SCU_FUN_PIN_MAC0_MDIO | SCU_FUN_PIN_MAC0_MDC,
+-			      AST_SCU_FUN_PIN_CTRL3);
+ 		break;
+ 	case 1:
+ 		if (ast_scu_read(AST_SCU_HW_STRAP1) & SCU_HW_STRAP_MAC1_RGMII)
+@@ -447,10 +444,23 @@ void ast_scu_multi_func_eth(u8 num)
+ 	}
+ }
+ 
++//Reconfigure multi-function pins to gpio input
++void MultiFuncPin_disable(void)
++{
++    //Brightoncity doesn't use FWSPICS pins (instead with PFR controls flash CS pins), so we remove it.
++    ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL3) &
++          ~(SCU_FUN_PIN_ROMCS1|SCU_FUN_PIN_ROMCS2), AST_SCU_FUN_PIN_CTRL3);
++
++    //Disable SGPIOP2 pins
++    ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL6) &
++            ~SCU_FUN_PIN_SGPIOP2, AST_SCU_FUN_PIN_CTRL6);
++}
++
+ void ast_scu_multi_func_romcs(u8 num)
+ {
+-	ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL3) |
+-		      SCU_FUN_PIN_ROMCS(num), AST_SCU_FUN_PIN_CTRL3);
++	//Brightoncity doesn't use FWSPICS pin (instead with PFR controls flash CS pins), so we remove it.
++	//ast_scu_write(ast_scu_read(AST_SCU_FUN_PIN_CTRL3) |
++	//	      SCU_FUN_PIN_ROMCS(num), AST_SCU_FUN_PIN_CTRL3);
+ }
+ 
+ void ast_scu_multi_func_sgpio(void)
+diff --git a/board/aspeed/ast-g5/ast-g5-intel.c b/board/aspeed/ast-g5/ast-g5-intel.c
+index edaec695dc..aa7e43a1d1 100755
+--- a/board/aspeed/ast-g5/ast-g5-intel.c
++++ b/board/aspeed/ast-g5/ast-g5-intel.c
+@@ -649,11 +649,7 @@ static void uart_init(void)
+ 		SCU_FUN_PIN_UART1_NDSR | SCU_FUN_PIN_UART1_NRI |
+ 		SCU_FUN_PIN_UART1_NDTR | SCU_FUN_PIN_UART1_NRTS |
+ 		SCU_FUN_PIN_UART1_TXD | SCU_FUN_PIN_UART1_RXD);
+-	/* UART2 */
+-	val |= (SCU_FUN_PIN_UART2_NCTS | SCU_FUN_PIN_UART2_NDCD |
+-		SCU_FUN_PIN_UART2_NDSR | SCU_FUN_PIN_UART2_NRI |
+-		SCU_FUN_PIN_UART2_NDTR | SCU_FUN_PIN_UART2_NRTS |
+-		SCU_FUN_PIN_UART2_TXD | SCU_FUN_PIN_UART2_RXD);
++
+ 	ast_scu_write(val, AST_SCU_FUN_PIN_CTRL2);
+ }
+ 
+@@ -661,10 +657,10 @@ static void pwm_init(void)
+ {
+ 	uint32_t val;
+ 
+-	/* select pwm 0-7 */
++	/* select pwm 0-5 for Brightoncity */
+ 	val = ast_scu_read(AST_SCU_FUN_PIN_CTRL3);
+-	val |= (SCU_FUN_PIN_VPIG7 | SCU_FUN_PIN_VPIG6 | SCU_FUN_PIN_VPIG5
+-		| SCU_FUN_PIN_VPIG4 | SCU_FUN_PIN_VPIG3 | SCU_FUN_PIN_VPIG2
++	val |= ( SCU_FUN_PIN_VPIG5| SCU_FUN_PIN_VPIG4
++	    | SCU_FUN_PIN_VPIG3 | SCU_FUN_PIN_VPIG2
+ 		| SCU_FUN_PIN_VPIG1 | SCU_FUN_PIN_VPIG0);
+ 	ast_scu_write(val, AST_SCU_FUN_PIN_CTRL3);
+ 
+@@ -732,6 +728,7 @@ static void mailbox_init(void)
+ }
+ 
+ extern void espi_init(void);
++extern void MultiFuncPin_disable(void);
+ void ast_g5_intel(void)
+ {
+ 	/* Disable uart port debug function */
+@@ -745,7 +742,7 @@ void ast_g5_intel(void)
+ 
+ 	/* PCH used in BrightonCity does not support PCIe L1.*/
+ 	pcie_l1_disable();
+-
++	MultiFuncPin_disable();
+ 	espi_init();
+ 	sgpio_init();
+ 	timer8_init();
+-- 
+2.17.1
+

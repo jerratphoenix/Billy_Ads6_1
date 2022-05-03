@@ -1,0 +1,31 @@
+From 3817479c6b856f64476d51c70795699fa23b9cbc Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Fri, 19 Nov 2021 01:42:45 +0000
+Subject: [PATCH] Clean Exit For Reload.
+
+---
+ dbus/dbusconfiguration.cpp | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+ mode change 100644 => 100755 dbus/dbusconfiguration.cpp
+
+diff --git a/dbus/dbusconfiguration.cpp b/dbus/dbusconfiguration.cpp
+old mode 100644
+new mode 100755
+index 8e69455..3568261
+--- a/dbus/dbusconfiguration.cpp
++++ b/dbus/dbusconfiguration.cpp
+@@ -199,8 +199,12 @@ int eventHandler(sd_bus_message* m, void* context, sd_bus_error*)
+             return;
+         }
+ 
+-        std::cout << "New configuration detected, reloading\n.";
+-        tryRestartControlLoops();
++        std::cout << "New configuration detected, exiting for reload\n.";
++
++        // Try exiting instead of trying to reload becaue dBus entities are not removed first
++        //  The crashing has a worse effect on the BMC than simply exiting and letting systemctl restart the service
++        //tryRestartControlLoops();
++        exit(0);
+     });
+ 
+     return 1;
