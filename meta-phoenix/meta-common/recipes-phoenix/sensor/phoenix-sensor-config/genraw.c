@@ -639,7 +639,7 @@ static void parseSensorName(json_object *jsonRecord, FILE *fp)
         sensor_offset8_deassert_servrity = "UNKNOW";
         LOG_DBG("\"%s\" does not define DeassertServrityOffset8, please check JSON file\n", sensorName);
     } else {
-        sensor_offset0_deassert_servrity = json_object_get_string(jsonObj);
+        sensor_offset8_deassert_servrity = json_object_get_string(jsonObj);
     }
 
     if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset9", &jsonObj) )
@@ -687,7 +687,7 @@ static void parseSensorName(json_object *jsonRecord, FILE *fp)
         sensor_offset14_deassert_servrity = "UNKNOW";
         LOG_DBG("\"%s\" does not define DeassertServrityOffset14, please check JSON file\n", sensorName);
     } else {
-        sensor_offset10_deassert_servrity = json_object_get_string(jsonObj);
+        sensor_offset14_deassert_servrity = json_object_get_string(jsonObj);
     }
 
     if( !json_object_object_get_ex (jsonRecord, "DeassertServrityOffset15", &jsonObj) )
@@ -783,7 +783,7 @@ static int parseSdrJsonFile(char *content, char *filename)
     /* Write define callback_map_t struct*/
     writeContentHead(fp);
 
-    WRITE_TO_FILE("int sensor_callback_map_count = %d;\n", json_object_array_length(jsonSDRInfo));
+    WRITE_TO_FILE("int sensor_callback_map_count = %lu;\n", json_object_array_length(jsonSDRInfo));
 
     /* Write define function*/
     for (i = 0; i < json_object_array_length(jsonSDRInfo); i++) {
@@ -813,7 +813,6 @@ int main (int argc, char*argv[])
     FILE *fp;
     char *data;
     long fileSize;
-    int n;
 
     if(argc != 3) {
         printf("Usage : %s JsonFile OutputFile\n", argv[0]);
@@ -835,7 +834,7 @@ int main (int argc, char*argv[])
         return -1;
     }
 
-    n = fread (data, sizeof (char), fileSize, fp);
+    fread (data, sizeof (char), fileSize, fp);
     fclose (fp);
 
     if (parseSdrJsonFile(data, argv[2]) != 0) {
