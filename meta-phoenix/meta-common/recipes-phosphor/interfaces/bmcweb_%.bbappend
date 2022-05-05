@@ -23,6 +23,7 @@ SRC_URI += "file://0001-Merge-from-ptec-bmcweb.patch \
 			file://0024-Improve-TLS-security-settings.patch \
 			file://0025-Fix-Brig-54-Redfish-BMC-firmware-update-OnReset-appl.patch \
 			file://0026-Common-bmcweb-Fix-some-typo-on-Redfish-PHY.patch \
+			file://0027-Get-ipv4-and-ipv6-data-in-vlan.patch \
            "
 
 # OOB Bios Config:
