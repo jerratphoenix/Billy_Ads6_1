@@ -6,7 +6,7 @@ as well as https://github.com/Intel-BMC/openbmc#openbmc
 
 ### Download the source from GitHub with a Phoenix Technologies Ltd. account.
 ```bash
-git clone git@github.com:pteceng/ServerBMC_GM.git
+git clone -b Billy-Ads6_0 git@github.com:pteceng/ServerBMC_GM.git
 cd ServerBMC_GM
 ```
 
