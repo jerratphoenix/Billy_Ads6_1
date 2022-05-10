@@ -1,6 +1,11 @@
 {
     "Access": [
         {
+            "SensorName": "CPU1 NorthVRTemp",
+            "Function"  : "get_cpu1_north_vr_temp",
+            "ReadingState": "BOTH"
+        },
+        {
             "SensorName": "Power State",
             "Function"  : "get_sys_pwr_state",
             "ReadingState": "BOTH"

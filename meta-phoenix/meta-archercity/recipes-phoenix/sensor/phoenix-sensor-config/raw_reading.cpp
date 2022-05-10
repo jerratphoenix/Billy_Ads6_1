@@ -52,6 +52,33 @@ void initial_before_raw_reading(void)
     // Add other inital code here
 }
 
+int32_t get_cpu1_north_vr_temp(double* reading)
+{
+    int ret;
+
+    ret = api_get_tmp75_temperature(0x6, 0x4c, reading);
+
+/*
+    // Or use SMBus API to read
+
+    uint16_t read_buf;
+
+    // Use SMBus Read Word for TMP75 temperature
+    ret = api_smbus_read_word(0x6, 0x4c, 0, &read_buf, false, 0, 0);
+    DPRINT("smbus read word 0x%04x\n", read_buf);
+
+    // Then Convert the smbus read_buf into sensor reading
+    // ...
+*/
+
+    if (ret != 0)
+    {
+        return SENSOR_STATUS::ERROR;
+    }
+
+    return SENSOR_STATUS::NORMAL;
+}
+
 int32_t get_system_crash(double* reading)
 {
     bool cpu_err = false;
