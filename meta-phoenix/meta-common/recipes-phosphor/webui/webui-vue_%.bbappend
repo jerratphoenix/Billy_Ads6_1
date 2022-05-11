@@ -9,7 +9,8 @@ SRC_URI += "file://0001-Change-login-and-header-logo-to-Phoenix.patch \
             file://0007-Remove-repetitive-quick-label-on-the-Inventory-and-L.patch \
             file://0008-Common-webui-vue-Fix-dynamically-assigned-DNS-IP-add.patch \
             file://0009-Common-webui-vue-Add-DNS-information-in-Network-page.patch \
-			file://0010-Common-Add-get-vLAN-configuration-on-web.patch \
+            file://0010-Common-Add-get-vLAN-configuration-on-web.patch \
+            file://0011-Fetch-PowerConsumedWatts-on-corrected-URI.patch \
            "
 
 
