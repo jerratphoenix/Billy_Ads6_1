@@ -752,18 +752,6 @@
             "Type": "PCA9546Mux"
         },
         {
-            "Address": "0x74",
-            "Bus": 2,
-            "ChannelNames": [
-                "Pcie_Slot_1",
-                "Pcie_Slot_2",
-                "",
-                ""
-            ],
-            "Name": "PCIE Mux1",
-            "Type": "PCA9546Mux"
-        },
-        {
             "Address": [
                 "0x58",
                 "0x59"
