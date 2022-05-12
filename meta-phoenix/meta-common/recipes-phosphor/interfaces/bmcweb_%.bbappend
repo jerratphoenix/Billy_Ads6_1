@@ -24,6 +24,7 @@ SRC_URI += "file://0001-Merge-from-ptec-bmcweb.patch \
 			file://0025-Fix-Brig-54-Redfish-BMC-firmware-update-OnReset-appl.patch \
 			file://0026-Common-bmcweb-Fix-some-typo-on-Redfish-PHY.patch \
 			file://0027-Get-ipv4-and-ipv6-data-in-vlan.patch \
+			file://0028-Add-Set-Enable-Disable-power-cap-Redfish-feature.patch \
            "
 
 # OOB Bios Config:
