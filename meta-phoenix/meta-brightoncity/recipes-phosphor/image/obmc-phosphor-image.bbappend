@@ -7,7 +7,8 @@ IMAGE_INSTALL:append += " phosphor-host-postd"
 
 # Phoenix sensor module
 IMAGE_INSTALL:append += " phoenix-ipmi-sdr"
-IMAGE_INSTALL:append += " phoenix-dbus-sensors"
+#IMAGE_INSTALL:append = " odsm"
+IMAGE_INSTALL:append = " odsm-ast2500"
 
 # Phoenix gpio module
 IMAGE_INSTALL:append += " phoenix-gpio-monitor"
