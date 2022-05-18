@@ -88,6 +88,7 @@ VERSION_ID = "${VERSION_SPLIT}"
 
 BUILD_ID_TAG := "${@run_git(d, 'describe --tags --abbrev=0')}"
 BUILD_ID := "${@strip_specific_str(d, 'BUILD_ID_TAG', '@')}"
+MACHINE="Archercity"
 OPENBMC_TARGET_MACHINE = "${MACHINE}"
 
 OS_RELEASE_FIELDS:append = " BUILD_ID OPENBMC_TARGET_MACHINE EXTENDED_VERSION"
