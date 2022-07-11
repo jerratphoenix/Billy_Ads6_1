@@ -33,7 +33,6 @@ file://0028-Improve-randomness-of-mac-address-generation.patch \
 file://0029-Set-UART-routing-in-lowlevel_init.patch \
 file://0030-Add-Aspeed-PWM-uclass-driver.patch \
 file://0031-Add-a-workaround-to-fix-AST2600-A0-booting-issue.patch \
-file://0032-Disable-eSPI-initialization-in-u-boot-for-normal-boo.patch \
 file://0033-Disable-debug-interfaces.patch \
 file://0034-Implement-the-IPMI-commands-in-FFUJ-mode-in-u-boot.patch \
 file://0501-Add-phoenix-billy-device-tree-to-Makefile.patch \
@@ -41,6 +40,8 @@ file://0502-Setup-Kernel-address.patch \
 file://0503-Disable-Intel-FFUJ-abort-BMC-boot.patch \
 file://0504-Get_Mac_Address_From_EEPROM.patch \
 file://0045-Archercity-Enable-devmem-on-the-kernel.patch \
+file://0046-DP-drv-src-updated.patch \
+file://0047-DP-drv-HeaderFile-updated.patch \
 "
 
 do_copyfile () {
