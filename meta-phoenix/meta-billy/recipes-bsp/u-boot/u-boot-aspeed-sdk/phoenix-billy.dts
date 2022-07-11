@@ -236,6 +236,10 @@
 	status = "okay";
 };
 
+&display_port {
+	status = "okay";
+};
+
 &scu {
 	mac0-clk-delay = <0x1d 0x1c
 			  0x10 0x17
