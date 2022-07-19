@@ -50,6 +50,7 @@ pipeline {
                     devtool modify mrw-patch-native; \
                     devtool modify mrw-perl-tools-native; \
                     devtool modify nativesdk-python3-sdbus++; \
+		    devtool modify odsm; \
                     devtool modify phosphor-ipmi-fru-hostfw-config-example-native; \
                     devtool modify phosphor-ipmi-fru-inventory-example-native; \
                     devtool modify phosphor-ipmi-fru-read-inventory-example-native; \
@@ -269,12 +270,43 @@ pipeline {
                     echo "Step Build"
                     sh "cd ${WORKSPACE}/; \
                         source setup ${params.target}; \
-                        echo 'EXTRA_IMAGE_FEATURES += \"debug-tweaks\"' >> conf/local.conf; \
-                        bitbake obmc-phosphor-image \
+			bitbake -c clean obmc-phosphor-image; \
+                        bitbake obmc-phosphor-image; \
                        "
+		    sh "cd ${WORKSPACE}/; \
+		        mkdir -p ${WORKSPACE}/build/built_images/release; \
+		        cp -r ${WORKSPACE}/build/${params.target}/tmp/deploy/images/${params.target}/obmc-phosphor-image-*-*.mtd ${WORKSPACE}/build/built_images/release; \
+			cp -r ${WORKSPACE}/build/${params.target}/tmp/deploy/images/${params.target}/obmc-phosphor-image-*-*.mtd.tar ${WORKSPACE}/build/built_images/release; \
+			cp -r ${WORKSPACE}/build/${params.target}/tmp/deploy/licenses/obmc-phosphor-image-*-*/license.manifest ${WORKSPACE}/build/built_images; \
+			rm -rf ${WORKSPACE}/build/${params.target}/tmp; \
+		       "
                 }
             }
         }
+	stage('Build Debug') {
+            when {
+                expression { return params.build_debug }
+            }
+	    steps {
+                retry(count: 5) {
+                    echo "Step Debug Build"
+                    sh "cd ${WORKSPACE}/; \
+                        source setup ${params.target}; \
+                        echo 'EXTRA_IMAGE_FEATURES += \"debug-tweaks\"' >> conf/local.conf; \
+			bitbake -c clean obmc-phosphor-image; \
+                        bitbake obmc-phosphor-image; \
+                       "
+		   sh "cd ${WORKSPACE}/; \
+                       mkdir -p ${WORKSPACE}/build/built_images/debug; \
+                       cp -r ${WORKSPACE}/build/${params.target}/tmp/deploy/images/${params.target}/obmc-phosphor-image-*-*.mtd ${WORKSPACE}/build/built_images/debug; \
+                       cp -r ${WORKSPACE}/build/${params.target}/tmp/deploy/images/${params.target}/obmc-phosphor-image-*-*.mtd.tar ${WORKSPACE}/build/built_images/debug; \
+		       cd ${WORKSPACE}/build/built_images/debug; \
+		       for f in *; do mv \$f debug_\$f; done; \
+                       rm -rf ${WORKSPACE}/build/${params.target}/tmp; \
+                      "
+                }
+            }
+	}
 
 	stage('Test') {
             when {
@@ -390,9 +422,8 @@ pipeline {
             echo "POST"
 
             echo "Archive Artifacts"
-	    archiveArtifacts artifacts: 'build/*/tmp/deploy/images/*/obmc-phosphor-image-*-*.mtd', onlyIfSuccessful: true
-	    archiveArtifacts artifacts: 'build/*/tmp/deploy/images/*/obmc-phosphor-image-*-*.mtd.tar', onlyIfSuccessful: true
-	    archiveArtifacts artifacts: 'build/*/tmp/deploy/licenses/obmc-phosphor-image-*-*/license.manifest'
+	    archiveArtifacts artifacts: 'build/built_images/*', onlyIfSuccessful: true
+	    archiveArtifacts artifacts: 'build/built_images/**/*', onlyIfSuccessful: true
             script {
             	   if (params.static_analysis == true) {
             	       archiveArtifacts artifacts: 'cppcheck.xml'
