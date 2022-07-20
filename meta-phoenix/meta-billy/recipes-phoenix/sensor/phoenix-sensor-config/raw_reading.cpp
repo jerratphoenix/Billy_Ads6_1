@@ -127,3 +127,10 @@ int32_t get_ipmi_pef(double* reading)
 {
     return api_sensor_pef(reading);
 }
+
+int32_t get_bmc_reboot (double *reading)
+{
+    *reading = BIT(1); // offset 01h: State Asserted
+
+    return SENSOR_STATUS::NORMAL;
+}

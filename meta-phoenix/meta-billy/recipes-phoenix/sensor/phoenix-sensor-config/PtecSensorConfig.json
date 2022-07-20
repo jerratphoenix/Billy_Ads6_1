@@ -22,7 +22,7 @@
             "ReadingState": "BOTH",
         },
         {
-            "SensorName": "IPMI SEL",
+            "SensorName": "BMC SEL State",
             "Function"  : "get_ipmi_sel",
             "ReadingState": "BOTH",
         },
@@ -45,6 +45,11 @@
             "SensorName": "IPMI PEF",
             "Function"  : "get_ipmi_pef",
             "ReadingState": "BOTH",
+        },
+		 {
+            "SensorName": "BMC Reboot",
+            "Function"  : "get_bmc_reboot",
+            "ReadingState": "BOTH"
         }
     ],
     "SDRRepository": [
@@ -2066,7 +2071,7 @@
 			"RecordID": "0x00d5",
 			"SDRVersion": "0x51",
 			"RecordType": "0x03",
-			"RecordLength": "0x14",
+			"RecordLength": "0x19",
 			"SensorOwnerID": "0x20",
 			"SensorOwnerLUN": "0x00",
 			"SensorNumber": "0xd5",
@@ -2077,8 +2082,8 @@
 			"SensorRecordSharing": "0x8100",
 			"Reserved": "0x00",
 			"OEM": "0x00",
-			"LengthCode": "0xc8",
-			"SensorName": "IPMI SEL"
+			"LengthCode": "0xce",
+			"SensorName": "BMC SEL State"
 		},
         {
 			"RecordID": "0x00d6",
@@ -2151,6 +2156,34 @@
 			"OEM": "0x00",
 			"LengthCode": "0xc8",
 			"SensorName": "IPMI PEF"
- 		}
+ 		},
+		{
+            "RecordID": "0x00da",
+            "SDRVersion": "0x51",
+            "RecordType": "0x02",
+            "RecordLength": "0x25",
+            "SensorOwnerID": "0x20",
+            "SensorOwnerLUN": "0x00",
+            "SensorNumber": "0xda",
+            "EntityID": "0x07",
+            "EntityInstance": "0x01",
+            "SensorInitialization": "0x67",
+            "SensorCapabilities": "0x40",
+            "SensorType": "0x24",
+            "Event/ReadingType": "0x03",
+            "AssertionMask": "0x0002",
+            "DeAssertionMask": "0x0000",
+            "Settable/ReadableThresholdMask": "0x0002",
+            "SensorUnits1": "0xc0",
+            "SensorUnits2-BaseUnit": "0x00",
+            "SensorUnits3-ModifierUnit": "0x00",
+            "SensorRecordSharing": "0x0001",
+            "Positive-thresholdHysteresisvalue": "0x00",
+            "Negative-thresholdHysteresisvalue": "0x00",
+            "Reserved": "0x00",
+            "OEM": "0x00",
+            "LengthCode": "0xca",
+            "SensorName": "BMC Reboot"
+        }
     ]
 }
