@@ -8,11 +8,11 @@ Environment="DROPBEAR_RSAKEY_DIR=/etc/dropbear"
 EnvironmentFile=-/etc/default/dropbear
 Type=oneshot
 ExecStart=@BASE_BINDIR@/sh -c \
-    "if [[ ! -f ${DROPBEAR_RSAKEY_DIR}/dropbear_rsa_host_key ]]; then \
+	"if [ ! -f /etc/keystore/dropbear_rsa_host_key ] && [ ! -f /etc/dropbear/dropbear_rsa_host_key ]; then \
         @BASE_BINDIR@/mkdir -p ${DROPBEAR_RSAKEY_DIR}; \
         @SBINDIR@/dropbearkey -t rsa -f ${DROPBEAR_RSAKEY_DIR}/dropbear_rsa_host_key; \
      fi"
 RemainAfterExit=yes
-
+ExecStart=/etc/keystore/backup.sh
 [Install]
 WantedBy=multi-user.target
