@@ -42,6 +42,7 @@ file://0504-Get_Mac_Address_From_EEPROM.patch \
 file://0045-Archercity-Enable-devmem-on-the-kernel.patch \
 file://0046-DP-drv-src-updated.patch \
 file://0047-DP-drv-HeaderFile-updated.patch \
+file://0048-Add-q-uboot-stopKey.patch \
 "
 
 do_copyfile () {
