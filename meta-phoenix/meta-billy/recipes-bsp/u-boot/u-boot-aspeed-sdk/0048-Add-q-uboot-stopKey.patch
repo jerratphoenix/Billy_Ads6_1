@@ -1,0 +1,59 @@
+diff --git a/common/autoboot.c b/common/autoboot.c
+old mode 100644
+new mode 100755
+index 8a99780423..92dfaa30ff
+--- a/common/autoboot.c
++++ b/common/autoboot.c
+@@ -216,16 +216,23 @@ static int __abortboot(int bootdelay)
+ #ifdef CONFIG_MENUPROMPT
+ 	printf(CONFIG_MENUPROMPT);
+ #else
+-	printf("Hit any key to stop autoboot: %2d ", bootdelay);
++	printf("Hit q key to stop autoboot: %2d ", bootdelay);
+ #endif
+ 
+ 	/*
+ 	 * Check if key already pressed
+ 	 */
+ 	if (tstc()) {	/* we got a key press	*/
+-		(void) getc();  /* consume input	*/
+-		puts("\b\b\b 0");
+-		abort = 1;	/* don't auto boot	*/
++		//(void) getc();  /* consume input	*/
++		//puts("\b\b\b 0");
++		//abort = 1;	/* don't auto boot	*/
++	if (0x71 == getc()){    /* 0x71 = q in ASCII */
++		        (void) getc();  /* consume input	*/
++		        puts("\b\b\b 0");
++		        abort = 1;	/* don't auto boot	*/
++		}else {
++			abort = 0;
++		}
+ 	}
+ 
+ 	while ((bootdelay > 0) && (!abort)) {
+@@ -234,14 +241,22 @@ static int __abortboot(int bootdelay)
+ 		ts = get_timer(0);
+ 		do {
+ 			if (tstc()) {	/* we got a key press	*/
+-				abort  = 1;	/* don't auto boot	*/
+-				bootdelay = 0;	/* no more delay	*/
++				//abort  = 1;	/* don't auto boot	*/
++				//bootdelay = 0;	/* no more delay	*/
++				if (0x71 == getc()){
++				        abort  = 1;	/* don't auto boot	*/
++				        bootdelay = 0;	/* no more delay	*/
+ # ifdef CONFIG_MENUKEY
+ 				menukey = getc();
+ # else
+ 				(void) getc();  /* consume input	*/
+ # endif
+ 				break;
++			}else {
++					abort  = 0;
++					bootdelay = 0;
++					break;
++				}
+ 			}
+ 			udelay(10000);
+ 		} while (!abort && get_timer(ts) < 1000);
