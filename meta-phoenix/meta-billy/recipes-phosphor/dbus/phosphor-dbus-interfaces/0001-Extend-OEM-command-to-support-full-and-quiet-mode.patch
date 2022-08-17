@@ -1,0 +1,25 @@
+From 44fa48e4f9dd3aed81e5303df98557b9cdb9edcf Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Mon, 15 Nov 2021 09:19:57 +0000
+Subject: [PATCH] Extend OEM command to support full and quiet mode.
+
+---
+ yaml/xyz/openbmc_project/Control/Mode.interface.yaml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ mode change 100644 => 100755 yaml/xyz/openbmc_project/Control/Mode.interface.yaml
+
+diff --git a/yaml/xyz/openbmc_project/Control/Mode.interface.yaml b/yaml/xyz/openbmc_project/Control/Mode.interface.yaml
+old mode 100644
+new mode 100755
+index da40d0d..3046675
+--- a/yaml/xyz/openbmc_project/Control/Mode.interface.yaml
++++ b/yaml/xyz/openbmc_project/Control/Mode.interface.yaml
+@@ -8,7 +8,7 @@ description: >
+ 
+ properties:
+     - name: Manual
+-      type: boolean
++      type: byte
+       description: >
+           Whether the object should be in manual or automatic mode.
+     - name: FailSafe

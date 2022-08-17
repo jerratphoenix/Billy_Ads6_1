@@ -1,0 +1,72 @@
+diff --git a/board/aspeed/ast-g5/ast-g5-intel.c b/board/aspeed/ast-g5/ast-g5-intel.c
+index 6741a94e5f..3b5949b357 100755
+--- a/board/aspeed/ast-g5/ast-g5-intel.c
++++ b/board/aspeed/ast-g5/ast-g5-intel.c
+@@ -149,6 +149,44 @@ static const GPIOValue gpio_table[] = {
+ #define BRIGHTON_CITY_BOARD_ID 0
+ #define COOPER_CITY_BOARD_ID 40
+ 
++/* Aspeed KCS control registers */
++#define LPC_HICR0       0x00 /* Host Interface Control Register 0 */
++#define LPC_HICR1       0x04 /* Host Interface Control Register 1 */
++#define LPC_HICR2       0x08 /* Host Interface Control Register 2 */
++#define LPC_HICR3       0x0C /* Host Interface Control Register 3 */
++#define LPC_HICR4       0x10 /* Host Interface Control Register 4 */
++#define LPC_LADR3H      0x14 /* LPC channel #3 Address Register H */
++#define LPC_LADR3L      0x18 /* LPC channel #3 Address Register H */
++#define LPC_LADR12H     0x1C /* LPC channel #1#2 Address Register H */
++#define LPC_LADR12L     0x20 /* LPC channel #1#2 Address Register L */
++#define LPC_IDR1        0x24 /* Input Data Register 1 */
++#define LPC_IDR2        0x28 /* Input Data Register 2 */
++#define LPC_IDR3        0x2C /* Input Data Register 3 */
++#define LPC_ODR1        0x30 /* Output Data Register 1 */
++#define LPC_ODR2        0x34 /* Output Data Register 2 */
++#define LPC_ODR3        0x38 /* Output Data Register 3 */
++#define LPC_STR1        0x3C /* Status Register 1 */
++#define LPC_STR2        0x40 /* Status Register 2 */
++#define LPC_STR3        0x44 /* Status Register 3 */
++#define LPC_HICRB       0x100 /* Host Interface Control Register B */
++#define LPC_LADR4       0x110 /* LPC channel #4 Address Register */
++#define LPC_IDR4        0x114 /* Input Data Register 4 */
++#define LPC_ODR4        0x118 /* Output Data Register 4 */
++#define LPC_STR4        0x11C /* Status Data Register 4 */
++
++/* LPC Bits */
++#define BIT_LADR12AS    BIT(7) /* Channel Address selection */
++#define BIT_IBFIE1      BIT(1) /* Enable IDR1 Recv completion interrupt */
++#define BIT_IBFIE2      BIT(2) /* Enable IDR2 Recv completion interrupt */
++#define BIT_IBFIE3      BIT(3) /* Enable IBF13 interrupt */
++#define BIT_LPC1E       BIT(5) /* Enable LPC channel #1 */
++#define BIT_LPC2E       BIT(6) /* Enable LPC channel #2 */
++#define BIT_LPC3E       BIT(7) /* Enable LPC channel #3 */
++#define BIT_KCSENBL     BIT(2) /* Enable KCS interface in Channel #3 */
++#define BIT_IBFIE4      BIT(1)
++#define BIT_LPC4E       BIT(0)
++
++
+ static int get_boot_failures(void)
+ {
+ 	return getenv_ulong("bootfailures", 10, 0);
+@@ -704,5 +742,22 @@ void ast_g5_intel(void)
+ 		if (intel_get_platform_id() == COOPER_CITY_BOARD_ID)
+ 			set_pwm_duty_cycle(ELEVATED_PWM_DUTY_VALUE);
+ 		/* TODO: need to stop the booting here. */
++	} else {
++		/*
++		 * AST2500 SW workaround:
++		 * When eSPI-LPC bridge HW stays in the LPC I/O port
++		 * decoding error state, controllers behind the bridge
++		 * cannot be enabled. Thereby, these controller should
++		 * be enabled early to avoid the decoding error.
++		 *
++		 * This workaround enables only the eSPI/LPC controllers which
++		 * commonly interacts with Host at the early stage, the KCS@Channel3.
++		 * Note: CA2h port will be still initialized in Linux.
++		 * Enabling this only for BRC board for now.
++		 */
++		u8 val;
++
++		val = readb(AST_LPC_BASE + LPC_HICR0) | BIT_LPC3E;
++		writeb(val, AST_LPC_BASE + LPC_HICR0);
+ 	}
+ }

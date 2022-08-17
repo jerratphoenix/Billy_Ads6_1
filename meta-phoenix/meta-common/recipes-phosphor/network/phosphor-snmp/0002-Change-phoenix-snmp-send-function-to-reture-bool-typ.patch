@@ -1,0 +1,107 @@
+From 4489c8faea8f2c8eb3c122c0db24c7e2606e6861 Mon Sep 17 00:00:00 2001
+From: Brad Ho <Brad_Ho@phoenix.com>
+Date: Mon, 1 Nov 2021 22:41:04 -0700
+Subject: [PATCH 2/2] Change phoenix snmp send function to reture bool type
+
+---
+ snmp.hpp              |  2 +-
+ snmp_notification.cpp | 10 ++++++++--
+ snmp_notification.hpp |  2 +-
+ 3 files changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/snmp.hpp b/snmp.hpp
+index e839d0c..913f182 100644
+--- a/snmp.hpp
++++ b/snmp.hpp
+@@ -26,7 +26,7 @@ void sendTrap(ArgTypes&&... tArgs)
+  * @param[in] tArgs - arguments for the trap.
+  */
+ 
+-template <typename T, typename... ArgTypes> void phoenixSendTrap(ArgTypes&&... tArgs)
++template <typename T, typename... ArgTypes> bool phoenixSendTrap(ArgTypes&&... tArgs)
+ {
+     T obj(std::forward<ArgTypes>(tArgs)...);
+     obj.phoenixSendTrap();
+diff --git a/snmp_notification.cpp b/snmp_notification.cpp
+index a578557..35c7f00 100644
+--- a/snmp_notification.cpp
++++ b/snmp_notification.cpp
+@@ -220,7 +220,7 @@ void Notification::sendTrap()
+     }
+ }
+ 
+-void Notification::phoenixSendTrap()
++bool Notification::phoenixSendTrap()
+ {
+     std::string comm = phoenix::getCommunityString();
+     std::string ip;
+@@ -241,7 +241,7 @@ void Notification::phoenixSendTrap()
+     {
+         log<level::ERR>("SNMP unable to use destination",
+                             entry("DESTINATION=%d", getDest()));
+-        elog<InternalFailure>();
++        return false;
+     }
+ 
+     ip = phoenix::getDestinationAddresses(getDest()) + ":162";
+@@ -255,6 +255,7 @@ void Notification::phoenixSendTrap()
+     {
+         log<level::ERR>("Unable to get the snmp session.");
+         elog<InternalFailure>();
++        return false;
+     }
+ 
+     // Wrap the raw pointer in RAII
+@@ -267,6 +268,7 @@ void Notification::phoenixSendTrap()
+     {
+         log<level::ERR>("Failed to create notification PDU");
+         elog<InternalFailure>();
++        return false;
+     }
+ 
+     pdu->trap_type = SNMP_TRAP_ENTERPRISESPECIFIC;
+@@ -281,6 +283,7 @@ void Notification::phoenixSendTrap()
+         log<level::ERR>("Failed to add the SNMP var(trapID)");
+         snmp_free_pdu(pdu);
+         elog<InternalFailure>();
++        return false;
+     }
+ 
+     auto objectList = getFieldOIDList();
+@@ -293,6 +296,7 @@ void Notification::phoenixSendTrap()
+             log<level::ERR>("Failed to add the SNMP var");
+             snmp_free_pdu(pdu);
+             elog<InternalFailure>();
++            return false;
+         }
+     }
+     // pdu is freed by snmp_send
+@@ -300,10 +304,12 @@ void Notification::phoenixSendTrap()
+     {
+         log<level::ERR>("Failed to send the snmp trap.");
+         elog<InternalFailure>();
++        return false;
+     }
+     log<level::DEBUG>("Sent SNMP Trap");
+     log<level::INFO>("Send to specified SMTP address to selected destination",
+                         entry("ADDR=%s", ip.c_str()));
++    return true;
+ }
+ } // namespace snmp
+ } // namespace network
+diff --git a/snmp_notification.hpp b/snmp_notification.hpp
+index 36e0270..2b6a460 100644
+--- a/snmp_notification.hpp
++++ b/snmp_notification.hpp
+@@ -114,7 +114,7 @@ class Notification
+      *          manager.
+      */
+     void sendTrap();
+-    void phoenixSendTrap();
++    bool phoenixSendTrap();
+ 
+   protected:
+     /** @brief Add the variable in the snmp pdu object.
+-- 
+2.17.1
+

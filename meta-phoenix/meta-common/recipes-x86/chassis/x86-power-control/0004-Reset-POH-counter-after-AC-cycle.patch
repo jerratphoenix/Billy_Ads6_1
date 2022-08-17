@@ -1,0 +1,60 @@
+From 099ab7840d133e14f93e5334847323756210dd4e Mon Sep 17 00:00:00 2001
+From: AndyYFWang <Andy_Wang@phoenix.com>
+Date: Wed, 19 Jan 2022 10:28:08 +0000
+Subject: [PATCH] Reset POH counter after AC cycle
+
+---
+ power-control-x86/src/power_control.cpp | 30 +++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+
+diff --git a/power-control-x86/src/power_control.cpp b/power-control-x86/src/power_control.cpp
+index 7d61ffc..c851c7d 100755
+--- a/power-control-x86/src/power_control.cpp
++++ b/power-control-x86/src/power_control.cpp
+@@ -1050,6 +1050,21 @@ static void powerRestorePolicyCheck()
+                 {
+                     // Start the Power Restore policy
+                     powerRestorePolicyStart();
++		    uint32_t resetPOH=0;
++                        conn->async_method_call(
++                            [](boost::system::error_code ec)
++					    {
++                            if (ec)
++                            {
++                                phosphor::logging::log<
++                                    phosphor::logging::level::INFO>(
++                                        "failed to set poh counter");
++                            }
++                        },
++                        "xyz.openbmc_project.Intel_Settings",
++                        "/xyz/openbmc_project/state/chassis0",
++                        "org.freedesktop.DBus.Properties", "Set",
++                        "xyz.openbmc_project.State.PowerOnHours", "POHCounter", std::variant<uint32_t>(resetPOH));
+                 }
+                 acBootMatch.reset();
+             });
+@@ -1078,6 +1093,21 @@ static void powerRestorePolicyCheck()
+             {
+                 // Start the Power Restore policy
+                 powerRestorePolicyStart();
++		uint32_t resetPOH=0;
++                        conn->async_method_call(
++                            [](boost::system::error_code ec)
++					    {
++                            if (ec)
++                            {
++                                phosphor::logging::log<
++                                    phosphor::logging::level::INFO>(
++                                        "failed to set poh counter");
++                            }
++                        },
++                        "xyz.openbmc_project.Intel_Settings",
++                        "/xyz/openbmc_project/state/chassis0",
++                        "org.freedesktop.DBus.Properties", "Set",
++                        "xyz.openbmc_project.State.PowerOnHours", "POHCounter", std::variant<uint32_t>(resetPOH));
+             }
+             acBootMatch.reset();
+         },
+-- 
+2.17.1
+

@@ -1,0 +1,51 @@
+From 1386cdf2d8a3c06780b24467a0b74152450e89dd Mon Sep 17 00:00:00 2001
+From: Jammy Huang <jammy_huang@aspeedtech.com>
+Date: Tue, 14 Dec 2021 12:38:06 +0800
+Subject: [PATCH 15/27] media: aspeed: Fix no complete irq for non-64-aligned
+ width
+
+In ast2500, engine will stop occasionally for 1360x768.
+
+This is a bug which has been addressed, but the workaround is specific
+for 1680 only. Here we make it more complete.
+
+Change-Id: I25e13612b68386d82be73d08e9c97cfe03027ae9
+Signed-off-by: Jammy Huang <jammy_huang@aspeedtech.com>
+(cherry picked from commit be55251776749b2b9622d1d60f4d63fec9083bd7)
+---
+ drivers/media/platform/aspeed-video.c | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/media/platform/aspeed-video.c b/drivers/media/platform/aspeed-video.c
+index 41ccd807db5b..5ca8e3e7cdc2 100644
+--- a/drivers/media/platform/aspeed-video.c
++++ b/drivers/media/platform/aspeed-video.c
+@@ -1059,18 +1059,20 @@ static void aspeed_video_set_resolution(struct aspeed_video *video)
+ 	/* Set capture/compression frame sizes */
+ 	aspeed_video_calc_compressed_size(video, size);
+ 
+-	if (video->active_timings.width == 1680) {
++	if (!IS_ALIGNED(act->width, 64)) {
+ 		/*
+ 		 * This is a workaround to fix a silicon bug on A1 and A2
+ 		 * revisions. Since it doesn't break capturing operation of
+ 		 * other revisions, use it for all revisions without checking
+-		 * the revision ID. It picked 1728 which is a very next
+-		 * 64-pixels aligned value to 1680 to minimize memory bandwidth
++		 * the revision ID. It picked new width which is a very next
++		 * 64-pixels aligned value to minimize memory bandwidth
+ 		 * and to get better access speed from video engine.
+ 		 */
++		u32 width = ALIGN(act->width, 64);
++
+ 		aspeed_video_write(video, VE_CAP_WINDOW,
+-				   1728 << 16 | act->height);
+-		size += (1728 - 1680) * video->active_timings.height;
++				   width << 16 | act->height);
++		size = width * act->height;
+ 	} else {
+ 		aspeed_video_write(video, VE_CAP_WINDOW,
+ 				   act->width << 16 | act->height);
+-- 
+2.17.1
+

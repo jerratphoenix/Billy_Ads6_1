@@ -1,0 +1,31 @@
+From f88bd84b956a5de57dfbd58ce2ad587026496040 Mon Sep 17 00:00:00 2001
+From: Chris Yeh <chris_yeh@phoenix.com>
+Date: Fri, 19 Nov 2021 14:51:58 +0800
+Subject: [PATCH] Add-CPU-Version-And-PPIN
+
+---
+ .../xyz/openbmc_project/Inventory/Item/Cpu.interface.yaml | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/yaml/xyz/openbmc_project/Inventory/Item/Cpu.interface.yaml b/yaml/xyz/openbmc_project/Inventory/Item/Cpu.interface.yaml
+index d51407e..1c63279 100644
+--- a/yaml/xyz/openbmc_project/Inventory/Item/Cpu.interface.yaml
++++ b/yaml/xyz/openbmc_project/Inventory/Item/Cpu.interface.yaml
+@@ -15,6 +15,14 @@ properties:
+       type: string
+       description: >
+           A free form string indicates processor manufacturer.
++    - name: Version
++      type: string
++      description: >
++          A free form string indicates processor version.
++    - name: PPIN
++      type: string
++      description: >
++          A free form string indicates processor PPIN.
+     - name: Model
+       type: string
+       description: >
+-- 
+2.17.1
+

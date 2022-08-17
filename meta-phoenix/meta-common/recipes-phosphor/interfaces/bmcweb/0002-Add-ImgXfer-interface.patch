@@ -1,0 +1,397 @@
+From 24ed56ea012a24ec6a3343082e38f3b92130b3d8 Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Tue, 2 Nov 2021 05:35:50 +0000
+Subject: [PATCH] Add ImgXfer interface.
+
+---
+ meson.build                                   |   1 +
+ meson_options.txt                             |   1 +
+ redfish-core/include/redfish.hpp              |   6 +
+ .../include/registries/privilege_registry.hpp |  24 ++
+ redfish-core/lib/imgxfer.hpp                  | 264 ++++++++++++++++++
+ redfish-core/lib/service_root.hpp             |   2 +
+ 6 files changed, 298 insertions(+)
+ mode change 100644 => 100755 meson.build
+ mode change 100644 => 100755 meson_options.txt
+ mode change 100644 => 100755 redfish-core/include/redfish.hpp
+ mode change 100644 => 100755 redfish-core/include/registries/privilege_registry.hpp
+ create mode 100755 redfish-core/lib/imgxfer.hpp
+ mode change 100644 => 100755 redfish-core/lib/service_root.hpp
+
+diff --git a/meson.build b/meson.build
+old mode 100644
+new mode 100755
+index 2bbc0d9..84cebdf
+--- a/meson.build
++++ b/meson.build
+@@ -85,6 +85,7 @@ feature_map = {
+   'insecure-tftp-update'            : '-DBMCWEB_INSECURE_ENABLE_REDFISH_FW_TFTP_UPDATE',
+   #'vm-nbdproxy'                     : '-DBMCWEB_ENABLE_VM_NBDPROXY',
+   'vm-websocket'                    : '-DBMCWEB_ENABLE_VM_WEBSOCKET',
++  'imgxfer-interface'               : '-DBMCWEB_ENABLE_IMGXFER',
+ }
+ 
+ # Get the options status and build a project summary to show which flags are
+diff --git a/meson_options.txt b/meson_options.txt
+old mode 100644
+new mode 100755
+index ff5b887..e2f9a3b
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -33,6 +33,7 @@ option('redfish-allow-deprecated-hostname-patch', type : 'feature', value : 'dis
+ option('redfish-new-powersubsystem-thermalsubsystem', type : 'feature', value : 'disabled', description : 'Enable/disable the new PowerSubsystem, ThermalSubsystem, and all children schemas. This includes displaying all sensors in the SensorCollection. At a later date, this feature will be defaulted to enabled.')
+ option('redfish-allow-deprecated-power-thermal', type : 'feature', value : 'enabled', description : 'Enable/disable the old Power / Thermal. The default condition is allowing the old Power / Thermal.')
+ option ('https_port', type : 'integer', min : 1, max : 65535, value : 443, description : 'HTTPS Port number.')
++option('imgxfer-interface', type : 'feature', value : 'disabled', description : 'Enable ImgXfer interface.')
+ 
+ # Insecure options. Every option that starts with a `insecure` flag should
+ # not be enabled by default for any platform, unless the author fully comprehends
+diff --git a/redfish-core/include/redfish.hpp b/redfish-core/include/redfish.hpp
+old mode 100644
+new mode 100755
+index 0a97150..54a7609
+--- a/redfish-core/include/redfish.hpp
++++ b/redfish-core/include/redfish.hpp
+@@ -22,6 +22,7 @@
+ #include "../lib/ethernet.hpp"
+ #include "../lib/event_service.hpp"
+ #include "../lib/hypervisor_system.hpp"
++#include "../lib/imgxfer.hpp"
+ #include "../lib/log_services.hpp"
+ #include "../lib/managers.hpp"
+ #include "../lib/memory.hpp"
+@@ -200,6 +201,11 @@ class RedfishService
+         requestRoutesMetricReportDefinition(app);
+         requestRoutesMetricReportCollection(app);
+         requestRoutesMetricReport(app);
++
++// Phoenix ImgXfer related 
++        requestRoutesImgXfer(app);
++        //requestRoutesImgXferInventoryCollection(app);
++        //requestRoutesImgXferInventory(app);
+     }
+ };
+ 
+diff --git a/redfish-core/include/registries/privilege_registry.hpp b/redfish-core/include/registries/privilege_registry.hpp
+old mode 100644
+new mode 100755
+index e95a314..8e43f5c
+--- a/redfish-core/include/registries/privilege_registry.hpp
++++ b/redfish-core/include/registries/privilege_registry.hpp
+@@ -490,6 +490,30 @@ const static auto& postHostInterfaceCollection = privilegeSetConfigureManager;
+ const static auto& putHostInterfaceCollection = privilegeSetConfigureManager;
+ const static auto& deleteHostInterfaceCollection = privilegeSetConfigureManager;
+ 
++//ImgXfer
++const static auto& getImgXfer = privilegeSetLogin;
++const static auto& headImgXfer = privilegeSetLogin;
++const static auto& patchImgXfer = privilegeSetConfigureComponents;
++const static auto& putImgXfer = privilegeSetConfigureComponents;
++const static auto& deleteImgXfer = privilegeSetConfigureComponents;
++const static auto& postImgXfer = privilegeSetConfigureComponents;
++
++//ImgXferInventory
++const static auto& getImgXferInventory = privilegeSetLogin;
++const static auto& headImgXferInventory = privilegeSetLogin;
++const static auto& patchImgXferInventory = privilegeSetConfigureComponents;
++const static auto& putImgXferInventory = privilegeSetConfigureComponents;
++const static auto& deleteImgXferInventory = privilegeSetConfigureComponents;
++const static auto& postImgXferInventory = privilegeSetConfigureComponents;
++
++//ImgXferInventoryCollection
++const static auto& getImgXferInventoryCollection = privilegeSetLogin;
++const static auto& headImgXferInventoryCollection = privilegeSetLogin;
++const static auto& patchImgXferInventoryCollection = privilegeSetConfigureComponents;
++const static auto& putImgXferInventoryCollection = privilegeSetConfigureComponents;
++const static auto& deleteImgXferInventoryCollection = privilegeSetConfigureComponents;
++const static auto& postImgXferInventoryCollection = privilegeSetConfigureComponents;
++
+ // Job
+ const static auto& getJob = privilegeSetLogin;
+ const static auto& headJob = privilegeSetLogin;
+diff --git a/redfish-core/lib/imgxfer.hpp b/redfish-core/lib/imgxfer.hpp
+new file mode 100755
+index 0000000..1e11d9a
+--- /dev/null
++++ b/redfish-core/lib/imgxfer.hpp
+@@ -0,0 +1,264 @@
++/*
++// Copyright (c) 2020 Phoenix Technologies Ltd.
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//      http://www.apache.org/licenses/LICENSE-2.0
++
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++*/
++
++#pragma once
++
++#include <boost/container/flat_map.hpp>
++#include <error_messages.hpp>
++#include <registries/privilege_registry.hpp>
++#include <variant>
++
++namespace redfish
++{
++
++inline void requestRoutesImgXfer(App& app)
++{
++    BMCWEB_ROUTE(app, "/redfish/v1/ImgXfer/")
++        .privileges(redfish::privileges::getImgXfer)
++        .methods(boost::beast::http::verb::get)(
++            [](const crow::Request&/* req */, 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)-> void{
++                asyncResp->res.jsonValue = {
++                    {"@odata.id", "/redfish/v1/ImgXfer"},
++                    {"@odata.type", "#ImgXfer.v1_0_0."
++                                    "ImgXfer"},
++                    {"Id", "ImgXfer"},
++                    {"Name", "ImgXfer Service"},
++                    {"Description", "Service for Host Image Transfer"},
++                    {"ServiceEnabled", true},
++                    {"Inventory",
++                    {{"@odata.id", "/redfish/v1/ImgXfer/Inventory"}}},
++                };
++                asyncResp->res.end();
++                });
++
++    BMCWEB_ROUTE(app, "/redfish/v1/ImgXfer/Inventory")
++        .privileges(redfish::privileges::getImgXferInventoryCollection)
++        .methods(boost::beast::http::verb::get)(
++            [](const crow::Request&/* req */, 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)-> void{
++                asyncResp->res.jsonValue = {
++                    {"@odata.id", "/redfish/v1/ImgXfer/Inventory"},
++                    {"@odata.type", "#ImgXferInventoryCollection."
++                                    "ImgXferInventoryCollection"},
++                    {"Name", "Host Transfer Inventory Collection"},
++                    {"Members", nlohmann::json::array()}, //Test value
++                    {"Members@odata.count", 0}, //Test value
++                };
++
++                nlohmann::json& members = asyncResp->res.jsonValue["Members"];
++
++                members.push_back({{"@odata.id", "/redfish/v1/ImgXfer/Inventory/UEFIFW"}});
++                asyncResp->res.jsonValue["Members@odata.count"] = members.size();
++
++                members.push_back({{"@odata.id", "/redfish/v1/ImgXfer/Inventory/UEFISettings"}});
++                asyncResp->res.jsonValue["Members@odata.count"] = members.size();
++
++                asyncResp->res.end();
++                }
++        );
++
++    BMCWEB_ROUTE(app, "/redfish/v1/ImgXfer/Inventory/<str>")
++        .privileges(redfish::privileges::getImgXferInventory)
++        .methods(boost::beast::http::verb::get)(
++            [](const crow::Request&/* req */, 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp, 
++                const std::string& params)-> void{
++                if (params.size() != 1)
++                {
++                    messages::internalError(asyncResp->res);
++                    asyncResp->res.end();
++                    return;
++                }
++
++                std::string swId = params;
++
++                // If the swID ends in .bin then it is being downloaded
++                if( ("UEFIFW.bin" == swId) || ("UEFISettings.bin" == swId) )
++                {
++                    std::string swId = params;
++
++                    std::string strFilename( "/tmp/" + swId );
++
++                    BMCWEB_LOG_DEBUG << "Reading file from " << strFilename;
++
++                    if( ! std::filesystem::exists(strFilename) )
++                    {
++                        BMCWEB_LOG_ERROR << strFilename << "Not found";
++                        asyncResp->res.result(boost::beast::http::status::not_found);
++                        asyncResp->res.jsonValue["Description"] = "Resource Not Found";
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    std::ifstream hReadFile(strFilename.c_str(), std::ifstream::in | std::ifstream::binary);
++                    if( ! hReadFile )
++                    {
++                        BMCWEB_LOG_ERROR << strFilename << "Not found";
++                        asyncResp->res.result(boost::beast::http::status::not_found);
++                        asyncResp->res.jsonValue["Description"] = "Resource Not Found";
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    // Tell the client it will be receiving an attachment
++                    std::string contentDispositionParam = "attachment; filename=\"" + swId + "\"";
++                    asyncResp->res.addHeader("Content-Disposition", contentDispositionParam);
++
++                    std::string strFileData;
++
++                    hReadFile.seekg( 0, std::ios::end );
++                    strFileData.reserve( static_cast<unsigned int>(hReadFile.tellg()) );
++                    hReadFile.seekg( 0, std::ios::beg );
++
++                    strFileData.assign( (std::istreambuf_iterator<char>(hReadFile)), std::istreambuf_iterator<char>() );
++
++                    asyncResp->res.body() = std::move(strFileData);
++
++                    asyncResp->res.end();
++                }
++                else
++                {
++                    // Check if this parameter is in the allowed list
++                    if( ("UEFIFW" == swId) || ("UEFISettings" == swId) )
++                    {
++                        asyncResp->res.jsonValue = {
++                            {"@odata.id", "/redfish/v1/ImgXfer/Inventory/" + swId},
++                            {"@odata.type", "#ImgXferInventory.v1_0_0."
++                                            "ImgXferInventory"},
++                            {"Id", swId},
++                            {"Name", "ImgXfer Service"},
++                            {"Description", swId + " image"},
++                            {"Present", false},
++                        };
++
++                        std::string strFilename( "/tmp/" + swId + ".bin" );
++                        if( std::filesystem::exists(strFilename) )
++                        {
++                            std::ifstream hReadFile(strFilename.c_str(), std::ifstream::in | std::ifstream::binary);
++                            if( ! hReadFile )
++                            {
++                                BMCWEB_LOG_ERROR << strFilename << "Not found";
++                                asyncResp->res.result(boost::beast::http::status::not_found);
++                                asyncResp->res.jsonValue["Description"] = "Resource Not Found";
++                                asyncResp->res.end();
++                                return;
++                            }
++
++                            hReadFile.seekg( 0, std::ios::end );
++                            asyncResp->res.jsonValue["Size"] = static_cast<unsigned int>(hReadFile.tellg());
++                            hReadFile.seekg( 0, std::ios::beg );
++                            hReadFile.close();
++                            asyncResp->res.jsonValue["Present"] = true;
++                        }
++
++                        nlohmann::json& members = asyncResp->res.jsonValue["RelatedItem"];
++                        members.push_back( {{"@odata.id", "/redfish/v1/Systems/system/Bios"}});
++                    }
++                    else
++                    {
++                        BMCWEB_LOG_ERROR << "Input swID " + swId + " not found!";
++                        messages::resourceMissingAtURI(asyncResp->res, "/redfish/v1/ImgXfer/Inventory/" + swId);
++                    }
++
++                    asyncResp->res.end();
++                }
++
++
++            }
++        );
++
++    BMCWEB_ROUTE(app, "/redfish/v1/ImgXfer/Inventory/<str>")
++        .privileges(redfish::privileges::postImgXferInventory)
++        .methods(boost::beast::http::verb::post)( 
++            [](const crow::Request& req, 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp,
++                const std::string& params)-> void{
++                    BMCWEB_LOG_DEBUG << "doPost...";
++
++                    if (params.size() != 1)
++                    {
++                        messages::internalError(asyncResp->res);
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    std::string swId = params;
++
++                    if( ("UEFIFW" == swId) || ("UEFISettings" == swId) )
++                    {
++                        std::string strFilename( "/tmp/" + swId + ".bin" );
++                        BMCWEB_LOG_DEBUG << "Writing file to " << strFilename;
++                        std::ofstream hWrite(strFilename, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
++                        hWrite << req.body;
++
++                        // Get the file size after writing
++			            hWrite.seekp( 0, std::ios::end );
++                        asyncResp->res.jsonValue["Size"] = static_cast<unsigned int>(hWrite.tellp());
++                        hWrite.seekp( 0, std::ios::beg );
++
++                        hWrite.close();
++
++                        asyncResp->res.jsonValue["Status"] = "Complete";
++                    }
++                    else
++                    {
++                        BMCWEB_LOG_ERROR << "Input swID " + swId + " not found!";
++                        messages::resourceMissingAtURI(asyncResp->res, "/redfish/v1/ImgXfer/Inventory/" + swId);
++                    }
++
++                    asyncResp->res.end();
++                }
++        );
++    
++    BMCWEB_ROUTE(app, "/redfish/v1/ImgXfer/Inventory/<str>")
++        .privileges(redfish::privileges::deleteImgXferInventory)
++        .methods(boost::beast::http::verb::delete_)(
++            [](const crow::Request& /* req */, 
++                const std::shared_ptr<bmcweb::AsyncResp>& asyncResp, 
++                const std::string& params)-> void{
++                    BMCWEB_LOG_DEBUG << "doDelete...";
++
++                    if (params.size() != 1)
++                    {
++                        messages::internalError(asyncResp->res);
++                        asyncResp->res.end();
++                        return;
++                    }
++
++                    std::string swId = params;
++
++                    if( ("UEFIFW" == swId) || ("UEFISettings" == swId) )
++                    {
++                        std::string strFilename( "/tmp/" + swId + ".bin" );
++                        BMCWEB_LOG_DEBUG << "Deleting file " << strFilename;
++
++                        std::filesystem::remove(strFilename);
++
++                        asyncResp->res.jsonValue["Status"] = "Complete";
++                    }
++                    else
++                    {
++                        BMCWEB_LOG_ERROR << "Input swID " + swId + " not found!";
++                        messages::resourceMissingAtURI(asyncResp->res, "/redfish/v1/ImgXfer/Inventory/" + swId);
++                    }
++
++                    asyncResp->res.end();
++                }
++        );
++}
++}// namespace redfish
+\ No newline at end of file
+diff --git a/redfish-core/lib/service_root.hpp b/redfish-core/lib/service_root.hpp
+old mode 100644
+new mode 100755
+index 63cc210..762c7d9
+--- a/redfish-core/lib/service_root.hpp
++++ b/redfish-core/lib/service_root.hpp
+@@ -62,6 +62,8 @@ inline void
+         {"@odata.id", "/redfish/v1/EventService"}};
+     asyncResp->res.jsonValue["TelemetryService"] = {
+         {"@odata.id", "/redfish/v1/TelemetryService"}};
++    asyncResp->res.jsonValue["ImgXfer"] = {
++        {"@odata.id", "/redfish/v1/ImgXfer"}};
+ }
+ 
+ inline void requestRoutesServiceRoot(App& app)

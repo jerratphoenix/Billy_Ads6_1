@@ -1,0 +1,59 @@
+diff --git a/common/image-fit.c b/common/image-fit.c
+old mode 100644
+new mode 100755
+index 3c8667f93d..c78ca4bbc9
+--- a/common/image-fit.c
++++ b/common/image-fit.c
+@@ -537,7 +537,7 @@ void fit_image_print(const void *fit, int image_noffset, const char *p)
+ 		else
+ 			printf("0x%08lx\n", entry);
+ 	}
+-
++	#if 0
+ 	/* Process all hash subnodes of the component image node */
+ 	for (ndepth = 0, noffset = fdt_next_node(fit, image_noffset, &ndepth);
+ 	     (noffset >= 0) && (ndepth > 0);
+@@ -547,6 +547,7 @@ void fit_image_print(const void *fit, int image_noffset, const char *p)
+ 			fit_image_print_verification_data(fit, noffset, p);
+ 		}
+ 	}
++	#endif
+ }
+ #else
+ void fit_print_contents(const void *fit) { }
+@@ -1711,7 +1712,7 @@ int fit_conf_get_prop_node(const void *fit, int noffset,
+ static int fit_image_select(const void *fit, int rd_noffset, int verify)
+ {
+ 	fit_image_print(fit, rd_noffset, "   ");
+-
++	#if 0
+ 	if (verify) {
+ 		puts("   Verifying Hash Integrity ... ");
+ 		if (!fit_image_verify(fit, rd_noffset)) {
+@@ -1720,7 +1721,7 @@ static int fit_image_select(const void *fit, int rd_noffset, int verify)
+ 		}
+ 		puts("OK\n");
+ 	}
+-
++	#endif
+ 	return 0;
+ }
+ 
+@@ -1848,7 +1849,7 @@ int fit_image_load(bootm_headers_t *images, ulong addr,
+ 		/* Remember this config */
+ 		if (image_type == IH_TYPE_KERNEL)
+ 			images->fit_uname_cfg = fit_base_uname_config;
+-
++		#if 0
+ 		if (IMAGE_ENABLE_VERIFY && images->verify) {
+ 			puts("   Verifying Hash Integrity ... ");
+ 			if (fit_config_verify(fit, cfg_noffset)) {
+@@ -1859,7 +1860,7 @@ int fit_image_load(bootm_headers_t *images, ulong addr,
+ 			}
+ 			puts("OK\n");
+ 		}
+-
++		#endif
+ 		bootstage_mark(BOOTSTAGE_ID_FIT_CONFIG);
+ 
+ 		noffset = fit_conf_get_prop_node(fit, cfg_noffset,

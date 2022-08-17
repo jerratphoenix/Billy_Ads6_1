@@ -1,0 +1,12 @@
+[Unit]
+Description=Delete all pending images in /tmp/images
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/usr/bin/fw_prepare.sh
+SyslogIdentifier=fw_prepare
+
+[Install]
+WantedBy=phosphor-ipmi-flash-bmc-prepare.target
+

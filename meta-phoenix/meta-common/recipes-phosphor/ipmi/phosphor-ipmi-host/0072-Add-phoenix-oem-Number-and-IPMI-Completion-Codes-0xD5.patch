@@ -1,0 +1,35 @@
+From c6b4cb1ecf66687857636413dcff94d5f68cbf40 Mon Sep 17 00:00:00 2001
+From: Kian_Lee <Kian_Lee@phoenix.com>
+Date: Thu, 9 Dec 2021 21:53:11 -0500
+Subject: [PATCH] Add phoenix oem Number and IPMI Completion Codes 0xD5
+
+---
+ include/ipmid/api.h    | 1 +
+ include/ipmid/iana.hpp | 4 ++++
+ 2 files changed, 5 insertions(+)
+
+diff --git a/include/ipmid/api.h b/include/ipmid/api.h
+index 188db4a..4df4c38 100644
+--- a/include/ipmid/api.h
++++ b/include/ipmid/api.h
+@@ -130,6 +130,7 @@ enum ipmi_return_codes
+     IPMI_CC_ILLEGAL_COMMAND = 0xCD,
+     IPMI_CC_RESPONSE_ERROR = 0xCE,
+     IPMI_CC_INSUFFICIENT_PRIVILEGE = 0xD4,
++    IPMI_CC_CMD_NOT_SUPPORTED_IN_PRESENT_STATE = 0xD5,
+     IPMI_CC_UNSPECIFIED_ERROR = 0xFF,
+ };
+ 
+diff --git a/include/ipmid/iana.hpp b/include/ipmid/iana.hpp
+index aa9e173..7a1bce8 100644
+--- a/include/ipmid/iana.hpp
++++ b/include/ipmid/iana.hpp
+@@ -16,4 +16,8 @@ constexpr Number obmcOemNumber = 49871;
+  */
+ constexpr Number googOemNumber = 11129;
+ 
++/*
++ * This is the Phoenix IANA OEM Number
++ */
++constexpr Number phoenixoemNumber = 2487;
+ } // namespace oem

@@ -1,0 +1,22 @@
+From 04ce63ac70eb3425726981bed205e9de84ed37c8 Mon Sep 17 00:00:00 2001
+From: Aaron Chen <Aaron_Chen@phoenix.com>
+Date: Wed, 13 Apr 2022 17:27:24 +0800
+Subject: [PATCH] [Common][bmcweb] Fix some typo on Redfish PHY
+
+---
+ redfish-core/lib/oem_phy_module.hpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/redfish-core/lib/oem_phy_module.hpp b/redfish-core/lib/oem_phy_module.hpp
+index c93fdb7..ddd59af 100755
+--- a/redfish-core/lib/oem_phy_module.hpp
++++ b/redfish-core/lib/oem_phy_module.hpp
+@@ -111,7 +111,7 @@ inline void requestRoutesOEMPHYGet(App& app)
+                         {"@odata.id", "/redfish/v1/Managers/bmc/Oem/PHYGet"},
+                         {"@odata.type", "#OEMPHYModule.OEMPHYModule"},
+                         {"Name", "PHY Get"},
+-                        {"Describe", "Use PATCH { OFFSET: \"addr\" } to get register, Reference ASPEED SPEC PHY Controller,Example: Get PMI004, The Offset should be 004 ,Read Data Register[MDC/MDIO 0 : 004, MDC/MDIO 1 : 00C, MDC/MDIO 2 : 014, MDC/MDIO 3 : 01C]"},
++                        {"Describe", "Use PATCH { OFFSET: \"addr\" } to get register, Reference ASPEED SPEC PHY Controller,It should be 2 digits offset, Read Data Register [MDC/MDIO 0 : 04, MDC/MDIO 1 : 0C, MDC/MDIO 2 : 14, MDC/MDIO 3 : 1C]"},
+                     };
+                     asyncResp->res.end();
+                     return;

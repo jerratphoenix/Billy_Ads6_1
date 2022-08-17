@@ -1,0 +1,91 @@
+From 8ed30050692cec0c65b18853985396d194e0fa3e Mon Sep 17 00:00:00 2001
+From: Jammy Huang <jammy_huang@aspeedtech.com>
+Date: Tue, 2 Nov 2021 09:00:53 +0800
+Subject: [PATCH 11/27] media: aspeed: Fix ast2500 dram hang at res-change
+
+Following things could happen at res-change:
+1. start capture/compression
+2. out-of-lock watchdog raise irq
+3. aspeed_video_irq_res_change do clk-off
+At step3, capture/compression could be not accomplished yet. If clk-off
+in the middle of video operation, dram controller could hang at ast2500.
+
+Use reset to do reset can avoid this problem.
+
+Change-Id: Ibe11cb8d38f27f53460c2624b3f36f5a4b2bb37a
+Signed-off-by: Jammy Huang <jammy_huang@aspeedtech.com>
+---
+ drivers/media/platform/aspeed-video.c | 22 +++++++++++++++++++---
+ 1 file changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/media/platform/aspeed-video.c b/drivers/media/platform/aspeed-video.c
+index 6a96e419da9d..aba19ed4e116 100644
+--- a/drivers/media/platform/aspeed-video.c
++++ b/drivers/media/platform/aspeed-video.c
+@@ -25,6 +25,7 @@
+ #include <linux/workqueue.h>
+ #include <linux/debugfs.h>
+ #include <linux/ktime.h>
++#include <linux/reset.h>
+ #include <media/v4l2-ctrls.h>
+ #include <media/v4l2-dev.h>
+ #include <media/v4l2-device.h>
+@@ -255,6 +256,7 @@ struct aspeed_video {
+ 	void __iomem *base;
+ 	struct clk *eclk;
+ 	struct clk *vclk;
++	struct reset_control *reset;
+ 
+ 	struct device *dev;
+ 	struct v4l2_ctrl_handler ctrl_handler;
+@@ -624,6 +626,13 @@ static void aspeed_video_on(struct aspeed_video *video)
+ 	set_bit(VIDEO_CLOCKS_ON, &video->flags);
+ }
+ 
++static void aspeed_video_reset(struct aspeed_video *v)
++{
++	reset_control_assert(v->reset);
++	udelay(100);
++	reset_control_deassert(v->reset);
++}
++
+ static void aspeed_video_bufs_done(struct aspeed_video *video,
+ 				   enum vb2_buffer_state state)
+ {
+@@ -646,7 +655,9 @@ static void aspeed_video_irq_res_change(struct aspeed_video *video, ulong delay)
+ 
+ 	video->v4l2_input_status = V4L2_IN_ST_NO_SIGNAL;
+ 
+-	aspeed_video_off(video);
++	aspeed_video_write(video, VE_INTERRUPT_CTRL, 0);
++	aspeed_video_write(video, VE_INTERRUPT_STATUS, 0xffffffff);
++	aspeed_video_reset(video);
+ 	aspeed_video_bufs_done(video, VB2_BUF_STATE_ERROR);
+ 
+ 	schedule_delayed_work(&video->res_work, delay);
+@@ -1596,8 +1607,7 @@ static void aspeed_video_stop_streaming(struct vb2_queue *q)
+ 		 * Need to force stop any DMA and try and get HW into a good
+ 		 * state for future calls to start streaming again.
+ 		 */
+-		aspeed_video_off(video);
+-		aspeed_video_on(video);
++		aspeed_video_reset(video);
+ 
+ 		aspeed_video_init_regs(video);
+ 
+@@ -1802,6 +1812,12 @@ static int aspeed_video_init(struct aspeed_video *video)
+ 	}
+ 	dev_info(video->dev, "irq %d\n", irq);
+ 
++	video->reset = devm_reset_control_get(dev, NULL);
++	if (IS_ERR(video->reset)) {
++		dev_err(dev, "Unable to get reset\n");
++		return PTR_ERR(video->reset);
++	}
++
+ 	video->eclk = devm_clk_get(dev, "eclk");
+ 	if (IS_ERR(video->eclk)) {
+ 		dev_err(dev, "Unable to get ECLK\n");
+-- 
+2.17.1
+

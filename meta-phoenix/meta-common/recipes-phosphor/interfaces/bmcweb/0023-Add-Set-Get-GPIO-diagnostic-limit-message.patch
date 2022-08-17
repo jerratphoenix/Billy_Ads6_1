@@ -1,0 +1,86 @@
+From 560f8202b932bc59df204bfdc14e3b60ca1197cd Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Fri, 25 Feb 2022 07:48:03 +0000
+Subject: [PATCH] Add Set/Get GPIO diagnostic limit message
+
+---
+ redfish-core/lib/oem_gpio_module.hpp | 45 ++++++++++++++++++++++++----
+ 1 file changed, 40 insertions(+), 5 deletions(-)
+
+diff --git a/redfish-core/lib/oem_gpio_module.hpp b/redfish-core/lib/oem_gpio_module.hpp
+index 36aad55..bac731f 100755
+--- a/redfish-core/lib/oem_gpio_module.hpp
++++ b/redfish-core/lib/oem_gpio_module.hpp
+@@ -73,8 +73,8 @@ inline void requestRoutesOEMGPIOSet(App& app)
+                     }
+                     number_set = std::to_string(*number);
+                     data_set = std::to_string(*data);
+-                    std::string cmd("gpioset " + chip_set + " " + number_set + "=" + data_set);
+-                    int ret = system(cmd.c_str());
++                    std::string setcmd("gpioset " + chip_set + " " + number_set + "=" + data_set);
++                    int ret = system(setcmd.c_str());
+                     if (ret < 0)
+                     {
+                         std::cout << "failed to write ,error = " << strerror(-ret) << std::endl;
+@@ -83,6 +83,36 @@ inline void requestRoutesOEMGPIOSet(App& app)
+                         return;
+                     }
+ 
++                    //Check set data
++                    std::string getcmd("gpioget " + chip_set + " " + number_set + " > /mnt/GPIOGET");
++                    ret = system(getcmd.c_str());
++                    if (ret < 0)
++                    {
++                        std::cout << "failed to write ,error = " << strerror(-ret) << std::endl;
++                        messages::internalError(asyncResp->res);
++                        asyncResp->res.end();
++                        return;
++                    }
++                    std::ifstream fin ("/mnt/GPIOGET");
++                    std::string buffer;
++                    std::string byte;
++                    std::string GPIO_GET;
++                    int i = 0 ;
++                    while(getline(fin,buffer))
++                    {
++                        GPIO_GET=buffer;
++                        i++;
++                    }
++                    if (GPIO_GET != data_set)
++                    {
++                        asyncResp->res.jsonValue["DATA"] = "error setting the GPIO line values: Device or resource busy";
++                    }
++                    fin.close();
++                    if (system("rm -rf /mnt/GPIOGET") < 0){
++                        return;
++                    }
++                    //Check set data end
++
+                     asyncResp->res.end();
+                     return ;
+                 }
+@@ -147,8 +177,6 @@ inline void requestRoutesOEMGPIOGet(App& app)
+                         asyncResp->res.end();
+                         return;
+                     }
+-                    std::fprintf(stderr, "[ERROR AARON] \n");
+-                    std::cout << "ERROR AARON cout " <<std::endl;
+                     std::ifstream fin ("/mnt/GPIOGET");
+                     std::string buffer;
+                     std::string byte;
+@@ -159,7 +187,14 @@ inline void requestRoutesOEMGPIOGet(App& app)
+                         GPIO_GET=buffer;
+                         i++;
+                     }
+-                    asyncResp->res.jsonValue["DATA"] = GPIO_GET;
++                    if ((GPIO_GET != "0") && (GPIO_GET != "1"))
++                    {
++                        asyncResp->res.jsonValue["DATA"] = "error reading GPIO values: Device or resource busy";
++                    }
++                    else
++                    {
++                        asyncResp->res.jsonValue["DATA"] = GPIO_GET;
++                    }
+                     fin.close();
+                     if (system("rm -rf /mnt/GPIOGET") < 0){
+                         return;

@@ -1,0 +1,23 @@
+From de6c8ed7564f00720cb00d543549f301dc238b71 Mon Sep 17 00:00:00 2001
+From: Adeli Yeh <Adeli_Yeh@phoenix.com>
+Date: Wed, 29 Sep 2021 12:35:51 +0800
+Subject: [PATCH] Add Phoenix Archer City device tree to Makefile
+
+---
+ arch/arm/dts/Makefile | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index df844065cd..e7d020aa2a 100755
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -685,7 +685,8 @@ dtb-$(CONFIG_ARCH_ASPEED) += \
+ 	ast2600-rainier.dtb \
+ 	ast2600-slt.dtb \
+ 	ast2600-tacoma.dtb \
+-	ast2600-intel.dtb
++	ast2600-intel.dtb \
++	phoenix-billy.dtb
+ 
+ dtb-$(CONFIG_ARCH_STI) += stih410-b2260.dtb
+ 

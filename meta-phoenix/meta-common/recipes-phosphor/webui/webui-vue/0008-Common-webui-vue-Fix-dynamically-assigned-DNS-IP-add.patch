@@ -1,0 +1,33 @@
+From d2e6a53b38c05fbad9271bd646d5a2725bee0123 Mon Sep 17 00:00:00 2001
+From: Aaron Chen <Aaron_Chen@phoenix.com>
+Date: Tue, 29 Mar 2022 14:34:43 +0800
+Subject: [PATCH] [Common][webui-vue] Fix dynamically assigned DNS IP addresses
+ not getting displayed in Network settings page
+
+---
+ src/store/modules/Settings/NetworkStore.js | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/src/store/modules/Settings/NetworkStore.js b/src/store/modules/Settings/NetworkStore.js
+index 4040658..3b768ae 100644
+--- a/src/store/modules/Settings/NetworkStore.js
++++ b/src/store/modules/Settings/NetworkStore.js
+@@ -47,10 +47,17 @@ const NetworkStore = {
+           );
+           const addresses = ethernetData[0].IPv4StaticAddresses;
+ 
++          const dhcpEnableCheck =
++            ethernetData[0].IPv4Addresses[0].AddressOrigin;
++          const dhcpGateway = ethernetData[0].IPv4Addresses[0].Gateway;
+           // Default gateway manually set to first gateway saved on the first interface. Default gateway property is WIP on backend
+-          const defaultGateway = addresses.map((ipv4) => {
++          let defaultGateway = addresses.map((ipv4) => {
+             return ipv4.Gateway;
+           });
++          // Check DHCP Default gateway
++          if (dhcpEnableCheck === 'DHCP') {
++            defaultGateway[0] = dhcpGateway;
++          }
+ 
+           commit('setDefaultGateway', defaultGateway[0]);
+           commit('setEthernetData', ethernetData);

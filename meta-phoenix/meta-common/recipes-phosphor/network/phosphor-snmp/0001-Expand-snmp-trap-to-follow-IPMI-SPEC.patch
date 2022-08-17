@@ -1,0 +1,496 @@
+From 27e9228ba14020f0d9e805575cddb5073696bf2f Mon Sep 17 00:00:00 2001
+From: Brad Ho <Brad_Ho@phoenix.com>
+Date: Tue, 26 Oct 2021 01:46:31 -0700
+Subject: [PATCH 1/2] Expand snmp trap to follow IPMI SPEC.
+
+---
+ snmp.hpp              |  11 ++
+ snmp_notification.cpp | 151 ++++++++++++++++++++++++++
+ snmp_notification.hpp | 242 ++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 404 insertions(+)
+
+diff --git a/snmp.hpp b/snmp.hpp
+index 2479c24..e839d0c 100644
+--- a/snmp.hpp
++++ b/snmp.hpp
+@@ -21,6 +21,17 @@ void sendTrap(ArgTypes&&... tArgs)
+     obj.sendTrap();
+ }
+ 
++/* @brief sends the trap to the snmp manager
++ * T - Notification type
++ * @param[in] tArgs - arguments for the trap.
++ */
++
++template <typename T, typename... ArgTypes> void phoenixSendTrap(ArgTypes&&... tArgs)
++{
++    T obj(std::forward<ArgTypes>(tArgs)...);
++    obj.phoenixSendTrap();
++}
++
+ } // namespace snmp
+ } // namespace network
+ } // namespace phosphor
+diff --git a/snmp_notification.cpp b/snmp_notification.cpp
+index db19ecc..a578557 100644
+--- a/snmp_notification.cpp
++++ b/snmp_notification.cpp
+@@ -5,6 +5,8 @@
+ 
+ #include <phosphor-logging/elog-errors.hpp>
+ #include <phosphor-logging/log.hpp>
++#include <nlohmann/json.hpp>
++#include <fstream>
+ 
+ namespace phosphor
+ {
+@@ -19,6 +21,69 @@ using namespace sdbusplus::xyz::openbmc_project::Common::Error;
+ using snmpSessionPtr =
+     std::unique_ptr<netsnmp_session, decltype(&::snmp_close)>;
+ 
++namespace phoenix
++{
++constexpr auto LAN_CONFIG_FILE = "/usr/share/phosphor-ipmi-host/PtecLanConfig.json";
++static constexpr const char* communityStr = "Community_String";
++static constexpr const char* addressStr = "Destination_Addresses";
++static constexpr const char* ipaddrtStr = "Alerting_IP_Address";
++
++std::string getCommunityString()
++{
++    std::string communityString = "public";
++    std::ifstream jsonFile(LAN_CONFIG_FILE);
++    nlohmann::json data = nlohmann::json::parse(jsonFile, nullptr, false);
++    if (!data.is_discarded())
++    {
++        communityString = data[communityStr];
++        log<level::INFO>("Use community string from config.",
++            entry("COMMUNITY_STR=%s", communityString.c_str()));
++    }
++
++    return communityString;
++}
++
++uint8_t getNumberOfDestinationsSize()
++{
++    uint8_t size = 0;
++    std::ifstream jsonFile(LAN_CONFIG_FILE);
++    nlohmann::json data = nlohmann::json::parse(jsonFile, nullptr, false);
++    if (!data.is_discarded())
++    {
++        size = data[addressStr].size();
++    }
++
++    return size;
++}
++
++std::string getDestinationAddresses(uint8_t set)
++{
++    std::ifstream jsonFile(LAN_CONFIG_FILE);
++    nlohmann::json data = nlohmann::json::parse(jsonFile, nullptr, false);
++    nlohmann::json dests = data[addressStr].get<nlohmann::json>();
++    std::vector<nlohmann::json> addressList;
++    std::string ipaddr;
++
++    for (const auto& it : dests.items())
++    {
++        nlohmann::json dest = it.value();
++        if (dest.is_null())
++        {
++            log<level::ERR>("Assign json data fail.");
++        }
++        addressList.push_back(dest);
++    }
++
++    if( set > 0 )
++    {
++        ipaddr = addressList[set][ipaddrtStr];
++        log<level::INFO>("Use destination address from config.",
++            entry("DEST_ADDR=%s", ipaddr.c_str()));
++    }
++    return ipaddr;
++}
++} // namespace phoenix
++
+ bool Notification::addPDUVar(netsnmp_pdu& pdu, const OID& objID,
+                              size_t objIDLen, u_char type, Value val)
+ {
+@@ -41,6 +106,7 @@ bool Notification::addPDUVar(netsnmp_pdu& pdu, const OID& objID,
+         break;
+         case ASN_OPAQUE_U64:
+         {
++
+             auto ltmp = std::get<uint64_t>(val);
+             varList = snmp_pdu_add_variable(&pdu, objID.data(), objIDLen, type,
+                                             &ltmp, sizeof(ltmp));
+@@ -154,6 +220,91 @@ void Notification::sendTrap()
+     }
+ }
+ 
++void Notification::phoenixSendTrap()
++{
++    std::string comm = phoenix::getCommunityString();
++    std::string ip;
++    netsnmp_session session{0};
++
++    snmp_sess_init(&session);
++
++    init_snmp("snmpapp");
++
++    // TODO: https://github.com/openbmc/openbmc/issues/3145
++    session.version = SNMP_VERSION_2c;
++    session.community = (u_char*)comm.c_str();
++    session.community_len = strlen(comm.c_str());
++    session.callback = nullptr;
++    session.callback_magic = nullptr;
++
++    if( getDest() > (phoenix::getNumberOfDestinationsSize() - 1) )
++    {
++        log<level::ERR>("SNMP unable to use destination",
++                            entry("DESTINATION=%d", getDest()));
++        elog<InternalFailure>();
++    }
++
++    ip = phoenix::getDestinationAddresses(getDest()) + ":162";
++    session.peername = strdup(ip.c_str());
++    // create the session
++    auto ss = snmp_add(
++        &session,
++        netsnmp_transport_open_client("snmptrap", session.peername),
++        nullptr, nullptr);
++    if (!ss)
++    {
++        log<level::ERR>("Unable to get the snmp session.");
++        elog<InternalFailure>();
++    }
++
++    // Wrap the raw pointer in RAII
++    snmpSessionPtr sessionPtr(ss, &::snmp_close);
++
++    ss = nullptr;
++
++    auto pdu = snmp_pdu_create(SNMP_MSG_TRAP2);
++    if (!pdu)
++    {
++        log<level::ERR>("Failed to create notification PDU");
++        elog<InternalFailure>();
++    }
++
++    pdu->trap_type = SNMP_TRAP_ENTERPRISESPECIFIC;
++
++    auto trapInfo = getTrapOID();
++
++    if (!snmp_pdu_add_variable(pdu, SNMPTrapOID,
++                               sizeof(SNMPTrapOID) / sizeof(oid),
++                               ASN_OBJECT_ID, trapInfo.first.data(),
++                               trapInfo.second * sizeof(oid)))
++    {
++        log<level::ERR>("Failed to add the SNMP var(trapID)");
++        snmp_free_pdu(pdu);
++        elog<InternalFailure>();
++    }
++
++    auto objectList = getFieldOIDList();
++
++    for (const auto& object : objectList)
++    {
++        if (!addPDUVar(*pdu, std::get<0>(object), std::get<1>(object),
++                       std::get<2>(object), std::get<3>(object)))
++        {
++            log<level::ERR>("Failed to add the SNMP var");
++            snmp_free_pdu(pdu);
++            elog<InternalFailure>();
++        }
++    }
++    // pdu is freed by snmp_send
++    if (!snmp_send(sessionPtr.get(), pdu))
++    {
++        log<level::ERR>("Failed to send the snmp trap.");
++        elog<InternalFailure>();
++    }
++    log<level::DEBUG>("Sent SNMP Trap");
++    log<level::INFO>("Send to specified SMTP address to selected destination",
++                        entry("ADDR=%s", ip.c_str()));
++}
+ } // namespace snmp
+ } // namespace network
+ } // namespace phosphor
+diff --git a/snmp_notification.hpp b/snmp_notification.hpp
+index 5f2bf69..36e0270 100644
+--- a/snmp_notification.hpp
++++ b/snmp_notification.hpp
+@@ -114,6 +114,7 @@ class Notification
+      *          manager.
+      */
+     void sendTrap();
++    void phoenixSendTrap();
+ 
+   protected:
+     /** @brief Add the variable in the snmp pdu object.
+@@ -139,6 +140,8 @@ class Notification
+      *         this notification.
+      */
+     virtual std::vector<Object> getFieldOIDList() = 0;
++
++    virtual int getDest() = 0;
+ };
+ 
+ class TestErrorNotification;
+@@ -157,6 +160,7 @@ class OBMCErrorNotification : public Notification
+     uint64_t OBMCErrorTimestamp;
+     int32_t OBMCErrorSeverity;
+     std::string OBMCErrorMessage;
++    int destTest = 0;
+ 
+   public:
+     OBMCErrorNotification() = default;
+@@ -225,9 +229,247 @@ class OBMCErrorNotification : public Notification
+         return objectList;
+     }
+ 
++    int getDest() override
++    {
++        return destTest;
++    }
+     friend class TestErrorNotification;
+ };
+ 
++/** @class ErrorNotification
++ *  @brief subclass of Notification
++ *
++ *  A Error Notification represents the objects needed by the
++ *  Error Object.
++ */
++class PhoenixErrorNotification : public Notification
++{
++
++  private:
++    uint32_t seqNum;
++    uint32_t sensorType;
++    uint32_t eventType;
++    uint32_t eventOffset;
++    uint32_t guid;
++    uint32_t timeStamp;
++    uint32_t utc;
++    uint32_t trapSourceType;
++    uint32_t eventSourceType;
++    uint32_t eventSeverity;
++    uint32_t sensorDevice;
++    uint32_t sensorNumber;
++    uint32_t entity;
++    uint32_t entityInstance;
++    uint32_t eventData1;
++    uint32_t eventData2;
++    uint32_t eventData3;
++    uint32_t languageCode;
++    uint64_t mftID;
++    uint32_t systemID;
++    std::string msg;
++    int destTest;
++
++  public:
++    PhoenixErrorNotification() = default;
++    PhoenixErrorNotification(const PhoenixErrorNotification &) = delete;
++    PhoenixErrorNotification(PhoenixErrorNotification &&) = default;
++    PhoenixErrorNotification &operator=(const PhoenixErrorNotification &) = delete;
++    PhoenixErrorNotification &operator=(PhoenixErrorNotification &&) = default;
++    ~PhoenixErrorNotification() = default;
++
++    /** @brief Constructor
++     *  @param[in] id - The error entry id.
++     *  @param[in] ts - The commit timestamp.
++     *  @param[in] sev - The severity of the error.
++     *  @param[in] msg - The message of the error.
++     */
++    PhoenixErrorNotification(uint32_t seqN, uint32_t type,
++                          uint32_t eventType, uint32_t eventOffset,
++                          //uint32_t guid, uint64_t timeStamp,
++                          uint32_t guid, uint32_t timeStamp,
++                          uint32_t utc, uint32_t trapSourceType, uint32_t eventSourceType,
++                          uint32_t eventSeverity, uint32_t sensorDevice, uint32_t sensorNumber,
++                          uint32_t entity, uint32_t entityInstance, uint32_t eventData1,
++                          uint32_t eventData2, uint32_t eventData3, uint32_t languageCode,
++                          uint64_t mftID, uint32_t systemID, std::string msg, int dest) :
++        seqNum(seqN), sensorType(type),
++        eventType(eventType), eventOffset(eventOffset), guid(guid),
++        timeStamp(timeStamp), utc(utc), trapSourceType(trapSourceType),
++        eventSourceType(eventSourceType), eventSeverity(eventSeverity),
++        sensorDevice(sensorDevice), sensorNumber(sensorNumber), entity(entity),
++        entityInstance(entityInstance), eventData1(eventData1), eventData2(eventData2),
++        eventData3(eventData3), languageCode(languageCode), mftID(mftID), systemID(systemID),
++        msg(msg), destTest(dest)
++    {
++    }
++  protected:
++    std::pair<OID, OID_LEN> getTrapOID() override
++    {
++        // notification sub types
++        OID id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 0, 1};
++        OID_LEN idLen = 11;
++        return std::make_pair<OID, OID_LEN>(std::move(id), std::move(idLen));
++    }
++
++    std::vector<Object> getFieldOIDList() override
++    {
++        std::vector<Object> objectList;
++        OID_LEN idLen = 11;
++        OID id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 1};
++        auto type = getASNType<decltype(seqNum)>();
++        auto tuple =
++             std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type, seqNum);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 2};
++        type = getASNType<decltype(sensorType)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      sensorType);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 3};
++        type = getASNType<decltype(eventType)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      eventType);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 4};
++        type = getASNType<decltype(eventOffset)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      eventOffset);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 5};
++        type = getASNType<decltype(guid)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      guid);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 6};
++        type = getASNType<decltype(timeStamp)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      timeStamp);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 7};
++        type = getASNType<decltype(utc)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      utc);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 8};
++        type = getASNType<decltype(trapSourceType)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      trapSourceType);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 9};
++        type = getASNType<decltype(eventSourceType)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type, 
++                                                      eventSourceType);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 10};
++        type = getASNType<decltype(eventSeverity)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      eventSeverity);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 11};
++        type = getASNType<decltype(sensorDevice)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      sensorDevice);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 12};
++        type = getASNType<decltype(sensorNumber)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      sensorNumber);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 13};
++        type = getASNType<decltype(entity)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      entity);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 14};
++        type = getASNType<decltype(entityInstance)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      entityInstance);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 15};
++        type = getASNType<decltype(eventData1)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      eventData1);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 16};
++        type = getASNType<decltype(eventData2)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      eventData2);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 17};
++        type = getASNType<decltype(eventData3)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      eventData3);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 18};
++        type = getASNType<decltype(languageCode)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      languageCode);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 19};
++        type = getASNType<decltype(mftID)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      mftID);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 20};
++        type = getASNType<decltype(systemID)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      systemID);
++
++        objectList.emplace_back(std::move(tuple));
++
++        id = {1, 3, 6, 1, 4, 1, 49871, 1, 0, 1, 21};
++        type = getASNType<decltype(msg)>();
++        tuple = std::tuple<OID, OID_LEN, Type, Value>(id, idLen, type,
++                                                      msg);
++
++        objectList.emplace_back(std::move(tuple));
++        return objectList;
++    }
++
++    int getDest() override
++    {
++        return destTest;
++    }
++    friend class TestErrorNotification;
++};
+ } // namespace snmp
+ } // namespace network
+ } // namespace phosphor
+-- 
+2.17.1
+

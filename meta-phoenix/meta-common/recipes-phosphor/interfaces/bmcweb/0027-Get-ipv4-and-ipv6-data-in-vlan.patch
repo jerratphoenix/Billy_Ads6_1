@@ -1,0 +1,67 @@
+From 7a76413ed0e927d54d046aa8849e9076738f037a Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Thu, 5 May 2022 02:59:36 +0000
+Subject: [PATCH] Get ipv4 and ipv6 data in vlan.
+
+---
+ redfish-core/lib/ethernet.hpp | 35 ++++++++++++++---------------------
+ 1 file changed, 14 insertions(+), 21 deletions(-)
+ mode change 100644 => 100755 redfish-core/lib/ethernet.hpp
+
+diff --git a/redfish-core/lib/ethernet.hpp b/redfish-core/lib/ethernet.hpp
+old mode 100644
+new mode 100755
+index 82d44ae..8357aaa
+--- a/redfish-core/lib/ethernet.hpp
++++ b/redfish-core/lib/ethernet.hpp
+@@ -1805,23 +1805,6 @@ inline void parseInterfaceData(
+     }
+ }
+ 
+-inline void parseInterfaceData(nlohmann::json& jsonResponse,
+-                               const std::string& parentIfaceId,
+-                               const std::string& ifaceId,
+-                               const EthernetInterfaceData& ethData)
+-{
+-    // Fill out obvious data...
+-    jsonResponse["Id"] = ifaceId;
+-    jsonResponse["@odata.id"] = "/redfish/v1/Managers/bmc/EthernetInterfaces/" +
+-                                parentIfaceId + "/VLANs/" + ifaceId;
+-
+-    jsonResponse["VLANEnable"] = true;
+-    if (!ethData.vlan_id.empty())
+-    {
+-        jsonResponse["VLANId"] = ethData.vlan_id.back();
+-    }
+-}
+-
+ inline bool verifyNames(const std::string& parent, const std::string& iface)
+ {
+     if (!boost::starts_with(iface, parent + "_"))
+@@ -2092,12 +2075,22 @@ inline void requestEthernetInterfacesRoutes(App& app)
+                     [asyncResp, parentIfaceId, ifaceId](
+                         const bool& success,
+                         const EthernetInterfaceData& ethData,
+-                        const boost::container::flat_set<IPv4AddressData>&,
+-                        const boost::container::flat_set<IPv6AddressData>&) {
++                        const boost::container::flat_set<IPv4AddressData>& ipv4Data,
++                        const boost::container::flat_set<IPv6AddressData>& ipv6Data) {
+                         if (success && ethData.vlan_id.size() != 0)
+                         {
+-                            parseInterfaceData(asyncResp->res.jsonValue,
+-                                               parentIfaceId, ifaceId, ethData);
++                            // Fill out obvious data...
++                            asyncResp->res.jsonValue["Id"] = ifaceId;
++                            asyncResp->res.jsonValue["@odata.id"] = "/redfish/v1/Managers/bmc/EthernetInterfaces/" +
++                                                        parentIfaceId + "/VLANs/" + ifaceId;
++
++                            asyncResp->res.jsonValue["VLANEnable"] = true;
++                            if (!ethData.vlan_id.empty())
++                            {
++                                asyncResp->res.jsonValue["VLANId"] = ethData.vlan_id.back();
++                            }
++                            parseInterfaceData(asyncResp, ifaceId, ethData,
++                                           ipv4Data, ipv6Data);
+                         }
+                         else
+                         {

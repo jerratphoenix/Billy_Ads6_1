@@ -1,0 +1,170 @@
+From 12896820d24f6c8ef6a38bf5499828f667bcb5e4 Mon Sep 17 00:00:00 2001
+From: Aaron Chen <Aaron_Chen@phoenix.com>
+Date: Tue, 12 Apr 2022 13:54:06 +0800
+Subject: [PATCH] [Common][webui-vue] Add DNS information in Network page
+
+---
+ src/locales/en-US.json                 |  5 +-
+ src/views/Settings/Network/Network.vue | 78 ++++++++++++++++++++++++++
+ 2 files changed, 82 insertions(+), 1 deletion(-)
+
+diff --git a/src/locales/en-US.json b/src/locales/en-US.json
+index 45f892f..16762d4 100644
+--- a/src/locales/en-US.json
++++ b/src/locales/en-US.json
+@@ -637,13 +637,15 @@
+     "interface": "Interface",
+     "pageDescription": "Configure network settings for the BMC",
+     "static": "Static",
++    "staticDnsHelper": "Only can configuration on Static mode",
+     "staticDns": "Static DNS",
+     "system": "System",
+     "form": {
+       "defaultGateway": "Default gateway",
+       "hostname": "Hostname",
+       "macAddress": "MAC address",
+-      "networkInterface": "Network interface"
++      "networkInterface": "Network interface",
++      "dnsTableItems": "DNS"
+     },
+     "table": {
+       "addDns": "Add DNS server",
+@@ -656,6 +658,7 @@
+       "ipAddress": "IPv4 address",
+       "ipv6Address": "IPv6 address",
+       "staticDnsRow": "Static DNS address",
++      "DnsRow": "DNS address",
+       "staticIpv4AddressRow": "Static IPv4 address",
+       "staticIpv4SubnetRow": "Static IPV4 subnet",
+       "subnet": "Subnet mask"
+diff --git a/src/views/Settings/Network/Network.vue b/src/views/Settings/Network/Network.vue
+index 66bc522..4b62844 100644
+--- a/src/views/Settings/Network/Network.vue
++++ b/src/views/Settings/Network/Network.vue
+@@ -97,6 +97,58 @@
+               </b-form-group>
+             </b-col>
+           </b-row>
++          <h3 class="h4">
++            {{ $t('pageNetwork.form.dnsTableItems') }}
++          </h3>
++          <b-row>
++            <b-col lg="4">
++              <b-table
++                responsive
++                hover
++                :fields="dnsSystemTableFields"
++                :items="form.dnsTableItems"
++                :empty-text="$t('global.table.emptyMessage')"
++                class="mb-0"
++                show-empty
++              >
++                <template #cell(address)="{ item, index }">
++                  <b-form-input
++                    v-model.trim="item.address"
++                    :data-test-id="`network-input-dnsAddress-${index}`"
++                    :aria-label="
++                      $t('pageNetwork.table.DnsRow') + ' ' + (index + 1)
++                    "
++                    :state="
++                      getValidationState(
++                        $v.form.dnsTableItems.$each.$iter[index].address
++                      )
++                    "
++                    @change="
++                      $v.form.dnsTableItems.$each.$iter[index].address.$touch()
++                    "
++                  />
++                  <b-form-invalid-feedback role="alert">
++                    <div
++                      v-if="
++                        !$v.form.dnsTableItems.$each.$iter[index].address
++                          .required
++                      "
++                    >
++                      {{ $t('global.form.fieldRequired') }}
++                    </div>
++                    <div
++                      v-if="
++                        !$v.form.dnsTableItems.$each.$iter[index].address
++                          .ipAddress
++                      "
++                    >
++                      {{ $t('global.form.invalidFormat') }}
++                    </div>
++                  </b-form-invalid-feedback>
++                </template>
++              </b-table>
++            </b-col>
++          </b-row>
+         </page-section>
+         <page-section :section-title="$t('pageNetwork.ipv4')">
+           <b-form-group :label="$t('pageNetwork.ipv4Configuration')">
+@@ -292,6 +344,7 @@
+           </b-row>
+         </page-section>
+         <page-section :section-title="$t('pageNetwork.staticDns')">
++          {{ $t('pageNetwork.staticDnsHelper') }}
+           <b-row>
+             <b-col lg="4" class="mb-3">
+               <b-table
+@@ -437,6 +490,13 @@ export default {
+         },
+         { key: 'actions', label: '', tdClass: 'text-right' },
+       ],
++      dnsSystemTableFields: [
++        {
++          key: 'address',
++          label: this.$t('pageNetwork.table.ipAddress'),
++        },
++        { key: 'actions', label: '', tdClass: 'text-right' },
++      ],
+       selectedInterfaceIndex: 0,
+       selectedInterface: {},
+       form: {
+@@ -447,6 +507,7 @@ export default {
+         ipv4StaticTableItems: [],
+         ipv4DhcpTableItems: [],
+         dnsStaticTableItems: [],
++        dnsTableItems: [],
+       },
+       loading,
+     };
+@@ -477,6 +538,14 @@ export default {
+             },
+           },
+         },
++        dnsTableItems: {
++          $each: {
++            address: {
++              required,
++              ipAddress,
++            },
++          },
++        },
+       },
+     };
+   },
+@@ -511,6 +580,7 @@ export default {
+       this.selectedInterface = this.ethernetData[this.selectedInterfaceIndex];
+       this.getIpv4DhcpTableItems();
+       this.getIpv4StaticTableItems();
++      this.getDnsTableItems();
+       this.getDnsStaticTableItems();
+       this.getInterfaceSettings();
+     },
+@@ -523,6 +593,14 @@ export default {
+     onChangeIpv4Config(value) {
+       this.form.dhcpEnabled = value;
+     },
++    getDnsTableItems() {
++      const dns = this.selectedInterface.NameServers || [];
++      this.form.dnsTableItems = dns.map((server) => {
++        return {
++          address: server,
++        };
++      });
++    },
+     getDnsStaticTableItems() {
+       const dns = this.selectedInterface.StaticNameServers || [];
+       this.form.dnsStaticTableItems = dns.map((server) => {

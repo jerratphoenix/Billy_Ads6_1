@@ -1,0 +1,12 @@
+diff --git a/include/configs/ast-common.h b/include/configs/ast-common.h
+index 0bc7f2d75f..41c216f459 100644
+--- a/include/configs/ast-common.h
++++ b/include/configs/ast-common.h
+@@ -122,6 +122,7 @@
+ #define ASPEED_ENV_SETTINGS \
+ 	"verify=yes\0"	\
+ 	"spi_dma=yes\0" \
++	"fieldmode=true\0" \
+ 	""
+ 
+ #endif	/* __AST_COMMON_CONFIG_H */

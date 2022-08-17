@@ -1,0 +1,38 @@
+From 82fa91972833f32f3c7a9841620044d20371a335 Mon Sep 17 00:00:00 2001
+From: Kian_Lee <Kian_Lee@phoenix.com>
+Date: Mon, 17 Jan 2022 10:18:32 +0800
+Subject: [PATCH] Add restart_cause in situation that the Host off and restore
+ policy previous
+
+---
+ power-control-x86/src/power_control.cpp | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/power-control-x86/src/power_control.cpp b/power-control-x86/src/power_control.cpp
+index c5c95b2..7d61ffc 100755
+--- a/power-control-x86/src/power_control.cpp
++++ b/power-control-x86/src/power_control.cpp
+@@ -812,6 +812,14 @@ static void invokePowerRestorePolicy(const std::string& policy)
+     {
+         return;
+     }
++    if (policy == "xyz.openbmc_project.Control.Power.RestorePolicy.Policy.None")
++    {
++        // If Async events is "RestorePolicy.Policy.None",
++        // return it; skip setting "policyInvoked = true"
++        phosphor::logging::log<phosphor::logging::level::INFO>(
++        "The RestorePolicy is None property");
++        return;
++    }
+     policyInvoked = true;
+ 
+     std::string logMsg = "Power restore delay expired, invoking " + policy;
+@@ -837,6 +845,8 @@ static void invokePowerRestorePolicy(const std::string& policy)
+         {
+             phosphor::logging::log<phosphor::logging::level::INFO>(
+                 "No power drop, restoring Host Off state");
++            setRestartCauseProperty(
++                getRestartCause(RestartCause::powerPolicyRestore));
+         }
+     }
+     // We're done with the previous power state for the restore policy, so store

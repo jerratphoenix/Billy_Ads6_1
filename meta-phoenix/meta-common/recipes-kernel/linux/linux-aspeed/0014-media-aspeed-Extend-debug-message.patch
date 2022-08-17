@@ -1,0 +1,94 @@
+From 4c62eb625a71cf9616448ac64a84a116cc506b5b Mon Sep 17 00:00:00 2001
+From: Jammy Huang <jammy_huang@aspeedtech.com>
+Date: Fri, 3 Sep 2021 15:43:22 +0800
+Subject: [PATCH 14/27] media: aspeed: Extend debug message
+
+updated as below:
+
+Capture:
+  Mode                : Direct fetch
+  VGA bpp mode        : 32
+  Signal              : lock
+  Width               : 1920
+  Height              : 1080
+  FRC                 : 0
+
+Compression:
+  Format              : JPEG
+  Subsampling         : 444
+  Quality             : 4
+
+Performance:
+  Frame#              : 4
+  Frame Duration(ms)  :
+    Now               : 22
+    Min               : 21
+    Max               : 22
+  FPS                 : 45
+
+Change-Id: I45902bb1222e7b4c7c7c690bdb26a7bae88c593d
+Signed-off-by: Jammy Huang <jammy_huang@aspeedtech.com>
+---
+ drivers/media/platform/aspeed-video.c | 35 +++++++++++++++++++++++++++
+ 1 file changed, 35 insertions(+)
+
+diff --git a/drivers/media/platform/aspeed-video.c b/drivers/media/platform/aspeed-video.c
+index 1f7697472600..41ccd807db5b 100644
+--- a/drivers/media/platform/aspeed-video.c
++++ b/drivers/media/platform/aspeed-video.c
+@@ -1859,10 +1859,29 @@ static const struct vb2_ops aspeed_video_vb2_ops = {
+ static int aspeed_video_debugfs_show(struct seq_file *s, void *data)
+ {
+ 	struct aspeed_video *v = s->private;
++	u32 val08;
+ 
+ 	seq_puts(s, "\n");
+ 
+ 	seq_puts(s, "Capture:\n");
++	val08 = aspeed_video_read(v, VE_CTRL);
++	if (FIELD_GET(VE_CTRL_DIRECT_FETCH, val08)) {
++		seq_printf(s, "  %-20s:\tDirect fetch\n", "Mode");
++		seq_printf(s, "  %-20s:\t%s\n", "VGA bpp mode",
++			   FIELD_GET(VE_CTRL_INT_DE, val08) ? "16" : "32");
++	} else {
++		seq_printf(s, "  %-20s:\tSync\n", "Mode");
++		seq_printf(s, "  %-20s:\t%s\n", "Video source",
++			   FIELD_GET(VE_CTRL_SOURCE, val08) ?
++			   "external" : "internal");
++		seq_printf(s, "  %-20s:\t%s\n", "DE source",
++			   FIELD_GET(VE_CTRL_INT_DE, val08) ?
++			   "internal" : "external");
++		seq_printf(s, "  %-20s:\t%s\n", "Cursor overlay",
++			   FIELD_GET(VE_CTRL_AUTO_OR_CURSOR, val08) ?
++			   "Without" : "With");
++	}
++
+ 	seq_printf(s, "  %-20s:\t%s\n", "Signal",
+ 		   v->v4l2_input_status ? "Unlock" : "Lock");
+ 	seq_printf(s, "  %-20s:\t%d\n", "Width", v->pix_fmt.width);
+@@ -1871,6 +1890,22 @@ static int aspeed_video_debugfs_show(struct seq_file *s, void *data)
+ 
+ 	seq_puts(s, "\n");
+ 
++	seq_puts(s, "Compression:\n");
++	seq_printf(s, "  %-20s:\t%s\n", "Format", format_str[v->format]);
++	seq_printf(s, "  %-20s:\t%s\n", "Subsampling",
++		   v->yuv420 ? "420" : "444");
++	seq_printf(s, "  %-20s:\t%d\n", "Quality", v->jpeg_quality);
++	if (v->format == VIDEO_FMT_ASPEED) {
++		seq_printf(s, "  %-20s:\t%s\n", "HQ Mode",
++			   v->hq_mode ? "on" : "off");
++		seq_printf(s, "  %-20s:\t%d\n", "HQ Quality",
++			   v->hq_mode ? v->jpeg_hq_quality : 0);
++		seq_printf(s, "  %-20s:\t%s\n", "Coding Scheme",
++			   compress_scheme_str[v->compression_scheme]);
++	}
++
++	seq_puts(s, "\n");
++
+ 	seq_puts(s, "Performance:\n");
+ 	seq_printf(s, "  %-20s:\t%d\n", "Frame#", v->sequence);
+ 	seq_printf(s, "  %-20s:\n", "Frame Duration(ms)");
+-- 
+2.17.1
+

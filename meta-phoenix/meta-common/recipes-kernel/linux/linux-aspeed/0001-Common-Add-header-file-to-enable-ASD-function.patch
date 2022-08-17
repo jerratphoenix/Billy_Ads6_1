@@ -1,0 +1,21 @@
+From 0eb525bb96f2d32e45d01ebdcf21caf009b06720 Mon Sep 17 00:00:00 2001
+From: Chris <Chris_Yeh@phoenix.com>
+Date: Mon, 25 Oct 2021 08:13:45 +0000
+Subject: [PATCH] [Common] Add header file to enable ASD function
+
+---
+ include/linux/kcsan-checks.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/linux/kcsan-checks.h b/include/linux/kcsan-checks.h
+index cf14840609ce..5dfbaa8cbd63 100644
+--- a/include/linux/kcsan-checks.h
++++ b/include/linux/kcsan-checks.h
+@@ -6,6 +6,7 @@
+ /* Note: Only include what is already included by compiler.h. */
+ #include <linux/compiler_attributes.h>
+ #include <linux/types.h>
++#include <stddef.h>
+ 
+ /* Access types -- if KCSAN_ACCESS_WRITE is not set, the access is a read. */
+ #define KCSAN_ACCESS_WRITE	(1 << 0) /* Access is a write. */

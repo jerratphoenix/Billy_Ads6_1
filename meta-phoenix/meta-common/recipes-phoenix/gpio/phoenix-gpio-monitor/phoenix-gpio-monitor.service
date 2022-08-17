@@ -1,0 +1,11 @@
+[Unit]
+Description=Phoenix GPIO monitor
+StopWhenUnneeded=false
+
+[Service]
+Restart=always
+RestartSec=5
+ExecStart=/usr/bin/phoenix-gpio-monitor --config /usr/share/phoenix-gpio-monitor/phoenix-gpio-monitor.json
+
+[Install]
+WantedBy=multi-user.target

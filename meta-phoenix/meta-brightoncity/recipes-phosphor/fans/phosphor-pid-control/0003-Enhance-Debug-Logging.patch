@@ -1,0 +1,95 @@
+From 385bc7ac012198603a4fdc76109ff9a917115eb2 Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Wed, 17 Nov 2021 09:30:18 +0000
+Subject: [PATCH] Enhance Debug Logging.
+
+---
+ pid/zone.cpp | 17 ++++++++++++++++-
+ pid/zone.hpp |  1 +
+ 2 files changed, 17 insertions(+), 1 deletion(-)
+
+diff --git a/pid/zone.cpp b/pid/zone.cpp
+index 43031b3..c1d3804 100755
+--- a/pid/zone.cpp
++++ b/pid/zone.cpp
+@@ -329,14 +329,17 @@ void DbusPidZone::updateFanTelemetry(void)
+         // check if fan fail.
+         if (sensor->getFailed())
+         {
++            _cachedStateByName[f] = -1;
+             _failSafeSensors.insert(f);
+         }
+         else if (timeout != 0 && duration >= period)
+         {
++            _cachedStateByName[f] = -2;
+             _failSafeSensors.insert(f);
+         }
+         else
+         {
++            _cachedStateByName[f] = 0;
+             // Check if it's in there: remove it.
+             auto kt = _failSafeSensors.find(f);
+             if (kt != _failSafeSensors.end())
+@@ -350,7 +353,14 @@ void DbusPidZone::updateFanTelemetry(void)
+     {
+         for (const auto& t : _thermalInputs)
+         {
+-            _log << "," << _cachedValuesByName[t];
++            if( 0 == _cachedStateByName[t] )
++            {
++                _log << "," << _cachedValuesByName[t];
++            }
++            else
++            {
++                _log << "," << _cachedStateByName[t];
++            }
+         }
+     }
+ 
+@@ -377,15 +387,18 @@ void DbusPidZone::updateSensors(void)
+ 
+         if (sensor->getFailed())
+         {
++            _cachedStateByName[t] = -1;
+             _failSafeSensors.insert(t);
+         }
+         else if (timeout != 0 && duration >= period)
+         {
++            _cachedStateByName[t] = -2;
+             // std::cerr << "Entering fail safe mode.\n";
+             _failSafeSensors.insert(t);
+         }
+         else
+         {
++            _cachedStateByName[t] = 0;
+             // Check if it's in there: remove it.
+             auto kt = _failSafeSensors.find(t);
+             if (kt != _failSafeSensors.end())
+@@ -403,6 +416,7 @@ void DbusPidZone::initializeCache(void)
+     for (const auto& f : _fanInputs)
+     {
+         _cachedValuesByName[f] = 0;
++        _cachedStateByName[f] = -3;
+ 
+         // Start all fans in fail-safe mode.
+         _failSafeSensors.insert(f);
+@@ -411,6 +425,7 @@ void DbusPidZone::initializeCache(void)
+     for (const auto& t : _thermalInputs)
+     {
+         _cachedValuesByName[t] = 0;
++        _cachedStateByName[t] = -3;
+ 
+         // Start all sensors in fail-safe mode.
+         _failSafeSensors.insert(t);
+diff --git a/pid/zone.hpp b/pid/zone.hpp
+index 7d5175b..ee55141 100755
+--- a/pid/zone.hpp
++++ b/pid/zone.hpp
+@@ -107,6 +107,7 @@ class DbusPidZone : public ZoneInterface, public ModeObject
+     std::vector<std::string> _fanInputs;
+     std::vector<std::string> _thermalInputs;
+     std::map<std::string, double> _cachedValuesByName;
++    std::map<std::string, double> _cachedStateByName;
+     const SensorManager& _mgr;
+ 
+     std::vector<std::unique_ptr<Controller>> _fans;

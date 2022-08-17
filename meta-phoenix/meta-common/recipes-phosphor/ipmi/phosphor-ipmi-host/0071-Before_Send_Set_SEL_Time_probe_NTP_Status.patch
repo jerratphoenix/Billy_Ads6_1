@@ -1,0 +1,109 @@
+From c18060aa13bb9cd5ad5c44963f6091e0db97704a Mon Sep 17 00:00:00 2001
+From: Kian_Lee <Kian_Lee@phoenix.com>
+Date: Mon, 29 Nov 2021 04:12:31 -0500
+Subject: [PATCH] Before_Send_Set_SEL_Time_probe_NTP_Status
+
+---
+ storagehandler.cpp | 75 ++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 75 insertions(+)
+
+diff --git a/storagehandler.cpp b/storagehandler.cpp
+index eecc18b..145633f 100644
+--- a/storagehandler.cpp
++++ b/storagehandler.cpp
+@@ -46,6 +46,14 @@ constexpr auto PROPERTY_ELAPSED = "Elapsed";
+ 
+ } // namespace
+ 
++namespace NTP
++{
++    constexpr auto SERVICETIME = "xyz.openbmc_project.Settings";
++    constexpr auto PATH = "/xyz/openbmc_project/time/sync_method";
++    constexpr auto INTERFACE = "xyz.openbmc_project.Time.Synchronization";
++    constexpr auto PROPERTY_VALUE = "TimeSyncMethod";
++} // namespace
++
+ namespace cache
+ {
+ /*
+@@ -526,6 +534,57 @@ ipmi::RspType<uint32_t> // current time
+         duration_cast<seconds>(microseconds(bmc_time_usec)).count());
+ }
+ 
++
++/**
++* probe NTP service is Enable
++*
++* @param[in] NONE
++*
++* @retval 1 : NTP is Enable
++* @retval other : is FAILED Failure or unknow
++*/
++bool isNTPEnable(void)
++{
++    try
++    {
++        std::variant<std::string> NTP_status;
++        sdbusplus::bus::bus bus{ipmid_get_sd_bus_connection()};
++        constexpr auto NTP_ENABLE = "xyz.openbmc_project.Time.Synchronization.Method.NTP";
++
++        auto method = bus.new_method_call(NTP::SERVICETIME,
++                                          NTP::PATH,
++                                          DBUS_PROPERTIES,
++                                          "Get");
++
++        method.append(NTP::INTERFACE, NTP::PROPERTY_VALUE);
++
++        auto reply = bus.call(method);
++        if (reply.is_method_error())
++        {
++            log<level::ERR>("Error getting time NTP Status");
++            return 0;
++        }
++        reply.read(NTP_status);
++        std::string Get_NTP_Status = std::get<std::string>(NTP_status);
++
++        if (Get_NTP_Status == NTP_ENABLE)
++        {
++            return 1;
++        }
++    }
++    catch (InternalFailure& e)
++    {
++        log<level::ERR>(e.what());
++        return 0;
++    }
++    catch (const std::exception& e)
++    {
++        log<level::ERR>(e.what());
++        return 0;
++    }
++    return 0;
++}
++
+ /** @brief implements the set SEL time command
+  *  @param selDeviceTime - epoch time
+  *        -local time as the number of seconds from 00:00:00, January 1, 1970
+@@ -538,6 +597,22 @@ ipmi::RspType<> ipmiStorageSetSelTime(uint32_t selDeviceTime)
+ 
+     try
+     {
++        if (isNTPEnable())
++        {
++             /*
++                * Accroding to phosphor-time-manager/README.md
++                * NTP: The time is set via NTP server.
++                * MANUAL: The time is set manually.
++                A summary of which cases the time can be set on BMC or HOST:
++                Mode      | Set BMC Time
++                --------- | -------------
++                NTP       | Fail to set
++                MANUAL    | OK
++            */
++            log<level::ERR>("storagehandler.cpp ipmiStorageSetSelTime , NTP Enable so return Completion Code 0xD5");
++            return ipmi::responseCommandNotAvailable();
++        }
++
+         sdbusplus::bus::bus bus{ipmid_get_sd_bus_connection()};
+         auto service = ipmi::getService(bus, TIME_INTERFACE, BMC_TIME_PATH);
+         std::variant<uint64_t> value{(uint64_t)usec.count()};

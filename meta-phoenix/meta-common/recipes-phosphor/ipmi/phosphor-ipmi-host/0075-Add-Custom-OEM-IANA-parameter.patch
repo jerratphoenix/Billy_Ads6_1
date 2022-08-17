@@ -1,0 +1,14 @@
+diff --git a/include/ipmid/iana.hpp b/include/ipmid/iana.hpp
+index 7a1bce8..b9064dd 100644
+--- a/include/ipmid/iana.hpp
++++ b/include/ipmid/iana.hpp
+@@ -20,4 +20,9 @@ constexpr Number googOemNumber = 11129;
+  * This is the Phoenix IANA OEM Number
+  */
+ constexpr Number phoenixoemNumber = 2487;
++
++/*
++ * This is the Custom IANA OEM Number
++ */
++//constexpr Number CustomOemNumber = 0000;	// User setting their IANA for Platform OEM command
+ } // namespace oem

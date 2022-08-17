@@ -1,0 +1,11 @@
+[Unit]
+Description=Process default date and time
+Wants=multi-user.target
+Before=xyz.openbmc_project.Time.Manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/default-datetime.sh
+
+[Install]
+WantedBy=multi-user.target

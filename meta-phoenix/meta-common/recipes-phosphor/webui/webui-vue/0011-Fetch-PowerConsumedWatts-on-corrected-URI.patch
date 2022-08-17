@@ -1,0 +1,52 @@
+From 899f1e3dfb50b2260a3a870e616b1bc23a019279 Mon Sep 17 00:00:00 2001
+From: Chris Yeh <chris_yeh@phoenix.com>
+Date: Wed, 11 May 2022 19:24:50 +0800
+Subject: [PATCH] [Common] Fetch PowerConsumedWatts on corrected URI
+
+Summary:
+Because URI order is arranged by alphabet in Members,
+so PowerConsumedWatts value has probability be fetched from wrong URI
+(Correct URI path exists on XXX_Baseboard)
+
+URI example(Morocity):
+{
+"@odata.id": "/redfish/v1/Chassis",
+"@odata.type": "#ChassisCollection.ChassisCollection",
+"Members": [
+{
+"@odata.id": "/redfish/v1/Chassis/Intel_Front_Panel"
+},
+{
+"@odata.id": "/redfish/v1/Chassis/MC_Baseboard"
+}
+],
+"Members@odata.count": 2,
+"Name": "Chassis Collection"
+}
+---
+ src/store/modules/ResourceManagement/PowerControlStore.js | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/src/store/modules/ResourceManagement/PowerControlStore.js b/src/store/modules/ResourceManagement/PowerControlStore.js
+index 94c570f..a714597 100644
+--- a/src/store/modules/ResourceManagement/PowerControlStore.js
++++ b/src/store/modules/ResourceManagement/PowerControlStore.js
+@@ -36,8 +36,14 @@ const PowerControlStore = {
+     async getPowerControl({ dispatch, commit }) {
+       const collection = await dispatch('getChassisCollection');
+       if (!collection || collection.length === 0) return;
++      var powerURI_index = 0;
++      collection.forEach(function (item, i) {
++        if (item.search('Baseboard') != -1) {
++          powerURI_index = i;
++        }
++      });
+       return await api
+-        .get(`${collection[0]}`)
++        .get(`${collection[powerURI_index]}`)
+         .then((response) => api.get(response.data.Power['@odata.id']))
+         .then((response) => {
+           const powerControl = response.data.PowerControl;
+-- 
+2.17.1
+

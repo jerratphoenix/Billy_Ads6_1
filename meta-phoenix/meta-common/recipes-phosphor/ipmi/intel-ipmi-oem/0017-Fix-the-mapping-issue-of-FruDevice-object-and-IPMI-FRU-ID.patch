@@ -1,0 +1,25 @@
+From 5c6bc3eb3c6a24cd5b6e77098a6c07a6ecd89d20 Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Mon, 24 Jan 2022 12:46:41 +0000
+Subject: [PATCH] Fix the mapping issue of FruDevice object and IPMI FRU ID
+
+---
+ src/storagecommands.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/storagecommands.cpp b/src/storagecommands.cpp
+index 2e462d5..1c1d1ef 100755
+--- a/src/storagecommands.cpp
++++ b/src/storagecommands.cpp
+@@ -253,7 +253,7 @@ ipmi::Cc getFru(ipmi::Context::ptr ctx, uint8_t devId)
+         return ipmi::ccSuccess;
+     }
+ 
+-    auto deviceFind = deviceHashes.find(devId);
++    auto deviceFind = deviceHashes.begin() + devId;
+     if (deviceFind == deviceHashes.end())
+     {
+         return IPMI_CC_SENSOR_INVALID;
+-- 
+2.17.1
+

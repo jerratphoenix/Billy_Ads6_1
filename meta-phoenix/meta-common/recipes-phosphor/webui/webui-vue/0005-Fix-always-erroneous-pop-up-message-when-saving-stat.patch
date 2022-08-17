@@ -1,0 +1,28 @@
+From ea9a9810a561f2db97f46795a359a46244ac8c75 Mon Sep 17 00:00:00 2001
+From: Aaron Chen <Aaron_Chen@phoenix.com>
+Date: Tue, 15 Mar 2022 20:03:23 +0800
+Subject: [PATCH] Fix always erroneous pop-up message when saving static
+ network settings
+
+---
+ src/views/Settings/Network/Network.vue | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/src/views/Settings/Network/Network.vue b/src/views/Settings/Network/Network.vue
+index ab5003f..66bc522 100644
+--- a/src/views/Settings/Network/Network.vue
++++ b/src/views/Settings/Network/Network.vue
+@@ -630,10 +630,9 @@ export default {
+         selectedInterfaceIndex,
+       };
+       // Enabling DHCP without any available IP addresses will bring network down
+-      if (this.form.ipv4DhcpTableItems.length) {
+-        networkSettingsForm.isDhcpEnabled = isDhcpEnabled;
+-      } else {
+-        networkSettingsForm.isDhcpEnabled = false;
++      networkSettingsForm.isDhcpEnabled = isDhcpEnabled;
++
++      if (isDhcpEnabled === 'true' && this.form.ipv4DhcpTableItems.length) {
+         this.errorToast(this.$t('pageNetwork.toast.errorSaveDhcpSettings'));
+       }
+       networkSettingsForm.staticIpv4 = this.form.ipv4StaticTableItems.map(

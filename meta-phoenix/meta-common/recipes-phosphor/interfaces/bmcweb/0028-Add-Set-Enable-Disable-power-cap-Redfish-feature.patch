@@ -1,0 +1,92 @@
+From 1351bce9180de8a218c33fa855e3e71a0c807c81 Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Thu, 12 May 2022 01:21:39 +0000
+Subject: [PATCH] Add "Set Enable/Disable power cap" Redfish feature.
+
+---
+ redfish-core/lib/power.hpp | 48 ++++++++++++++++++++++++++++++++------
+ 1 file changed, 41 insertions(+), 7 deletions(-)
+
+diff --git a/redfish-core/lib/power.hpp b/redfish-core/lib/power.hpp
+index eb32bea..92ecaa2 100755
+--- a/redfish-core/lib/power.hpp
++++ b/redfish-core/lib/power.hpp
+@@ -59,17 +59,54 @@ inline void setPowerCapOverride(
+             {
+                 return;
+             }
++
+             std::optional<uint32_t> value;
++            std::optional<nlohmann::json> oem_data;
++            std::optional<bool> enabled;
+             if (!json_util::readJson(*powerLimit,
+                                      sensorsAsyncResp->asyncResp->res,
+-                                     "LimitInWatts", value))
++                                     "LimitInWatts", value,
++                                     "Oem", oem_data))
+             {
+                 return;
+             }
+             if (!value)
++            {
++                messages::propertyMissing(sensorsAsyncResp->asyncResp->res, "LimitInWatts");
++                return;
++            }
++            if (!oem_data)
++            {
++                messages::propertyMissing(sensorsAsyncResp->asyncResp->res, "Oem");
++                return;
++            }
++
++            if (!json_util::readJson(*oem_data,
++                                     sensorsAsyncResp->asyncResp->res,
++                                     "PowerLimitEnabled", enabled))
+             {
+                 return;
+             }
++
++            crow::connections::systemBus->async_method_call(
++                [sensorsAsyncResp](const boost::system::error_code ec3) {
++                    if (ec3)
++                    {
++                        BMCWEB_LOG_ERROR << "Power Enabled Set: Dbus error: "
++                                        << ec3;
++                        messages::internalError(
++                            sensorsAsyncResp->asyncResp->res);
++                        return;
++                    }
++                    sensorsAsyncResp->asyncResp->res.result(
++                        boost::beast::http::status::no_content);
++                },
++                "xyz.openbmc_project.Intel_Settings",
++                "/xyz/openbmc_project/control/host0/power_cap",
++                "org.freedesktop.DBus.Properties", "Set",
++                "xyz.openbmc_project.Control.Power.Cap", "PowerCapEnable",
++                std::variant<bool>(*enabled));
++
+             auto valueHandler = [value, sensorsAsyncResp](
+                                     const boost::system::error_code ec,
+                                     const SensorVariant& powerCapEnable) {
+@@ -90,12 +127,7 @@ inline void setPowerCapOverride(
+                 }
+                 if (!(*b))
+                 {
+-                    messages::actionNotSupported(
+-                        sensorsAsyncResp->asyncResp->res,
+-                        "Setting LimitInWatts when PowerLimit "
+-                        "feature is disabled");
+-                    BMCWEB_LOG_ERROR << "PowerLimit feature is disabled ";
+-                    return;
++                    BMCWEB_LOG_DEBUG << "PowerLimit feature is disabled ";
+                 }
+ 
+                 crow::connections::systemBus->async_method_call(
+@@ -293,6 +325,8 @@ inline void requestRoutesPower(App& app)
+                         // "NoAction" as default value to make it OCP Compliant.
+                         sensorJson["PowerLimit"]["LimitException"] = "NoAction";
+ 
++                        sensorJson["PowerLimit"]["Oem"]["PowerLimitEnabled"] = enabled;
++
+                         if (enabled)
+                         {
+                             // Redfish specification indicates PowerLimit should

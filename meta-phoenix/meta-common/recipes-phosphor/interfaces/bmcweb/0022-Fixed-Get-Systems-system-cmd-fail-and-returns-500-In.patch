@@ -1,0 +1,49 @@
+From 7d0aeca7c1f3e17000d46733e12059b8becb5100 Mon Sep 17 00:00:00 2001
+From: Brad Ho <brad_ho@phoenix.com>
+Date: Fri, 18 Feb 2022 16:54:09 +0800
+Subject: [PATCH] Fixed Get Systems/system cmd fail and returns 500 Internal
+ Server Error on Redfish"
+
+Note:
+    Phoenix have two setting service(xyz.openbmc_project.Intel_Settings and xyz.openbmc_project.Settings),
+    cause systems TPM function to get the response that impacts your settings, so change to support two settings service.
+    And, now just only to get Intel settings property value.
+
+Command to check settings:
+        # busctl call xyz.openbmc_project.ObjectMapper /xyz/openbmc_project/object_mapper xyz.openbmc_project.ObjectMapper GetSubTree sias "/" 0  1 "xyz.openbmc_project.Control.TPM.Policy"
+        a{sa{sas}}
+        1
+        "/xyz/openbmc_project/control/host0/TPMEnable" 2 "xyz.openbmc_project.Intel_Settings" 4 "org.freedesktop.DBus.Introspectable" "org.freedesktop.DBus.Peer" "org.freedesktop.DBus.Properties" "xyz.openbmc_project.Control.TPM.Policy"
+
+        "xyz.openbmc_project.Settings" 4 "org.freedesktop.DBus.Introspectable" "org.freedesktop.DBus.Peer" "org.freedesktop.DBus.Properties" "xyz.openbmc_project.Control.TPM.Policy"
+
+Test result:
+        # curl -k -H "X-Auth-Token: $token" -X GET https://${bmc}/redfish/v1/Systems/system/ -I
+
+        HTTP/1.1 200 OK
+        Strict-Transport-Security: max-age=31536000; includeSubdomains; preload
+        X-Frame-Options: DENY
+        Pragma: no-cache
+        Cache-Control: no-Store,no-Cache
+        X-XSS-Protection: 1; mode=block
+        X-Content-Type-Options: nosniff
+        Content-Security-Policy: default-src 'none'; img-src 'self' data:; font-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self' wss:; form-action 'none'; frame-ancestors 'none'; plugin-types 'none'; base-uri 'none'
+        Content-Type: application/json
+        Date: Fri, 18 Feb 2022 05:30:14 GMT
+---
+ redfish-core/lib/systems.hpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/redfish-core/lib/systems.hpp b/redfish-core/lib/systems.hpp
+index 3e27241..0b9cc4a 100644
+--- a/redfish-core/lib/systems.hpp
++++ b/redfish-core/lib/systems.hpp
+@@ -1354,7 +1354,7 @@ inline void getTrustedModuleRequiredToBoot(
+ 
+             // Make sure the Dbus response map has a service and objectPath
+             // field
+-            if (subtree[0].first.empty() || subtree[0].second.size() != 1)
++            if (subtree[0].first.empty() || subtree[0].second.size() != 2)
+             {
+                 BMCWEB_LOG_DEBUG << "TPM.Policy mapper error!";
+                 messages::internalError(aResp->res);

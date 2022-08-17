@@ -1,0 +1,183 @@
+From 21839f0ba630dbaa492c1728374403dfcd444717 Mon Sep 17 00:00:00 2001
+From: Chris Yeh <chris_yeh@phoenix.com>
+Date: Mon, 8 Nov 2021 14:39:45 +0800
+Subject: [PATCH] Add discrete event monitoring
+
+---
+ include/discrete_event_monitor.hpp | 110 +++++++++++++++++++++++++++++
+ meson.build                        |   3 +
+ meson_options.txt                  |   2 +
+ src/sel_logger.cpp                 |   6 ++
+ 4 files changed, 121 insertions(+)
+ create mode 100755 include/discrete_event_monitor.hpp
+ mode change 100644 => 100755 src/sel_logger.cpp
+
+diff --git a/include/discrete_event_monitor.hpp b/include/discrete_event_monitor.hpp
+new file mode 100755
+index 0000000..3ec3e77
+--- /dev/null
++++ b/include/discrete_event_monitor.hpp
+@@ -0,0 +1,110 @@
++/*
++// Copyright (c) 2010 Phoenix Technologies
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//      http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++*/
++
++#pragma once
++#include <sel_logger.hpp>
++#include <sensorutils.hpp>
++#include <string_view>
++#include <variant>
++#include <string>
++
++// static const std::string openBMCMessageRegistryVersion("0.1");
++
++inline static sdbusplus::bus::match::match startDiscreteEventMonitor(
++    std::shared_ptr<sdbusplus::asio::connection> conn)
++{
++    auto discreteEventMatcherCallback = [conn](
++                                             sdbusplus::message::message &msg) {
++        // This static set of std::pair<path, event> tracks asserted events to
++        // avoid duplicate logs or deasserts logged without an assert
++        static boost::container::flat_set<std::pair<std::string, std::string>>
++            assertedEvents;
++        // SEL event data is three bytes where 0xFF means unspecified
++        std::vector<uint8_t> eventData(selEvtDataMaxSize, 0xFF);
++
++        // Get the event type and assertion details from the message
++        std::string thresholdInterface;
++        boost::container::flat_map<std::string, std::variant<unsigned int>> propertiesChanged;
++
++        msg.read(thresholdInterface, propertiesChanged);
++        std::string event = propertiesChanged.begin()->first;
++
++        unsigned int *pval = std::get_if<unsigned int>(&propertiesChanged.begin()->second);
++        if (!pval)
++        {
++            std::cerr << "discrete offset has an invalid type\n";
++            return;
++        }
++
++        unsigned int offset = *pval;
++        bool assert = false;
++
++        // Ignore events with invalid offsets (which occur at init time when properties are created)
++        if ( offset > 14 )
++        {
++            return;
++        }
++
++        // Determine if it was an assertion or deassertion by the event name
++        if (event == "AssertionAlarmOffset")
++        {
++            assert = true;
++
++        }
++
++        // Grab the offset
++        eventData[0] = static_cast<uint8_t>(offset);
++        
++        // Indicate that bytes 2 and 3 undefined
++        eventData[1] = 0xFF;
++        eventData[2] = 0xFF;
++
++        // Construct a human-readable message of this event for the log
++        std::string_view sensorName(msg.get_path());
++        sensorName.remove_prefix(
++            std::min(sensorName.find_last_of("/") + 1, sensorName.size()));
++
++        std::string direction;
++        std::string redfishMessageID =
++            "OpenBMC." + openBMCMessageRegistryVersion;
++        if (assert)
++        {
++            direction = "asserted";
++            redfishMessageID += ".DiscreteSensorAsserted";
++        }
++        else
++        {
++            direction = "deasserted";
++            redfishMessageID += ".DiscreteSensorDeasserted";
++        }
++
++        std::string journalMsg(std::string(sensorName) + " sensor " +
++                               direction + " offset " + std::to_string(offset) + ".");
++
++        selAddSystemRecord(
++            journalMsg, std::string(msg.get_path()), eventData, assert,
++            selBMCGenID, "REDFISH_MESSAGE_ID=%s", redfishMessageID.c_str(),
++            "REDFISH_MESSAGE_ARGS=%.*s,%u", sensorName.length(),
++            sensorName.data(), offset);
++    };
++    sdbusplus::bus::match::match discreteEventMatcher(
++        static_cast<sdbusplus::bus::bus &>(*conn),
++        "type='signal',interface='org.freedesktop.DBus.Properties',member='"
++        "PropertiesChanged',arg0namespace='xyz.openbmc_project.Sensor."
++        "Discrete.Event'",
++        std::move(discreteEventMatcherCallback));
++    return discreteEventMatcher;
++}
+diff --git a/meson.build b/meson.build
+index dc663d2..077e8c6 100644
+--- a/meson.build
++++ b/meson.build
+@@ -19,6 +19,9 @@ deps = [
+ if get_option('log-threshold')
+   cpp_args += '-DSEL_LOGGER_MONITOR_THRESHOLD_EVENTS'
+ endif
++if get_option('log-discrete')
++  cpp_args += '-DSEL_LOGGER_MONITOR_DISCRETE_EVENTS'
++endif
+ if get_option('log-pulse')
+   cpp_args += '-DREDFISH_LOG_MONITOR_PULSE_EVENTS'
+ endif
+diff --git a/meson_options.txt b/meson_options.txt
+index 1a1cd51..b36d3a4 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -10,3 +10,5 @@ option('send-to-logger', type: 'boolean',
+        description: 'Automatically log events to Redfish for pulse type assert-deassert sensor events')
+ option('clears-sel', type: 'boolean',
+        description: 'Expose method for SEL Logger to clear the SEL records stored in ipmi_sel')
++option('log-discrete', type: 'boolean',
++       description: 'Automatically log SEL records for discrete sensor events')
+diff --git a/src/sel_logger.cpp b/src/sel_logger.cpp
+old mode 100644
+new mode 100755
+index 5aa28ae..6aa3efa
+--- a/src/sel_logger.cpp
++++ b/src/sel_logger.cpp
+@@ -33,6 +33,7 @@
+ #include <iomanip>
+ #include <iostream>
+ #include <sstream>
++#include <discrete_event_monitor.hpp>
+ 
+ #ifdef SEL_LOGGER_SEND_TO_LOGGING_SERVICE
+ #include <phosphor-logging/elog-errors.hpp>
+@@ -293,6 +294,11 @@ int main(int, char*[])
+         startThresholdAssertMonitor(conn);
+ #endif
+ 
++#ifdef SEL_LOGGER_MONITOR_DISCRETE_EVENTS
++    sdbusplus::bus::match::match discreteEventMonitor =
++        startDiscreteEventMonitor(conn);
++#endif
++
+ #ifdef REDFISH_LOG_MONITOR_PULSE_EVENTS
+     sdbusplus::bus::match::match pulseEventMonitor =
+         startPulseEventMonitor(conn);
+-- 
+2.17.1
+

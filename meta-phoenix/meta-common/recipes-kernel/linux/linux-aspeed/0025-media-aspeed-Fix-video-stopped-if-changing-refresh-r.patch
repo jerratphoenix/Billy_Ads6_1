@@ -1,0 +1,39 @@
+From a4f1dc4ef791e2656deac198f344531b5b40bd3a Mon Sep 17 00:00:00 2001
+From: Jammy Huang <jammy_huang@aspeedtech.com>
+Date: Wed, 12 Jan 2022 16:47:32 +0800
+Subject: [PATCH 25/27] media: aspeed: Fix video stopped if changing refresh
+ rate
+
+If refresh rate is changed, obmc-ikvm will not restart since frame
+size is the same. Video will stop.
+
+To fix the problem, we compare only width/height in
+aspeed_video_get_resolution(), since other timings information
+doesn't affect frame-grabbing.
+
+Fixes: 15a008ea20ec (medai: aspeed: Fix using sync mode if
+refresh-rate changed only)
+Change-Id: Ib63457e2ead398a9d893072583ac9276028e9a88
+Signed-off-by: Jammy Huang <jammy_huang@aspeedtech.com>
+---
+ drivers/media/platform/aspeed-video.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/aspeed-video.c b/drivers/media/platform/aspeed-video.c
+index b61de26ba990..1bf0ba02217a 100644
+--- a/drivers/media/platform/aspeed-video.c
++++ b/drivers/media/platform/aspeed-video.c
+@@ -1722,8 +1722,8 @@ static void aspeed_video_resolution_work(struct work_struct *work)
+ 	if (video->v4l2_input_status)
+ 		goto done;
+ 
+-	is_res_chg = memcmp(&video->active_timings, &video->detected_timings,
+-			    sizeof(video->active_timings));
++	is_res_chg = (video->detected_timings.width != video->active_timings.width ||
++		      video->detected_timings.height != video->active_timings.height);
+ 	video->active_timings = video->detected_timings;
+ 	aspeed_video_set_resolution(video);
+ 
+-- 
+2.17.1
+

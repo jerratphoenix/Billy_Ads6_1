@@ -1,0 +1,24 @@
+From 6714d458d65414309ff35b2940826a176646550a Mon Sep 17 00:00:00 2001
+From: Brad Ho <Brad_Ho@phoenix.com>
+Date: Wed, 1 Dec 2021 00:14:40 -0800
+Subject: [PATCH] Change watchdog severity to critical
+
+---
+ redfish-core/include/registries/openbmc_message_registry.hpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/redfish-core/include/registries/openbmc_message_registry.hpp b/redfish-core/include/registries/openbmc_message_registry.hpp
+index 6cf503f..2f20503 100644
+--- a/redfish-core/include/registries/openbmc_message_registry.hpp
++++ b/redfish-core/include/registries/openbmc_message_registry.hpp
+@@ -640,8 +640,8 @@ constexpr std::array<MessageEntry, 188> registry = {
+                  {
+                      "Indicates that there is a host watchdog event.",
+                      "Host Watchdog Event: %1",
+-                     "OK",
+-                     "OK",
++                     "Critical",
++                     "Critical",
+                      1,
+ 
+                      {

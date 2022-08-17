@@ -1,0 +1,62 @@
+From 950bd86c995dabedfc490eb4ab27b7d00cd792b4 Mon Sep 17 00:00:00 2001
+From: Brad Ho <Brad_Ho@phoenix.com>
+Date: Thu, 25 Nov 2021 21:43:10 -0800
+Subject: [PATCH] Add the pre timeout interrupt defined in IPMI spec and add
+ PreInterruptFlag properity in DBUS
+
+---
+ .../State/Watchdog.interface.yaml             | 27 +++++++++++++++++++
+ 1 file changed, 27 insertions(+)
+
+diff --git a/yaml/xyz/openbmc_project/State/Watchdog.interface.yaml b/yaml/xyz/openbmc_project/State/Watchdog.interface.yaml
+index 8a7335f..b511bdd 100644
+--- a/yaml/xyz/openbmc_project/State/Watchdog.interface.yaml
++++ b/yaml/xyz/openbmc_project/State/Watchdog.interface.yaml
+@@ -33,6 +33,11 @@ properties:
+       description: >
+           The action the watchdog should perform when it expires.
+       default: 'HardReset'
++    - name: PreTimeoutInterrupt
++      type: enum[self.PreTimeoutInterruptAction]
++      description: >
++          The BMC generates the selected interrupt before the timer expires.
++      default: 'None'
+     - name: Interval
+       type: uint64
+       description: >
+@@ -54,6 +59,11 @@ properties:
+       description: >
+           The timer user at the time of expiration.
+       default: 'Reserved'
++    - name: PreTimeoutInterruptOccurFlag
++      type: boolean
++      description: >
++          PreTimeoutInterruptOccurFlag that preTimeoutInterrupt action occurred.
++      default: false
+ 
+ enumerations:
+    - name: Action
+@@ -73,6 +83,23 @@ enumerations:
+          description: >
+            Perform a power cycle of the system.
+ 
++   - name: PreTimeoutInterruptAction
++     description: >
++       The type of PreTimeout Interrupt.
++     values:
++       - name: 'None'
++         description: >
++           Do nothing.
++       - name: 'SMI'
++         description: >
++           SMI.
++       - name: 'NMI'
++         description: >
++           NMI / Diagnostic Interrupt.
++       - name: 'MI'
++         description: >
++           Messaging Interrupt.
++
+    - name: TimerUse
+      description: >
+        The type of timer use.

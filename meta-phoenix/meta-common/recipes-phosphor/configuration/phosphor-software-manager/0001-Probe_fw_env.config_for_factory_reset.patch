@@ -1,0 +1,122 @@
+From 984f5722f38dfd1a06c4757fca46ed663290580b Mon Sep 17 00:00:00 2001
+From: Kian_Lee <Kian_Lee@phoenix.com>
+Date: Mon, 7 Feb 2022 10:40:15 +0800
+Subject: [PATCH] Probe_fw_env.config_for_factory_reset
+
+---
+ item_updater_helper.hpp        | 12 ++++++
+ static/item_updater_helper.cpp | 73 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 85 insertions(+)
+
+diff --git a/item_updater_helper.hpp b/item_updater_helper.hpp
+index 2aeeb23..b02d0ad 100644
+--- a/item_updater_helper.hpp
++++ b/item_updater_helper.hpp
+@@ -48,6 +48,18 @@ class Helper
+     /** @brief Do factory reset */
+     void factoryReset();
+ 
++    /* Probe fw_env.config */
++   int Probe_FW_Config ();
++
++   enum Probe_Status
++   {
++        FW_Conf_STAT_UNKONW = -1,
++        FW_Conf_NONE = 0,
++        FW_Conf_One = 1,
++        FW_Conf_Redundant = 2,
++   };
++
++
+     /** @brief Remove the image with the version id
+      *
+      * @param[in] versionId - The version id of the image
+diff --git a/static/item_updater_helper.cpp b/static/item_updater_helper.cpp
+index 6be36bf..868f80c 100644
+--- a/static/item_updater_helper.cpp
++++ b/static/item_updater_helper.cpp
+@@ -24,11 +24,84 @@ void Helper::cleanup()
+     // Empty
+ }
+ 
++/**
++* Probe fw_env.config partition.
++*
++* The Probe_FW_Config use for factoryReset
++* if u-boot fw_env.config is Redundant partition,
++* And the fw_setenv utitliy shall be wroten twice.
++* Please refer to u-boot-fw-utils-aspeed/tools/env/fw_env.c
++* #1065 static int flash_io (int mode)
++
++* @param[in] void .
++*
++* @retval return fw_env.config partition.
++*/
++int Helper::Probe_FW_Config (void)
++{
++    char fname[256] = "/etc/fw_env.config";
++    FILE *fp;
++    char dump[128];
++    int Cnt_Env_partition = 0;
++    int rc;
++    char devname[20];
++
++    fp = fopen(fname, "r");
++
++    if (fp == NULL)
++    {
++        /* fw_env.config no exit */
++        fprintf(stderr, " %s %d The fw_env.config no exit \n",__func__,__LINE__);
++        return FW_Conf_STAT_UNKONW;
++    }
++
++    while (Cnt_Env_partition < 2 && fgets (dump, sizeof (dump), fp))
++    {
++        /* Skip comment strings */
++        if (dump[0] == '#')
++        {
++              continue;
++        }
++
++        rc = sscanf(dump,"%s",devname);
++
++        if (rc < 0)
++        {
++            /* None MTD device name */ 
++            continue;
++        }
++        Cnt_Env_partition++;
++    }
++
++    fclose(fp);
++
++    if ( Cnt_Env_partition == 2)
++    {
++        fprintf(stderr, " %s %d The fw_env.config is Redundant partition \n",__func__,__LINE__);
++        return FW_Conf_Redundant;
++    }
++    else
++    {
++        fprintf(stderr, " %s %d The fw_env.config is one partition \n",__func__,__LINE__);
++        return FW_Conf_One;
++    }
++}
++
+ void Helper::factoryReset()
+ {
++    int ret = FW_Conf_STAT_UNKONW;
++
+     // Set openbmconce=factory-reset env in U-Boot.
+     // The init will cleanup rwfs during boot.
+     utils::execute("/sbin/fw_setenv", "openbmconce", "factory-reset");
++
++    ret = Helper::Probe_FW_Config();
++
++    if (ret == FW_Conf_Redundant)
++    {
++        /* switch to next partition for writing */
++        utils::execute("/sbin/fw_setenv", "openbmconce", "factory-reset");
++    }
+ }
+ 
+ void Helper::removeVersion(const std::string& /* versionId */)

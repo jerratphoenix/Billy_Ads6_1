@@ -1,0 +1,368 @@
+From 760b2c7ce50e7a3fdb74db79868c5c2f52d62e30 Mon Sep 17 00:00:00 2001
+From: Brad Ho <Brad_Ho@phoenix.com>
+Date: Mon, 25 Oct 2021 22:03:25 -0700
+Subject: [PATCH] Support LAN Configuration Parameters #16, Community String
+ #17, Number of Destinations #19, Destination Addresses
+
+---
+ transporthandler.cpp | 315 +++++++++++++++++++++++++++++++++++++++++++
+ transporthandler.hpp |   3 +
+ 2 files changed, 318 insertions(+)
+
+diff --git a/transporthandler.cpp b/transporthandler.cpp
+index 59096f9..6cd59eb 100644
+--- a/transporthandler.cpp
++++ b/transporthandler.cpp
+@@ -10,6 +10,229 @@ using sdbusplus::xyz::openbmc_project::Network::server::EthernetInterface;
+ using sdbusplus::xyz::openbmc_project::Network::server::IP;
+ using sdbusplus::xyz::openbmc_project::Network::server::Neighbor;
+ 
++namespace snmp
++{
++#define MAX_DEST 15
++constexpr auto LAN_CONFIG_FILE = "/usr/share/phosphor-ipmi-host/PtecLanConfig.json";
++static constexpr const char* communityStr = "Community_String";
++static constexpr const char* addressStr = "Destination_Addresses";
++static constexpr const char* addrFormatStr = "Address_Format";
++static constexpr const char* ipaddrtStr = "Alerting_IP_Address";
++static constexpr const char* selectorStr = "Selector";
++
++namespace jsonns {
++
++    #define STR_TO_HEX(s) strtoul(j[s].get<std::string>().c_str(), NULL, 0);
++    #define HEX_TO_STR(h) std::to_string(h)
++
++    /*For struct snmpName*/
++    struct snmpName {
++        char communityString[18];
++    };
++
++    void to_json(nlohmann::json& j, const snmpName& p) {
++        j = nlohmann::json{{communityStr, p.communityString}};
++    }
++
++    void from_json(const nlohmann::json& j, snmpName& p) {
++        j.at(communityStr).get_to(p.communityString);
++    }
++
++    /*For struct snmpAddr*/
++    struct snmpAddr {
++        uint8_t selector;
++        uint8_t addrFormat;
++        std::string ip; 
++    };
++
++    void to_json(nlohmann::json& j, const snmpAddr& p) {
++        j = nlohmann::json{
++            {selectorStr, HEX_TO_STR(p.selector)},
++            {addrFormatStr, HEX_TO_STR(p.addrFormat)},
++            {ipaddrtStr, p.ip},
++        };
++    }
++
++    void from_json(const nlohmann::json& j, snmpAddr& p) {
++        p.selector =    STR_TO_HEX(selectorStr);
++        p.addrFormat =  STR_TO_HEX(addrFormatStr);
++        j.at(ipaddrtStr).get_to(p.ip);
++    }
++} // namespace jsonns
++
++struct jsonns::snmpName community;
++struct jsonns::snmpAddr ipAddr[MAX_DEST];
++
++std::string ipToStr(std::array<uint8_t, sizeof(in_addr)> ip)
++{
++    return std::to_string(ip[0]) + "." 
++           + std::to_string(ip[1]) + "." 
++           + std::to_string(ip[2]) + "." 
++           + std::to_string(ip[3]);
++}
++
++uint8_t getNumberOfDestinationsSize()
++{
++    uint8_t size = 0;
++    std::ifstream jsonFile(LAN_CONFIG_FILE);
++    nlohmann::json data = nlohmann::json::parse(jsonFile, nullptr, false);
++    if (!data.is_discarded())
++    {
++        size = data[addressStr].size();
++    }
++
++    return size;
++}
++
++int getDefaultDestinationAddresses()
++{
++    nlohmann::json j;
++
++    std::ifstream jfile( LAN_CONFIG_FILE );
++
++    if( !jfile )
++    {
++        log<level::ERR>("Open SNMP destination config file fail");
++        elog<InternalFailure>();
++        return -1;
++    }
++
++    jfile >> j;
++    jfile.close();
++
++    int size = getNumberOfDestinationsSize(); 
++
++    /* Assign json data to struct */
++    for ( int i = 0; i < size; i++ ) {
++        ipAddr[i] = j[addressStr][i];
++    }
++
++    return 0;
++}
++
++int setDestinationAddresses()
++{
++    nlohmann::json j;
++
++    std::ifstream jfile( LAN_CONFIG_FILE );
++
++    if( !jfile )
++    {
++        log<level::ERR>("Open SNMP destination config file fail");
++        elog<InternalFailure>();
++        return -1;
++    }
++
++    jfile >> j;
++    jfile.close();
++
++    /* Skip 0 reserved to Alert Immediate command */
++    int size = getNumberOfDestinationsSize()-1;
++    if( size > MAX_DEST )
++    {
++        log<level::ERR>("Destination size is over the MAX value",
++            entry("VALUE=%d", MAX_DEST));
++        elog<InternalFailure>();
++
++        size = MAX_DEST;
++    }
++
++    // struct back to json
++    for ( int i = 1; i < size; i++ ) {
++        j[addressStr][i] = ipAddr[i];
++    }
++
++    std::ofstream ojfile( LAN_CONFIG_FILE );
++
++    ojfile << std::setw(4) << j << "\n";
++    ojfile.close();
++
++    return 0;
++}
++
++int setCommunityString()
++{
++    nlohmann::json j;
++
++    std::ifstream jfile( LAN_CONFIG_FILE );
++
++    if( !jfile )
++    {
++        std::cerr << "Open SNMP destination config file fail!!\n";
++        return -1;
++    }
++
++    jfile >> j;
++    jfile.close();
++
++    j[communityStr] = community.communityString;
++
++    std::ofstream ojfile( LAN_CONFIG_FILE );
++
++    ojfile << std::setw(4) << j << "\n";
++    ojfile.close();
++
++    return 0;
++}
++
++std::string getCommunityString()
++{
++    std::string communityString = "public";
++    std::ifstream jsonFile(LAN_CONFIG_FILE);
++    nlohmann::json data = nlohmann::json::parse(jsonFile, nullptr, false);
++    if (!data.is_discarded())
++    {
++        communityString = data[communityStr];
++    }
++
++    return communityString;
++}
++
++
++std::vector<uint8_t> getDestinationAddresses(uint8_t set)
++{
++    std::ifstream jsonFile(LAN_CONFIG_FILE);
++    nlohmann::json data = nlohmann::json::parse(jsonFile, nullptr, false);
++    nlohmann::json dests = data[addressStr].get<nlohmann::json>();
++    std::vector<nlohmann::json> addressList;
++    std::vector<uint8_t> ip;
++
++    for (const auto& it : dests.items())
++    {
++        nlohmann::json dest = it.value();
++        if (dest.is_null())
++        {
++            std::cerr << "DestinationAddresses fail\n";
++        }
++        addressList.push_back(dest);
++    }
++    
++    if( set > 0 )
++    {
++        uint8_t addrFormat = static_cast<uint8_t>(
++            std::stoul(addressList[set][addrFormatStr].get<std::string>(), nullptr, 0));
++        ip.push_back(addrFormat);
++        
++        std::string ipaddr = addressList[set][ipaddrtStr];
++        std::string delimiter = ".";
++        std::string token;
++        size_t last = 0;
++        size_t next = 0;
++        int index = 0;
++
++        while (index < 4) {
++        	next = ipaddr.find(delimiter, last);
++            token = ipaddr.substr(last, next-last);
++            last = next + 1;
++            uint8_t temp = std::stoul(token, nullptr, 0);
++            ip.push_back(temp);
++            index++;
++        }
++    }
++    return ip;
++}
++} // namespace snmp
++
+ namespace cipher
+ {
+ 
+@@ -1216,6 +1439,53 @@ RspType<> setLan(Context::ptr ctx, uint4_t channelBits, uint4_t reserved1,
+                 return response(resp);
+             }
+         }
++        case LanParam::CommunityString:
++        {
++            std::array<uint8_t, sizeof(snmp::jsonns::snmpName)> commStr;
++            if (req.unpack(commStr) != 0 || !req.fullyUnpacked())
++            {
++
++                return responseReqDataLenInvalid();
++            }
++            copyInto(snmp::community, commStr);
++            snmp::setCommunityString();
++            return responseSuccess();
++        }
++        case LanParam::NumberOfDestinations:
++        {
++            //TODO: Temporary add this to avoid build error.
++            return responseSuccess();
++        }
++        case LanParam::DestinationAddresses:
++        {
++            uint8_t selector;
++            uint8_t addrFormat;
++            std::array<uint8_t, sizeof(in_addr)> bytes;
++            if (req.unpack(selector, addrFormat, bytes) ||!req.fullyUnpacked())
++            {
++                return responseReqDataLenInvalid();
++            }
++
++            if (selector < 1 ||
++                selector > MAX_DEST)
++            {
++                return responseInvalidFieldRequest();
++            }
++            
++            //TODO: Gateway selector, IPv6
++        
++            snmp::getDefaultDestinationAddresses();
++
++            /* IPMI SPEC specifed [7:4] = Reserved */
++            snmp::ipAddr[selector].selector = selector & 0xf;
++            snmp::ipAddr[selector].addrFormat = addrFormat;
++            snmp::ipAddr[selector].ip = snmp::ipToStr(bytes);
++
++            snmp::setDestinationAddresses();
++
++            return responseSuccess();
++        }
++
+     }
+ 
+     if ((parameter >= oemCmdStart) && (parameter <= oemCmdEnd))
+@@ -1503,6 +1773,51 @@ RspType<message::Payload> getLan(Context::ptr ctx, uint4_t channelBits,
+                 return response(resp);
+             }
+         }
++        case LanParam::CommunityString:
++        {
++            int size = 0;
++            for(const auto &s : snmp::getCommunityString())
++            {
++                uint8_t temp = s;
++
++                /* 6 bit's ASCII */
++                //temp &= 0x3f;
++
++                ret.pack(temp);
++                size++;
++            }
++            while ( size < 18 )
++            {
++                uint8_t NULL_chr = 0x00;
++                ret.pack(NULL_chr);
++                size++;
++            }
++            return responseSuccess(std::move(ret));
++        }
++        case LanParam::NumberOfDestinations:
++        {
++            /* Skip 0 reserved to Alert Immediate command */
++            ret.pack(snmp::getNumberOfDestinationsSize()-1);
++            return responseSuccess(std::move(ret));
++        }
++        case LanParam::DestinationAddresses:
++        {
++            if(set == 0)
++            {
++                /* Destination 0 is reserved to  Alert Immediate command.*/
++                return responseInvalidFieldRequest();
++            }
++
++            /* Skip 0 reserved to Alert Immediate command */
++            if(set > snmp::getNumberOfDestinationsSize()-1)
++            {
++                return responseReqDataLenInvalid();
++            }
++
++            ret.pack(set); 
++            ret.pack(snmp::getDestinationAddresses(set));
++            return responseSuccess(std::move(ret));
++        }
+     }
+ 
+     if ((parameter >= oemCmdStart) && (parameter <= oemCmdEnd))
+diff --git a/transporthandler.hpp b/transporthandler.hpp
+index b62de83..b1ac8dd 100644
+--- a/transporthandler.hpp
++++ b/transporthandler.hpp
+@@ -67,6 +67,9 @@ enum class LanParam : uint8_t
+     SubnetMask = 6,
+     Gateway1 = 12,
+     Gateway1MAC = 13,
++    CommunityString = 16,
++    NumberOfDestinations  = 17,
++    DestinationAddresses = 19,
+     VLANId = 20,
+     CiphersuiteSupport = 22,
+     CiphersuiteEntries = 23,
+-- 
+2.17.1
+

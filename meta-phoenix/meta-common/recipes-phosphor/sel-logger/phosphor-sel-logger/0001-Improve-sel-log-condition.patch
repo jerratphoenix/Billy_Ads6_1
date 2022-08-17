@@ -1,0 +1,35 @@
+From d0c1dfa53fa3518b609dd301faaeef226eee3df6 Mon Sep 17 00:00:00 2001
+From: Brad Ho <Brad_Ho@phoenix.com>
+Date: Mon, 29 Nov 2021 21:43:18 -0800
+Subject: [PATCH] Improve sel log condition
+
+---
+ src/sel_logger.cpp | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/src/sel_logger.cpp b/src/sel_logger.cpp
+index 6aa3efa..591aa9c 100755
+--- a/src/sel_logger.cpp
++++ b/src/sel_logger.cpp
+@@ -160,12 +160,20 @@ static unsigned int getNewRecordId(void)
+ {
+ #ifndef SEL_LOGGER_CLEARS_SEL
+     static unsigned int recordId = initializeRecordId();
++    static bool getEmptySel = false; 
+ 
+     // If the log has been cleared, also clear the current ID
+     std::vector<std::filesystem::path> selLogFiles;
+     if (!getSELLogFiles(selLogFiles))
+     {
+-        recordId = selInvalidRecID;
++        // Use a temporary flag, let recordId is been reset only once. 
++        if (getEmptySel == false) 
++        { 
++            getEmptySel = true; 
++            recordId = selInvalidRecID; 
++        } 
++    } else { 
++        getEmptySel = false; 
+     }
+ #endif
+ 

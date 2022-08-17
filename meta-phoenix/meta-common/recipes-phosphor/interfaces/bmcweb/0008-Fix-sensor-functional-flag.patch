@@ -1,0 +1,37 @@
+From 6d06bfd7ce7ae93fd4e61c60a8032e1335c0e8b8 Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Tue, 2 Nov 2021 07:43:25 +0000
+Subject: [PATCH] Fix sensor functional flag.
+
+---
+ redfish-core/lib/sensors.hpp | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/redfish-core/lib/sensors.hpp b/redfish-core/lib/sensors.hpp
+index 81d1305..b80af87 100755
+--- a/redfish-core/lib/sensors.hpp
++++ b/redfish-core/lib/sensors.hpp
+@@ -812,6 +812,23 @@ inline std::string getHealth(
+         return "Critical";
+     }
+ 
++    // Update isFunctional property from State.Decorator.OperationalStatus interface
++    // since isFunctional doesn't get updated prior to building the sensor
++    auto interfaceIt = interfacesDict.find(
++        "xyz.openbmc_project.State.Decorator.OperationalStatus");
++    if (interfaceIt != interfacesDict.end())
++    {
++        auto propertyIt = interfaceIt->second.find("Functional");
++        if (propertyIt != interfaceIt->second.end())
++        {
++            const bool* value = std::get_if<bool>(&propertyIt->second);
++            if ((value != nullptr) && (false == *value))
++            {
++                return "Critical";
++            }
++        }
++    }
++
+     // If current health in JSON object is already Warning, return that.  This
+     // should override the sensor status, which might be less severe.
+     if (currentHealth == "Warning")

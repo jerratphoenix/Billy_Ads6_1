@@ -1,0 +1,77 @@
+diff --git a/include/defaults.hpp b/include/defaults.hpp
+old mode 100644
+new mode 100755
+index eed24db..3a5d9f9
+--- a/include/defaults.hpp
++++ b/include/defaults.hpp
+@@ -40,41 +40,44 @@ inline void loadSettings(sdbusplus::asio::object_server &objectServer,
+ 
+     setting->addProperty("AutoReboot", false);
+ 
+-    setting = &settings.emplace_back(objectServer,
+-                                     "/xyz/openbmc_project/control/host0/boot",
+-                                     "xyz.openbmc_project.Control.Boot.Source");
++    // Remove these from Intel_Settings so that they don't conflict with the standard OpenBMC copies
++    //  via the object manager search
++    
++    // setting = &settings.emplace_back(objectServer,
++    //                                  "/xyz/openbmc_project/control/host0/boot",
++    //                                  "xyz.openbmc_project.Control.Boot.Source");
+ 
+-    setting->addProperty(
+-        "BootSource",
+-        "xyz.openbmc_project.Control.Boot.Source.Sources.Default");
++    // setting->addProperty(
++    //     "BootSource",
++    //     "xyz.openbmc_project.Control.Boot.Source.Sources.Default");
+ 
+-    setting = &settings.emplace_back(objectServer,
+-                                     "/xyz/openbmc_project/control/host0/boot",
+-                                     "xyz.openbmc_project.Control.Boot.Mode");
++    // setting = &settings.emplace_back(objectServer,
++    //                                  "/xyz/openbmc_project/control/host0/boot",
++    //                                  "xyz.openbmc_project.Control.Boot.Mode");
+ 
+-    setting->addProperty("BootMode",
+-                         "xyz.openbmc_project.Control.Boot.Mode.Modes.Regular");
++    // setting->addProperty("BootMode",
++    //                      "xyz.openbmc_project.Control.Boot.Mode.Modes.Regular");
+ 
+-    setting = &settings.emplace_back(
+-        objectServer, "/xyz/openbmc_project/control/host0/boot/one_time",
+-        "xyz.openbmc_project.Control.Boot.Source");
++    // setting = &settings.emplace_back(
++    //     objectServer, "/xyz/openbmc_project/control/host0/boot/one_time",
++    //     "xyz.openbmc_project.Control.Boot.Source");
+ 
+-    setting->addProperty(
+-        "BootSource",
+-        "xyz.openbmc_project.Control.Boot.Source.Sources.Default");
++    // setting->addProperty(
++    //     "BootSource",
++    //     "xyz.openbmc_project.Control.Boot.Source.Sources.Default");
+ 
+-    setting = &settings.emplace_back(
+-        objectServer, "/xyz/openbmc_project/control/host0/boot/one_time",
+-        "xyz.openbmc_project.Control.Boot.Mode");
++    // setting = &settings.emplace_back(
++    //     objectServer, "/xyz/openbmc_project/control/host0/boot/one_time",
++    //     "xyz.openbmc_project.Control.Boot.Mode");
+ 
+-    setting->addProperty("BootMode",
+-                         "xyz.openbmc_project.Control.Boot.Mode.Modes.Regular");
++    // setting->addProperty("BootMode",
++    //                      "xyz.openbmc_project.Control.Boot.Mode.Modes.Regular");
+ 
+-    setting = &settings.emplace_back(
+-        objectServer, "/xyz/openbmc_project/control/host0/boot/one_time",
+-        "xyz.openbmc_project.Object.Enable");
++    // setting = &settings.emplace_back(
++    //     objectServer, "/xyz/openbmc_project/control/host0/boot/one_time",
++    //     "xyz.openbmc_project.Object.Enable");
+ 
+-    setting->addProperty("Enabled", true);
++    // setting->addProperty("Enabled", true);
+ 
+     setting = &settings.emplace_back(
+         objectServer, "/xyz/openbmc_project/control/host0/power_cap",

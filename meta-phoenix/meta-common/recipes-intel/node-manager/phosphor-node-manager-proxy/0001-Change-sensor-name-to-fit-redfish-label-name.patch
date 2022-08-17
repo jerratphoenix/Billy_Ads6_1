@@ -1,0 +1,22 @@
+From 4e3ef8a963a604e421023d4a9ba1778d2f36de9b Mon Sep 17 00:00:00 2001
+From: Brad Ho <Brad_Ho@phoenix.com>
+Date: Thu, 6 May 2021 18:58:26 -0700
+Subject: [PATCH] Change sensor name to fit redfish label name
+
+---
+ NodeManagerProxy.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/NodeManagerProxy.cpp b/NodeManagerProxy.cpp
+index 54fa936..3502e6a 100644
+--- a/NodeManagerProxy.cpp
++++ b/NodeManagerProxy.cpp
+@@ -121,7 +121,7 @@ void createSensors()
+     // Global power statistics
+     configuredSensors.push_back(std::make_unique<PowerMetric>(server));
+     configuredSensors.push_back(std::make_unique<GlobalPowerPlatform>(
+-        server, 0, 2040, "power", "Total_Power", globalPowerStats,
++        server, 0, 2040, "power", "total_power", globalPowerStats,
+         entirePlatform, 0));
+     configuredSensors.push_back(
+         std::make_unique<GlobalPowerCpu>(server, 0, 510, "power", "CPU_Power",

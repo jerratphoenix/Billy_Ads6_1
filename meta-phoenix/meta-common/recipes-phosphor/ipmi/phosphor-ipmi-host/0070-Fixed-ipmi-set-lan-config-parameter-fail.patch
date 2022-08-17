@@ -1,0 +1,100 @@
+From 0991cb5b3a42e28e9b1be2626dce42b4eb72e730 Mon Sep 17 00:00:00 2001
+From: Brad Ho <Brad_Ho@phoenix.com>
+Date: Sun, 14 Nov 2021 18:40:20 -0800
+Subject: [PATCH] Fixed ipmi set lan config parameter fail Number of Destinations 
+
+#17: Fixed response format not fit ipmi spec Destination Addresses 
+#19: Fixed can not set destination address problem
+
+---
+ transporthandler.cpp | 32 ++++++++++++++++----------------
+ 1 file changed, 16 insertions(+), 16 deletions(-)
+
+diff --git a/transporthandler.cpp b/transporthandler.cpp
+index 6cd59eb..574a37c 100644
+--- a/transporthandler.cpp
++++ b/transporthandler.cpp
+@@ -12,7 +12,7 @@ using sdbusplus::xyz::openbmc_project::Network::server::Neighbor;
+ 
+ namespace snmp
+ {
+-#define MAX_DEST 15
++#define MAX_DEST 16
+ constexpr auto LAN_CONFIG_FILE = "/usr/share/phosphor-ipmi-host/PtecLanConfig.json";
+ static constexpr const char* communityStr = "Community_String";
+ static constexpr const char* addressStr = "Destination_Addresses";
+@@ -110,7 +110,7 @@ int getDefaultDestinationAddresses()
+     return 0;
+ }
+ 
+-int setDestinationAddresses()
++int setDestinationAddresses(uint8_t set)
+ {
+     nlohmann::json j;
+ 
+@@ -126,19 +126,10 @@ int setDestinationAddresses()
+     jfile >> j;
+     jfile.close();
+ 
+-    /* Skip 0 reserved to Alert Immediate command */
+-    int size = getNumberOfDestinationsSize()-1;
+-    if( size > MAX_DEST )
+-    {
+-        log<level::ERR>("Destination size is over the MAX value",
+-            entry("VALUE=%d", MAX_DEST));
+-        elog<InternalFailure>();
+-
+-        size = MAX_DEST;
+-    }
++    int destEntries = set + 1;
+ 
+     // struct back to json
+-    for ( int i = 1; i < size; i++ ) {
++    for ( int i = 1; i < destEntries; i++ ) {
+         j[addressStr][i] = ipAddr[i];
+     }
+ 
+@@ -1466,12 +1457,20 @@ RspType<> setLan(Context::ptr ctx, uint4_t channelBits, uint4_t reserved1,
+                 return responseReqDataLenInvalid();
+             }
+ 
++            /* IPMI sepc mention, support max destination is 15*/
++            /* Skip 0 reserved to Alert Immediate command */
+             if (selector < 1 ||
+-                selector > MAX_DEST)
++                selector > MAX_DEST-1)
+             {
+                 return responseInvalidFieldRequest();
+             }
+             
++            int existEntriesSize = snmp::getNumberOfDestinationsSize();
++            if (selector > existEntriesSize)
++            {
++                return responseInvalidFieldRequest();
++            }
++
+             //TODO: Gateway selector, IPv6
+         
+             snmp::getDefaultDestinationAddresses();
+@@ -1481,7 +1480,7 @@ RspType<> setLan(Context::ptr ctx, uint4_t channelBits, uint4_t reserved1,
+             snmp::ipAddr[selector].addrFormat = addrFormat;
+             snmp::ipAddr[selector].ip = snmp::ipToStr(bytes);
+ 
+-            snmp::setDestinationAddresses();
++            snmp::setDestinationAddresses(selector);
+ 
+             return responseSuccess();
+         }
+@@ -1797,7 +1796,8 @@ RspType<message::Payload> getLan(Context::ptr ctx, uint4_t channelBits,
+         case LanParam::NumberOfDestinations:
+         {
+             /* Skip 0 reserved to Alert Immediate command */
+-            ret.pack(snmp::getNumberOfDestinationsSize()-1);
++            uint8_t size = snmp::getNumberOfDestinationsSize()-1;
++            ret.pack(size);
+             return responseSuccess(std::move(ret));
+         }
+         case LanParam::DestinationAddresses:
+-- 
+2.17.1
+

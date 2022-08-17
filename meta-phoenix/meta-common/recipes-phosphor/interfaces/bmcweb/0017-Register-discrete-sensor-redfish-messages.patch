@@ -1,0 +1,65 @@
+From 4543ccb745d02dd4e9bb54bee139615c71042a23 Mon Sep 17 00:00:00 2001
+From: Adeli Yeh <Adeli_Yeh@phoenix.com>
+Date: Mon, 7 Feb 2022 15:12:56 +0800
+Subject: [PATCH] Register discrete sensor redfish messages
+
+---
+ .../registries/openbmc_message_registry.hpp   | 36 +++++++++++++++++--
+ 1 file changed, 34 insertions(+), 2 deletions(-)
+ mode change 100644 => 100755 redfish-core/include/registries/openbmc_message_registry.hpp
+
+diff --git a/redfish-core/include/registries/openbmc_message_registry.hpp b/redfish-core/include/registries/openbmc_message_registry.hpp
+old mode 100644
+new mode 100755
+index 2f20503..d41c6ca
+--- a/redfish-core/include/registries/openbmc_message_registry.hpp
++++ b/redfish-core/include/registries/openbmc_message_registry.hpp
+@@ -29,7 +29,7 @@ const Header header = {
+     "0.2.0",
+     "OpenBMC",
+ };
+-constexpr std::array<MessageEntry, 188> registry = {
++constexpr std::array<MessageEntry, 191> registry = {
+     MessageEntry{
+         "ADDDCCorrectable",
+         {
+@@ -2423,6 +2423,38 @@ constexpr std::array<MessageEntry, 188> registry = {
+             {"string"},
+             "None.",
+         }},
+-
++    MessageEntry{
++        "DiscreteSensorOK",
++        {
++            "Indicates that discrete sensor information.",
++            "%1",
++            "OK",
++            "OK",
++            1,
++            {"string"},
++            "None.",
++        }},
++    MessageEntry{
++        "DiscreteSensorWarning",
++        {
++            "Indicates that discrete sensor warning message.",
++            "%1",
++            "Warning",
++            "Warning",
++            1,
++            {"string"},
++            "None.",
++        }},
++    MessageEntry{
++        "DiscreteSensorCritical",
++        {
++            "Indicates that discrete sensor critical message.",
++            "%1",
++            "Critical",
++            "Critical",
++            1,
++            {"string"},
++            "None.",
++        }},
+ };
+ } // namespace redfish::message_registries::openbmc

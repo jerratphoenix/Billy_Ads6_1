@@ -1,0 +1,27 @@
+From c48648278686022fdccf04f04813d02c7be39a36 Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Mon, 10 Jan 2022 10:45:40 +0000
+Subject: [PATCH] Prevent deactivating the systemd-hostnamed service when event
+ is idle
+
+Always activate this service to prevent if this service is activated/deactivated by phosphor-network-manager refreshing objects.
+---
+ src/hostname/hostnamed.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/hostname/hostnamed.c b/src/hostname/hostnamed.c
+index 36702f2fb0..52987937bd 100644
+--- a/src/hostname/hostnamed.c
++++ b/src/hostname/hostnamed.c
+@@ -1272,7 +1272,7 @@ static int run(int argc, char *argv[]) {
+         if (r < 0)
+                 return r;
+ 
+-        r = bus_event_loop_with_idle(event, bus, "org.freedesktop.hostname1", DEFAULT_EXIT_USEC, NULL, NULL);
++        r = sd_event_loop(event);
+         if (r < 0)
+                 return log_error_errno(r, "Failed to run event loop: %m");
+ 
+-- 
+2.17.1
+

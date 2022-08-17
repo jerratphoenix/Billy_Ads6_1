@@ -1,0 +1,104 @@
+From e1c70ee710b95ec0a3e44f9b814161e527b2ec87 Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Wed, 29 Dec 2021 03:17:27 +0000
+Subject: [PATCH] Add system restart cause for PEF
+
+---
+ power-control-x86/src/power_control.cpp | 39 +++++++++++++++++++++++--
+ 1 file changed, 36 insertions(+), 3 deletions(-)
+
+diff --git a/power-control-x86/src/power_control.cpp b/power-control-x86/src/power_control.cpp
+index 29feff8..fafb312 100755
+--- a/power-control-x86/src/power_control.cpp
++++ b/power-control-x86/src/power_control.cpp
+@@ -586,6 +586,8 @@ enum class RestartCause
+     watchdog,
+     powerPolicyOn,
+     powerPolicyRestore,
++    pefReset,
++    pefPowerCycle,
+     softReset,
+ };
+ static boost::container::flat_set<RestartCause> causeSet;
+@@ -613,6 +615,12 @@ static std::string getRestartCause(RestartCause cause)
+             return "xyz.openbmc_project.State.Host.RestartCause."
+                    "PowerPolicyPreviousState";
+             break;
++        case RestartCause::pefReset:
++            return "xyz.openbmc_project.State.Host.RestartCause.PEFReset";
++            break;
++        case RestartCause::pefPowerCycle:
++            return "xyz.openbmc_project.State.Host.RestartCause.PEFPowerCycle";
++            break;
+         case RestartCause::softReset:
+             return "xyz.openbmc_project.State.Host.RestartCause.SoftReset";
+             break;
+@@ -688,6 +696,14 @@ static void setRestartCause()
+     {
+         restartCause = getRestartCause(RestartCause::powerPolicyRestore);
+     }
++    else if (causeSet.contains(RestartCause::pefReset))
++    {
++        restartCause = getRestartCause(RestartCause::pefReset);
++    }
++    else if (causeSet.contains(RestartCause::pefPowerCycle))
++    {
++        restartCause = getRestartCause(RestartCause::pefPowerCycle);
++    }
+     else if (causeSet.contains(RestartCause::softReset))
+     {
+         restartCause = getRestartCause(RestartCause::softReset);
+@@ -3574,7 +3590,7 @@ int main(int argc, char* argv[])
+                 if (!powerButtonMask)
+                 {
+                     sendPowerControlEvent(Event::powerOffRequest);
+-                    addRestartCause(RestartCause::command);
++                    addRestartCause(RestartCause::pefPowerCycle);
+                 }
+                 else
+                 {
+@@ -3591,7 +3607,7 @@ int main(int argc, char* argv[])
+                 if (!powerButtonMask)
+                 {
+                     sendPowerControlEvent(Event::powerOnRequest);
+-                    addRestartCause(RestartCause::command);
++                    addRestartCause(RestartCause::pefPowerCycle);
+                 }
+                 else
+                 {
+@@ -3608,7 +3624,7 @@ int main(int argc, char* argv[])
+                 if (!powerButtonMask)
+                 {
+                     sendPowerControlEvent(Event::powerCycleRequest);
+-                    addRestartCause(RestartCause::command);
++                    addRestartCause(RestartCause::pefPowerCycle);
+                 }
+                 else
+                 {
+@@ -3618,6 +3634,23 @@ int main(int argc, char* argv[])
+                     return 0;
+                 }
+             }
++            else if (requested == "xyz.openbmc_project.State.Chassis.Transition."
++                                  "ForceWarmReboot")
++            {
++                // if reset button is masked, ignore this
++                if (!resetButtonMask)
++                {
++                    sendPowerControlEvent(Event::resetRequest);
++                    addRestartCause(RestartCause::pefReset);
++                }
++                else
++                {
++                    phosphor::logging::log<phosphor::logging::level::INFO>(
++                        "Reset Button Masked.");
++                    throw std::invalid_argument("Transition Request Masked");
++                    return 0;
++                }
++            }
+             else
+             {
+                 phosphor::logging::log<phosphor::logging::level::ERR>(
+-- 
+2.17.1
+

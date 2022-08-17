@@ -1,0 +1,22 @@
+From e85af3195cd9638622695a84a32818387c2dbd9c Mon Sep 17 00:00:00 2001
+From: Adeli Yeh <Adeli_Yeh@phoenix.com>
+Date: Thu, 23 Sep 2021 13:20:01 +0800
+Subject: [PATCH] Setup boot command for kernel address
+
+---
+ include/configs/ast-common.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/configs/ast-common.h b/include/configs/ast-common.h
+index a0243083bd..14ba1f2d6a 100644
+--- a/include/configs/ast-common.h
++++ b/include/configs/ast-common.h
+@@ -111,7 +111,7 @@
+ #define CONFIG_ENV_SIZE			0x10000	/* Total Size of Environment Sector */
+ #define CONFIG_ENV_SIZE_REDUND		0x10000
+ 
+-#define CONFIG_BOOTCOMMAND		"bootm 20080000"
++#define CONFIG_BOOTCOMMAND		"bootm 20100000"
+ #define CONFIG_ENV_OVERWRITE
+ 
+ #define ASPEED_ENV_SETTINGS \

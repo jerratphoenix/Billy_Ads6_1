@@ -1,0 +1,42 @@
+From ed6096058908f926037c947f741740e35d9165b8 Mon Sep 17 00:00:00 2001
+From: leocheng-tw <Leo_Cheng@phoenix.com>
+Date: Wed, 9 Feb 2022 08:07:45 +0000
+Subject: [PATCH] Correct dbus service to match power cap data.
+
+---
+ redfish-core/lib/power.hpp | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+ mode change 100644 => 100755 redfish-core/lib/power.hpp
+
+diff --git a/redfish-core/lib/power.hpp b/redfish-core/lib/power.hpp
+old mode 100644
+new mode 100755
+index bf33250..eb32bea
+--- a/redfish-core/lib/power.hpp
++++ b/redfish-core/lib/power.hpp
+@@ -111,14 +111,14 @@ inline void setPowerCapOverride(
+                         sensorsAsyncResp->asyncResp->res.result(
+                             boost::beast::http::status::no_content);
+                     },
+-                    "xyz.openbmc_project.Settings",
++                    "xyz.openbmc_project.Intel_Settings",
+                     "/xyz/openbmc_project/control/host0/power_cap",
+                     "org.freedesktop.DBus.Properties", "Set",
+                     "xyz.openbmc_project.Control.Power.Cap", "PowerCap",
+                     std::variant<uint32_t>(*value));
+             };
+             crow::connections::systemBus->async_method_call(
+-                std::move(valueHandler), "xyz.openbmc_project.Settings",
++                std::move(valueHandler), "xyz.openbmc_project.Intel_Settings",
+                 "/xyz/openbmc_project/control/host0/power_cap",
+                 "org.freedesktop.DBus.Properties", "Get",
+                 "xyz.openbmc_project.Control.Power.Cap", "PowerCapEnable");
+@@ -302,7 +302,7 @@ inline void requestRoutesPower(App& app)
+                     };
+ 
+                     crow::connections::systemBus->async_method_call(
+-                        std::move(valueHandler), "xyz.openbmc_project.Settings",
++                        std::move(valueHandler), "xyz.openbmc_project.Intel_Settings",
+                         "/xyz/openbmc_project/control/host0/power_cap",
+                         "org.freedesktop.DBus.Properties", "GetAll",
+                         "xyz.openbmc_project.Control.Power.Cap");

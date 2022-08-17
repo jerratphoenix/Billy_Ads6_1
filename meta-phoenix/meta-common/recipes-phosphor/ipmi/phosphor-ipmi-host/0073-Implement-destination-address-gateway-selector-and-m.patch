@@ -1,0 +1,161 @@
+From e988bcd81714dbbb6a9878cf72fe56f97aa40e72 Mon Sep 17 00:00:00 2001
+From: Brad Ho <brad_ho@phoenix.com>
+Date: Tue, 18 Jan 2022 15:27:03 +0800
+Subject: [PATCH] Implement destination address gateway selector and mac
+ address
+
+Note:
+   That set/get Lan config command to fit IPMI specfiction format but gateway selector and mac address
+   are not effect, NEED TO IMPLMENT.
+---
+ transporthandler.cpp | 70 +++++++++++++++++++++++++++++++++-----------
+ 1 file changed, 53 insertions(+), 17 deletions(-)
+
+diff --git a/transporthandler.cpp b/transporthandler.cpp
+index 574a37c..a6477a9 100644
+--- a/transporthandler.cpp
++++ b/transporthandler.cpp
+@@ -18,7 +18,9 @@ static constexpr const char* communityStr = "Community_String";
+ static constexpr const char* addressStr = "Destination_Addresses";
+ static constexpr const char* addrFormatStr = "Address_Format";
+ static constexpr const char* ipaddrtStr = "Alerting_IP_Address";
++static constexpr const char* macaddrtStr = "Alerting_MAC_Address";
+ static constexpr const char* selectorStr = "Selector";
++static constexpr const char* gatewaySelectorStr = "Gateway_Selector";
+ 
+ namespace jsonns {
+ 
+@@ -42,21 +44,27 @@ namespace jsonns {
+     struct snmpAddr {
+         uint8_t selector;
+         uint8_t addrFormat;
++        uint8_t gatewaySelector;
+         std::string ip; 
++        std::string mac; 
+     };
+ 
+     void to_json(nlohmann::json& j, const snmpAddr& p) {
+         j = nlohmann::json{
+             {selectorStr, HEX_TO_STR(p.selector)},
+             {addrFormatStr, HEX_TO_STR(p.addrFormat)},
++            {gatewaySelectorStr, HEX_TO_STR(p.gatewaySelector)},
+             {ipaddrtStr, p.ip},
++            {macaddrtStr, p.mac},
+         };
+     }
+ 
+     void from_json(const nlohmann::json& j, snmpAddr& p) {
+         p.selector =    STR_TO_HEX(selectorStr);
+         p.addrFormat =  STR_TO_HEX(addrFormatStr);
++        p.gatewaySelector =  STR_TO_HEX(gatewaySelectorStr);
+         j.at(ipaddrtStr).get_to(p.ip);
++        j.at(macaddrtStr).get_to(p.mac);
+     }
+ } // namespace jsonns
+ 
+@@ -71,6 +79,16 @@ std::string ipToStr(std::array<uint8_t, sizeof(in_addr)> ip)
+            + std::to_string(ip[3]);
+ }
+ 
++std::string macToStr(std::array<uint8_t, sizeof(ether_addr)> mac)
++{
++    return std::to_string(mac[0]) + ":" 
++           + std::to_string(mac[1]) + ":" 
++           + std::to_string(mac[2]) + ":" 
++           + std::to_string(mac[3]) + ":" 
++           + std::to_string(mac[4]) + ":" 
++           + std::to_string(mac[5]);
++}
++
+ uint8_t getNumberOfDestinationsSize()
+ {
+     uint8_t size = 0;
+@@ -179,6 +197,23 @@ std::string getCommunityString()
+     return communityString;
+ }
+ 
++void splitStr(std::string value, std::string delimiter, int size,
++    std::vector<uint8_t>& data)
++{
++    std::string token;
++    size_t last = 0;
++    size_t next = 0;
++    int index = 0;
++    
++    while (index < size) {
++    	next = value.find(delimiter, last);
++        token = value.substr(last, next-last);
++        last = next + 1;
++        uint8_t temp = std::stoul(token, nullptr, 0);
++        data.push_back(temp);
++        index++;
++    }
++}
+ 
+ std::vector<uint8_t> getDestinationAddresses(uint8_t set)
+ {
+@@ -203,22 +238,17 @@ std::vector<uint8_t> getDestinationAddresses(uint8_t set)
+         uint8_t addrFormat = static_cast<uint8_t>(
+             std::stoul(addressList[set][addrFormatStr].get<std::string>(), nullptr, 0));
+         ip.push_back(addrFormat);
+-        
++
++        uint8_t gatewaySelector = static_cast<uint8_t>(
++            std::stoul(addressList[set][gatewaySelectorStr].get<std::string>(), nullptr, 0));
++        ip.push_back(gatewaySelector);
++
+         std::string ipaddr = addressList[set][ipaddrtStr];
+-        std::string delimiter = ".";
+-        std::string token;
+-        size_t last = 0;
+-        size_t next = 0;
+-        int index = 0;
+-
+-        while (index < 4) {
+-        	next = ipaddr.find(delimiter, last);
+-            token = ipaddr.substr(last, next-last);
+-            last = next + 1;
+-            uint8_t temp = std::stoul(token, nullptr, 0);
+-            ip.push_back(temp);
+-            index++;
+-        }
++        splitStr(ipaddr, ".", sizeof(in_addr), ip);
++
++        std::string macaddr = addressList[set][macaddrtStr];
++        splitStr(macaddr, ":", sizeof(ether_addr), ip);
++
+     }
+     return ip;
+ }
+@@ -1451,8 +1481,11 @@ RspType<> setLan(Context::ptr ctx, uint4_t channelBits, uint4_t reserved1,
+         {
+             uint8_t selector;
+             uint8_t addrFormat;
++            uint8_t gatewaySelector;
+             std::array<uint8_t, sizeof(in_addr)> bytes;
+-            if (req.unpack(selector, addrFormat, bytes) ||!req.fullyUnpacked())
++            std::array<uint8_t, sizeof(ether_addr)> mac;
++            if (req.unpack(selector, addrFormat, gatewaySelector, bytes, mac) 
++                || !req.fullyUnpacked())
+             {
+                 return responseReqDataLenInvalid();
+             }
+@@ -1471,14 +1504,17 @@ RspType<> setLan(Context::ptr ctx, uint4_t channelBits, uint4_t reserved1,
+                 return responseInvalidFieldRequest();
+             }
+ 
+-            //TODO: Gateway selector, IPv6
++            //TODO: Mac address, Gateway selector, IPv6
++            //Mac address and Gateway selector is support set/get but not effect.
+         
+             snmp::getDefaultDestinationAddresses();
+ 
+             /* IPMI SPEC specifed [7:4] = Reserved */
+             snmp::ipAddr[selector].selector = selector & 0xf;
+             snmp::ipAddr[selector].addrFormat = addrFormat;
++            snmp::ipAddr[selector].gatewaySelector = gatewaySelector & 0x01;
+             snmp::ipAddr[selector].ip = snmp::ipToStr(bytes);
++            snmp::ipAddr[selector].mac = snmp::macToStr(mac);
+ 
+             snmp::setDestinationAddresses(selector);
+ 

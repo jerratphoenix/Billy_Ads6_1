@@ -1,0 +1,46 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+old mode 100644
+new mode 100755
+index 1a8f0b8..ad6ef60
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -79,5 +79,5 @@ if (NOT YOCTO)
+ endif ()
+ 
+ install (TARGETS settings DESTINATION bin)
+-install (FILES xyz.openbmc_project.Settings.service DESTINATION
++install (FILES xyz.openbmc_project.Intel_Settings.service DESTINATION
+                /lib/systemd/system/)
+diff --git a/src/main.cpp b/src/main.cpp
+old mode 100644
+new mode 100755
+index 1a46ae9..c8fbcd7
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -21,7 +21,7 @@ int main()
+ {
+     boost::asio::io_context io;
+     auto systemBus = std::make_shared<sdbusplus::asio::connection>(io);
+-    systemBus->request_name("xyz.openbmc_project.Settings");
++    systemBus->request_name("xyz.openbmc_project.Intel_Settings");
+ 
+     sdbusplus::asio::object_server objServer(systemBus);
+ 
+diff --git a/xyz.openbmc_project.Settings.service b/xyz.openbmc_project.Intel_Settings.service
+old mode 100644
+new mode 100755
+similarity index 75%
+rename from xyz.openbmc_project.Settings.service
+rename to xyz.openbmc_project.Intel_Settings.service
+index 4b8ddb5..cb4a845
+--- a/xyz.openbmc_project.Settings.service
++++ b/xyz.openbmc_project.Intel_Settings.service
+@@ -4,7 +4,7 @@ Description=Settings
+ [Service]
+ ExecStart=/usr/bin/settings
+ Restart=always
+-BusName=xyz.openbmc_project.Settings
++BusName=xyz.openbmc_project.Intel_Settings
+ Type=dbus
+ 
+ [Install]

@@ -1,0 +1,53 @@
+From b0bf3d1f7a8b0cd4f0282dd484b03b110834cd5b Mon Sep 17 00:00:00 2001
+From: Jammy Huang <jammy_huang@aspeedtech.com>
+Date: Mon, 9 Aug 2021 09:31:43 +0800
+Subject: [PATCH 01/27] media: aspeed: refine to avoid full jpeg update
+
+The switch of jpeg 420/444 subsampling will update full jpeg header for
+aspeed now.
+
+Just update the 420/444 subsampling part of jpeg header is fine.
+
+Change-Id: Idfcd7a9d65a13f948eae1ed58b2f5a25a6728098
+---
+ drivers/media/platform/aspeed-video.c | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/media/platform/aspeed-video.c b/drivers/media/platform/aspeed-video.c
+index 7bb6babdcade..09f4cd76858f 100644
+--- a/drivers/media/platform/aspeed-video.c
++++ b/drivers/media/platform/aspeed-video.c
+@@ -422,6 +422,21 @@ static void aspeed_video_init_jpeg_table(u32 *table, bool yuv420)
+ 	}
+ }
+ 
++// just update jpeg dct table per 420/444
++static void aspeed_video_update_jpeg_table(u32 *table, bool yuv420)
++{
++	int i;
++	unsigned int base;
++
++	for (i = 0; i < ASPEED_VIDEO_JPEG_NUM_QUALITIES; i++) {
++		base = 256 * i;	/* AST HW requires this header spacing */
++		base += ASPEED_VIDEO_JPEG_HEADER_SIZE +
++			ASPEED_VIDEO_JPEG_DCT_SIZE;
++
++		table[base + 2] = (yuv420) ? 0x00220103 : 0x00110103;
++	}
++}
++
+ static void aspeed_video_update(struct aspeed_video *video, u32 reg, u32 clear,
+ 				u32 bits)
+ {
+@@ -1293,7 +1308,7 @@ static void aspeed_video_update_jpeg_quality(struct aspeed_video *video)
+ static void aspeed_video_update_subsampling(struct aspeed_video *video)
+ {
+ 	if (video->jpeg.virt)
+-		aspeed_video_init_jpeg_table(video->jpeg.virt, video->yuv420);
++		aspeed_video_update_jpeg_table(video->jpeg.virt, video->yuv420);
+ 
+ 	if (video->yuv420)
+ 		aspeed_video_update(video, VE_SEQ_CTRL, 0, VE_SEQ_CTRL_YUV420);
+-- 
+2.17.1
+
