@@ -71,6 +71,62 @@
       "slaveAddrMask": "0x00",
       "command": "0x00",
       "commandMask": "0xFF"
+    },
+	{
+      "Description": "Allow full read - ignore first byte write value",
+      "busId": "0x05",
+      "slaveAddr": "0x10",
+      "slaveAddrMask": "0x00",
+      "command": "0x00",
+      "commandMask": "0xFF"
+    }, 
+	{
+      "Description": "Allow full read - ignore first byte write value",
+      "busId": "0x05",
+      "slaveAddr": "0x16",
+      "slaveAddrMask": "0x00",
+      "command": "0x00",
+      "commandMask": "0xFF"
+    }, 
+	{
+      "Description": "Allow full read - ignore first byte write value",
+      "busId": "0x06",
+      "slaveAddr": "0x21",
+      "slaveAddrMask": "0x00",
+      "command": "0x00",
+      "commandMask": "0xFF"
+    },
+	{
+      "Description": "Allow full read - ignore first byte write value",
+      "busId": "0x09",
+      "slaveAddr": "0x40",
+      "slaveAddrMask": "0x00",
+      "command": "0x00",
+      "commandMask": "0xFF"
+    }, 
+	{
+      "Description": "Allow full read - ignore first byte write value",
+      "busId": "0x012",
+      "slaveAddr": "0x50",
+      "slaveAddrMask": "0x00",
+      "command": "0x00",
+      "commandMask": "0xFF"
+    }, 
+	{
+      "Description": "Allow full read - ignore first byte write value",
+      "busId": "0x13",
+      "slaveAddr": "0x10",
+      "slaveAddrMask": "0x00",
+      "command": "0x00",
+      "commandMask": "0xFF"
+    }, 
+	{
+      "Description": "Allow full read - ignore first byte write value",
+      "busId": "0x13",
+      "slaveAddr": "0x21",
+      "slaveAddrMask": "0x00",
+      "command": "0x00",
+      "commandMask": "0xFF"
     }
   ]
 }
