@@ -1,0 +1,53 @@
+diff --git a/board/aspeed/ast2600_intel/intel.c b/board/aspeed/ast2600_intel/intel.c
+old mode 100644
+new mode 100755
+index dc676d6db0..b3f03c2cd0
+--- a/board/aspeed/ast2600_intel/intel.c
++++ b/board/aspeed/ast2600_intel/intel.c
+@@ -615,11 +615,20 @@ extern void espi_init(void);
+ extern void kcs_init(void);
+ extern void timer_enable(int n, u32 interval_us, interrupt_handler_t *handler,
+ 			 void *cookie);
++/* following definitions are leveraged from Baidu-ads-5.0 platform, and modified according to ast2600 spec*/		 
++#define		AST_SCU_BASE		0x1E6E2000	
++#define 	AST_SCU_MAC_CLK		0x340    /* MAC 12 interface clock delay setting register */
++#define AST_SCU_MAC_RGMII_CLK_INTERNAL	0x80000000	/* RGMII internal clock select */
++#define AST_SCU_MAC_RGMII2_TX_DELAY_OFFSET   (6)
++#define AST_SCU_MAC_RGMII2_TX_DELAY_MASK     (0x3f << AST_SCU_MAC_RGMII2_TX_DELAY_OFFSET)
++#define AST_SCU_MAC_RGMII2_RX_DELAY_OFFSET   (18)
++#define AST_SCU_MAC_RGMII2_RX_DELAY_MASK     (0x3f << AST_SCU_MAC_RGMII2_RX_DELAY_OFFSET)
+ int board_late_init(void)
+ {
+ #define ONE_MSEC_IN_USEC	1000
+ 	char value[11];
+ 	u32 boot_failures;
++	uint32_t val;
+ 
+ 	if (readl(SCU_BASE | SCU_014) == REV_ID_AST2600A0)
+ 		timer_enable(0, ONE_MSEC_IN_USEC, timer_callback, (void *)0);
+@@ -652,6 +661,25 @@ int board_late_init(void)
+ 	if (read_ffuj()) {
+ 		kcs_init();
+ 	}
++	/* Select RGMII 125Mhz external clock source
++                and set TX and RX internal delays
++        */
++		
++        val = readl(AST_SCU_BASE + AST_SCU_MAC_CLK);
++        val &= ~AST_SCU_MAC_RGMII_CLK_INTERNAL;
++        val &= ~AST_SCU_MAC_RGMII2_TX_DELAY_MASK;
++        val |= (9 << AST_SCU_MAC_RGMII2_TX_DELAY_OFFSET);
++        val &= ~AST_SCU_MAC_RGMII2_RX_DELAY_MASK;
++        val |= (5 << AST_SCU_MAC_RGMII2_RX_DELAY_OFFSET);
++        writel(val, AST_SCU_BASE + AST_SCU_MAC_CLK);
++		
++        // /* Disable RGMII2 TX Pulldowns */
++        // val = readl(AST_SCU_BASE + AST_SCU_FUN_PIN_CTRL5);
++        // val |= SCU_FUC_PIN_MII2_TX_DWN_DIS;
++        // writel(val, AST_SCU_BASE + AST_SCU_FUN_PIN_CTRL5);
++
++        //gd->bd->bi_boot_params = CONFIG_SYS_SDRAM_BASE + 0x100; //no idea what these 2 lines are doing, will look into it later;
++        //gd->flags = 0;
+ 
+ 	return 0;
+ }
