@@ -32,6 +32,8 @@ SRC_URI += " \
         file://0503-hwmon-peci-platformpower-implementation.patch \
         file://0505-Add-FM_BMC_DEBUG_EN_N-pin-in-DTS-for-Archer-City-Mod.patch \
         file://0506-peci-cputemp-Add-HBM-temperature-sensor-support.patch \
+		file://0010-Add-PhyLess-MACtoMAC-drv-modify.patch \
+		file://0011-disabled-IPV6-Protocol-Kconfig.patch \
         "
 
 #SRC_URI += "${@bb.utils.contains('IMAGE_FSTYPES', 'intel-pfr', 'file://1000-128MB-flashmap-for-PFR.patch', '', d)}"

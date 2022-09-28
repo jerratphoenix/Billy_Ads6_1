@@ -1,0 +1,125 @@
+diff --git a/drivers/net/ethernet/faraday/ftgmac100.c b/drivers/net/ethernet/faraday/ftgmac100.c
+old mode 100644
+new mode 100755
+index f95d008173a1..023a2ddc6fa2
+--- a/drivers/net/ethernet/faraday/ftgmac100.c
++++ b/drivers/net/ethernet/faraday/ftgmac100.c
+@@ -88,7 +88,7 @@ struct ftgmac100 {
+ 	struct work_struct reset_task;
+ 	struct mii_bus *mii_bus;
+ 	struct clk *clk;
+-
++	phy_interface_t phy_iface; //Phoenix added;
+ 	/* AST2500/AST2600 RMII ref clock gate */
+ 	struct clk *rclk;
+ 
+@@ -1478,11 +1478,21 @@ static int ftgmac100_open(struct net_device *netdev)
+ 	if (priv->use_ncsi) {
+ 		priv->cur_duplex = DUPLEX_FULL;
+ 		priv->cur_speed = SPEED_100;
++	#if 0 // Phoenix marked below
+ 	} else {
+ 		priv->cur_duplex = 0;
+ 		priv->cur_speed = 0;
+ 	}
+-
++	#endif 
++	// Phoenix added
++	} else if (netdev->phydev) {
++ 		priv->cur_duplex = 0;
++ 		priv->cur_speed = 0;
++	} else {
++		priv->cur_duplex = DUPLEX_FULL;
++		priv->cur_speed = SPEED_1000;
++ 	}
++	//end of Phoenix added
+ 	/* Reset the hardware */
+ 	err = ftgmac100_reset_and_config_mac(priv);
+ 	if (err)
+@@ -1508,6 +1518,7 @@ static int ftgmac100_open(struct net_device *netdev)
+ 	if (netdev->phydev) {
+ 		/* If we have a PHY, start polling */
+ 		phy_start(netdev->phydev);
++	#if 0 //Phoenix marked below
+ 	} else if (priv->use_ncsi) {
+ 		/* If using NC-SI, set our carrier on and start the stack */
+ 		netif_carrier_on(netdev);
+@@ -1517,7 +1528,18 @@ static int ftgmac100_open(struct net_device *netdev)
+ 		if (err)
+ 			goto err_ncsi;
+ 	}
+-
++	#endif //end of Phoenix marked
++	//below Phoenix added
++	} else {
++		/* If using NC-SI or phy-less, set our carrier on */
++		netif_carrier_on(netdev);
++		if (priv->use_ncsi) {
++			/* Start the NCSI device */
++			err = ncsi_start_dev(priv->ndev);
++			if (err)
++				goto err_ncsi;
++		}
++ 	} // end of phoenix added
+ 	return 0;
+ 
+  err_ncsi:
+@@ -1837,6 +1859,7 @@ static int ftgmac100_probe(struct platform_device *pdev)
+ 	priv->tx_pause = true;
+ 	priv->rx_pause = true;
+ 	priv->aneg_pause = true;
++	priv->use_ncsi = false; //Phoenix added
+ 
+ 	/* MAC address from chip or random one */
+ 	ftgmac100_initial_mac(priv);
+@@ -1872,9 +1895,13 @@ static int ftgmac100_probe(struct platform_device *pdev)
+ 			err = -EINVAL;
+ 			goto err_ncsi_dev;
+ 		}
++	// below Phoenix added
++	} else if (np && of_get_property(np, "no-phy", NULL)) {
++		dev_info(&pdev->dev, "Using PHYless interface (no-phy)\n");
++	//end Phoenix added
+ 	} else if (np && of_get_property(np, "phy-handle", NULL)) {
+ 		struct phy_device *phy;
+-
++		dev_info(&pdev->dev, "Using phy-handle interface\n"); //Phoenix added
+ 		phy = of_phy_get_and_connect(priv->netdev, np,
+ 					     &ftgmac100_adjust_link);
+ 		if (!phy) {
+@@ -1890,13 +1917,34 @@ static int ftgmac100_probe(struct platform_device *pdev)
+ 
+ 		/* Display what we found */
+ 		phy_attached_info(phy);
++		//below Phoenix added
++		} else if (np && of_phy_is_fixed_link(np)) {
++		struct phy_device *phydev;
++		struct device_node *phynode;
++
++		dev_info(&pdev->dev, "Using PHYless interface (fixed-link)\n");
++
++		err = of_phy_register_fixed_link(np);
++		if (err)
++				goto err_ioremap;
++
++		/* In the case of a fixed PHY, the DT node associated
++			* to the PHY is the Ethernet MAC DT node.
++			*/
++		phynode = of_node_get(np);
++
++		phydev = of_phy_connect(netdev, phynode,
++					&ftgmac100_adjust_link,
++					0, priv->phy_iface);	
++		//end Phoenix added
+ 	} else if (np && !of_get_child_by_name(np, "mdio")) {
+ 		/* Support legacy ASPEED devicetree descriptions that decribe a
+ 		 * MAC with an embedded MDIO controller but have no "mdio"
+ 		 * child node. Automatically scan the MDIO bus for available
+ 		 * PHYs.
+ 		 */
+-		priv->use_ncsi = false;
++		//priv->use_ncsi = false; //phoenix marked and replaced below
++		dev_info(&pdev->dev, "Using mdio interface\n"); // phoenix added
+ 		err = ftgmac100_setup_mdio(netdev);
+ 		if (err)
+ 			goto err_setup_mdio;

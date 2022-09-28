@@ -1,0 +1,15 @@
+diff --git a/net/ipv6/Kconfig b/net/ipv6/Kconfig
+old mode 100644
+new mode 100755
+index 747f56e0c636..ebaf4c612912
+--- a/net/ipv6/Kconfig
++++ b/net/ipv6/Kconfig
+@@ -6,7 +6,7 @@
+ #   IPv6 as module will cause a CRASH if you try to unload it
+ menuconfig IPV6
+ 	tristate "The IPv6 protocol"
+-	default y
++	default n
+ 	help
+ 	  Support for IP version 6 (IPv6).
+ 
