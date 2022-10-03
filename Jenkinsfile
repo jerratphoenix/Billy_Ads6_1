@@ -13,7 +13,7 @@ pipeline {
                           branches: [[name: '*/master']],
                           extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'workspace/robotframework'],
                                        [$class: 'LocalBranch', localBranch: '**']],
-                          userRemoteConfigs: [[credentialsId: 'jenkins-slave-1', url: 'git@github.com:pteceng/RobotFrameworkTest-BMC.git']]
+                          userRemoteConfigs: [[credentialsId: 'bmc-build-slave-1', url: 'git@github.com:pteceng/RobotFrameworkTest-BMC.git']]
                           ]);
 		  sh "cd ${WORKSPACE}/workspace/robotframework/; \
                       if [ ! -d './${params.test_board}' ]; then if [ -d './_archived/${params.test_board}' ]; then mv './_archived/${params.test_board}' .; fi; fi \
