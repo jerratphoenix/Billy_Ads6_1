@@ -1,0 +1,66 @@
+diff --git a/src/network_config.cpp b/src/network_config.cpp
+old mode 100644
+new mode 100755
+index 94c8eae..3516723
+--- a/src/network_config.cpp
++++ b/src/network_config.cpp
+@@ -41,6 +41,28 @@ void writeDHCPDefault(const std::string& filename, const std::string& interface)
+                 "[DHCP]\nClientIdentifier=mac\n";
+     filestream.close();
+ }
++void writeStaticDefault(const std::string& filename, const std::string& interface)
++{
++    std::ofstream filestream;
++
++    filestream.open(filename);
++    filestream << "[Match]\nName=" << interface <<
++                "\n[Network]\nDHCP=false\n"
++#ifdef LINK_LOCAL_AUTOCONFIGURATION
++                "LinkLocalAddressing=yes\n"
++#else
++                "LinkLocalAddressing=no\n"
++#endif
++                "IPv6AcceptRA=false\n"
++                "[DHCP]\nClientIdentifier=mac\n";
++
++   if(interface == "eth0")
++   {
++        filestream << "[Address]\nAddress=192.168.60.150/24\n";
++   }
++
++    filestream.close();
++}
+ } // namespace bmc
+ 
+ } // namespace network
+diff --git a/src/network_config.hpp b/src/network_config.hpp
+old mode 100644
+new mode 100755
+index 7260ca2..fc5c457
+--- a/src/network_config.hpp
++++ b/src/network_config.hpp
+@@ -9,6 +9,8 @@ namespace bmc
+ {
+ void writeDHCPDefault(const std::string& filename,
+                       const std::string& interface);
++void writeStaticDefault(const std::string& filename,
++                      const std::string& interface);
+ }
+ 
+ } // namespace network
+diff --git a/src/network_manager.cpp b/src/network_manager.cpp
+old mode 100644
+new mode 100755
+index 6417a13..b13a5bb
+--- a/src/network_manager.cpp
++++ b/src/network_manager.cpp
+@@ -88,7 +88,8 @@ bool Manager::createDefaultNetworkFiles(bool force)
+ 
+             if (force || !fs::is_regular_file(filePath.string()))
+             {
+-                bmc::writeDHCPDefault(filePath.string(), interface);
++                //bmc::writeDHCPDefault(filePath.string(), interface);
++				bmc::writeStaticDefault(filePath.string(), interface);
+                 log<level::INFO>("Created the default network file.",
+                                  entry("INTERFACE=%s", interface.c_str()));
+                 isCreated = true;
