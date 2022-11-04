@@ -25,7 +25,7 @@ index 94c8eae..3516723
 +
 +   if(interface == "eth0")
 +   {
-+        filestream << "[Address]\nAddress=192.168.60.150/24\n";
++        filestream << "[Address]\nAddress=192.168.10.150/24\n";
 +   }
 +
 +    filestream.close();
