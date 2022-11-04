@@ -17,6 +17,7 @@ SRC_URI += "file://ptec-ipmi-whitelist.conf \
             file://0015-Add-dbus-Clear-method-to-ClearSEL-command.patch \
             file://0016-Support-IPMI-FRU-write.patch \
             file://0017-Fix-the-mapping-issue-of-FruDevice-object-and-IPMI-FRU-ID.patch \
+	    file://0018-Add-NM-Throttle-GetCmd.patch \
            "
 
 

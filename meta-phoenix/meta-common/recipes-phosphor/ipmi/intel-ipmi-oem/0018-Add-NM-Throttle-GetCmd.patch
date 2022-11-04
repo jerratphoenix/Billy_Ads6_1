@@ -1,0 +1,12 @@
+diff --git a/ipmi-whitelist.conf b/ipmi-whitelist.conf
+index 353d3f0..3eb9ffa 100755
+--- a/ipmi-whitelist.conf
++++ b/ipmi-whitelist.conf
+@@ -199,6 +199,7 @@
+ 0x2e:0xF0:0x7f7f   //<Intel OEM>:<Set HW Protection Coefficient>
+ 0x2e:0xF1:0xff7f   //<Intel OEM>:<Get HW Protection Coefficient>
+ 0x2e:0xF2:0xff7f   //<Intel OEM>:<Get Limiting Policy ID>
++0x2e:0xfa:0xff7f   //<Intel OEM>:<Get NM Parameter>
+ 0x30:0x02:0x7f7f   //<Intel General Application>:<Restore Configuration>
+ 0x30:0x03:0x7f7f   //<Intel General Application>:<Restore SDR>
+ 0x30:0x04:0xff7f   //<Intel General Application>:<Get NW Switch MIB>
