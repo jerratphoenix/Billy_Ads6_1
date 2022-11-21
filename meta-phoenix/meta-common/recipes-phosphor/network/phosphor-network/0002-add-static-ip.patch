@@ -23,7 +23,7 @@ index 94c8eae..3516723
 +                "IPv6AcceptRA=false\n"
 +                "[DHCP]\nClientIdentifier=mac\n";
 +
-+   if(interface == "eth0")
++   if(interface == "eth1")
 +   {
 +        filestream << "[Address]\nAddress=192.168.10.150/24\n";
 +   }
