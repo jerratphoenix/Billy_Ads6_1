@@ -1,0 +1,313 @@
+diff --git a/include/oemcommands.hpp b/include/oemcommands.hpp
+old mode 100644
+new mode 100755
+index 6a5578a..8c473ef
+--- a/include/oemcommands.hpp
++++ b/include/oemcommands.hpp
+@@ -29,6 +29,7 @@ static constexpr NetFn netFnApp = netFnOemEight;
+ 
+ namespace general
+ {
++static constexpr Cmd cmdOemSetDriveInfo = 0x12;
+ static constexpr Cmd cmdRestoreConfiguration = 0x02;
+ static constexpr Cmd cmdGetSmSignal = 0x14;
+ static constexpr Cmd cmdSetSmSignal = 0x15;
+@@ -290,6 +291,15 @@ struct GUIDData
+     uint8_t timeLow4;
+ };
+ 
++static constexpr const uint8_t maxDriveInfoLength = 128;
++
++struct DriveInfo
++{
++    uint8_t parameter;
++    uint8_t id;
++    uint8_t data[maxDriveInfoLength];
++};
++
+ struct DeviceInfo
+ {
+     uint8_t biosIDLength;
+@@ -375,6 +385,17 @@ enum class dimmOffsetTypes : uint8_t
+     dimmPower = 0x2
+ };
+ 
++enum DRIVE_INFO_PARAMETER
++{
++    DRIVE_COUNT         = 0x00,
++    DRIVE_MODEL         = 0x01,
++    DRIVE_MANUFACTURER  = 0x02,
++    DRIVE_PART_NUMBER   = 0x03,
++    DRIVE_SERIAL_NUMBER = 0x04,
++	PCIE_COUNT 			= 0x05,
++	PCIE_DEV_INFO		= 0x06,
++};
++
+ // FIXME: this stuff needs to be rewritten
+ enum IPMI_INTEL_OEM_RETURN_CODES
+ {
+diff --git a/ipmi-whitelist.conf b/ipmi-whitelist.conf
+index 353d3f0..e6dbbd9 100755
+--- a/ipmi-whitelist.conf
++++ b/ipmi-whitelist.conf
+@@ -204,6 +204,7 @@
+ 0x30:0x04:0xff7f   //<Intel General Application>:<Get NW Switch MIB>
+ 0x30:0x05:0xff7f   //<Intel General Application>:<Get PDB FW Version>
+ 0x30:0x09:0xff7f   //<Intel General Application>:<Get BMC Config>
++0x30:0x12:0x7f7f   //<Phoenix OEM>: <Set Drive Info>
+ 0x30:0x14:0xff7f   //<Intel General Application>:<Get SM Signal>
+ 0x30:0x15:0x7f7f   //<Intel General Application>:<Set SM Signal>
+ 0x30:0x19:0xff7f   //<Intel General Application>:<Read LAN Channel Port Value>
+diff --git a/src/oemcommands.cpp b/src/oemcommands.cpp
+index 3d5faf6..047befe 100755
+--- a/src/oemcommands.cpp
++++ b/src/oemcommands.cpp
+@@ -226,6 +226,237 @@ ipmi_ret_t ipmiOEMSetSystemGUID(ipmi_netfn_t netfn, ipmi_cmd_t cmd,
+     return IPMI_CC_OK;
+ }
+ 
++void deleteDriveObject(sdbusplus::bus::bus& bus, const std::string& service,
++                          const std::string& path)
++{
++    if (path.empty())
++    {
++        return;
++    }
++    try
++    {
++        auto req = bus.new_method_call(service.c_str(), path.c_str(),
++                                       ipmi::DELETE_INTERFACE, "Delete");
++        bus.call_noreply(req);
++    }
++    catch (const sdbusplus::exception::SdBusError& e)
++    {
++            phosphor::logging::log<phosphor::logging::level::ERR>(
++                "ipmiOEMSetDriveInfo: can't delete drive object");
++    }
++}
++
++void createDriveObject(int index)
++{
++    char buf[512] = {0};
++    static constexpr const char* bufPrefix =
++        "busctl call xyz.openbmc_project.Inventory.Manager /xyz/openbmc_project/inventory xyz.openbmc_project.Inventory.Manager Notify a{oa{sa{sv}}} 1 ";
++    static constexpr const char* driveObjectPathPrefix =
++        "/system/chassis/motherboard/drive";
++
++    // Call Notify method to add Drive object with Item interface
++    {
++        snprintf(
++                buf, sizeof(buf),
++                "%s%s%d 1 xyz.openbmc_project.Inventory.Item 1 \"Present\" \"b\" \"true\"",
++                bufPrefix, driveObjectPathPrefix, index);
++        system(buf);
++    }
++
++    // Call Notify method to add Drive object with Drive interface
++    {
++    memset(buf, 0, sizeof(buf));
++    snprintf(
++            buf, sizeof(buf),
++            "%s%s%d 1 xyz.openbmc_project.Inventory.Item.Drive 0",
++            bufPrefix, driveObjectPathPrefix, index);
++    system(buf);
++    }
++
++    // Call Notify method to add Drive object with Asset interface
++    {
++        memset(buf, 0, sizeof(buf));
++        snprintf(
++                buf, sizeof(buf),
++                "%s%s%d 1 xyz.openbmc_project.Inventory.Decorator.Asset 0",
++                bufPrefix, driveObjectPathPrefix, index);
++        system(buf);
++    }
++    phosphor::logging::log<phosphor::logging::level::INFO>(
++            "createDriveObject");
++}
++
++void UpdateDriveObject(int index, int parameter, char* dataString)
++{
++    std::shared_ptr<sdbusplus::asio::connection> dbus = getSdBus();
++    char driveInfo[maxDriveInfoLength] = {0};
++    char drivePath[128] = {0};
++
++    constexpr const char* decoratorAssetIntf =
++            "xyz.openbmc_project.Inventory.Decorator.Asset";
++
++    memcpy(driveInfo, dataString, strlen(dataString));
++
++    snprintf(
++        drivePath, sizeof(drivePath),
++        "/xyz/openbmc_project/inventory/system/chassis/motherboard/drive%d",
++        index);
++
++    std::string service = getService(*dbus, decoratorAssetIntf, drivePath);
++
++    char property[32] = {0};
++    switch (parameter)
++    {
++        case DRIVE_MODEL:
++            strcpy(property, "Model");
++            break;
++        case DRIVE_MANUFACTURER:
++            strcpy(property, "Manufacturer");
++            break;
++        case DRIVE_PART_NUMBER:
++            strcpy(property, "PartNumber");
++            break;
++        case DRIVE_SERIAL_NUMBER:
++            strcpy(property, "SerialNumber");
++            break;
++        default:
++            phosphor::logging::log<phosphor::logging::level::ERR>(
++                 "ipmiOEMSetDriveInfo: invaild parameter");
++            break;
++    }
++
++    try
++    {
++        setDbusProperty(*dbus, service, drivePath, decoratorAssetIntf, property, driveInfo);
++    }
++    catch (sdbusplus::exception_t& e)
++    {
++        phosphor::logging::log<phosphor::logging::level::ERR>(
++                "ipmiOEMSetDriveInfo: can't set drive info");
++    }
++}
++
++ipmi_ret_t ipmiOEMSetDriveInfo(ipmi_netfn_t netfn, ipmi_cmd_t cmd,
++                            ipmi_request_t request, ipmi_response_t response,
++                            ipmi_data_len_t dataLen, ipmi_context_t context)
++{
++    DriveInfo* data = reinterpret_cast<DriveInfo*>(request);
++    uint8_t* responseCode = static_cast<uint8_t*>(response);
++
++    std::shared_ptr<sdbusplus::asio::connection> dbus = getSdBus();
++
++    if (*dataLen < 2)
++    {
++        *responseCode = IPMI_CC_REQ_DATA_LEN_INVALID;
++        *dataLen = 0;
++        return IPMI_CC_REQ_DATA_LEN_INVALID;
++    }
++
++    constexpr const char* itemDriveIntf =
++            "xyz.openbmc_project.Inventory.Item.Drive";
++
++    auto method =
++            dbus->new_method_call("xyz.openbmc_project.ObjectMapper",
++                               "/xyz/openbmc_project/object_mapper",
++                               "xyz.openbmc_project.ObjectMapper", "GetSubTree");
++
++    method.append("/", 0, std::array<const char*, 1>{itemDriveIntf});
++
++    GetSubTreeType resp;
++    try
++    {
++        auto reply = dbus->call(method);
++        reply.read(resp);
++    }
++    catch (sdbusplus::exception_t&)
++    {
++        phosphor::logging::log<phosphor::logging::level::ERR>(
++             "ipmiOEMSetDriveInfo: mapper error");
++    };
++
++    if (data->parameter == DRIVE_COUNT) // set drive count
++    {
++        int count = data->id;
++
++        if (count < resp.size())
++        {
++            char buf[512] = {0};
++            snprintf(
++                    buf, sizeof(buf),
++                    "rm -rf /var/lib/phosphor-inventory-manager/xyz/openbmc_project/inventory/system/chassis/motherboard/drive*"
++                    );
++            system(buf);
++            memset(buf, 0, sizeof(buf));
++/*
++            // Reload Inventory Manager service for clean drive objects
++            sdbusplus::message::message serviceReload = dbus->new_method_call(
++                "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
++                "org.freedesktop.systemd1.Manager", "ReloadUnit");
++            serviceReload.append("xyz.openbmc_project.Inventory.Manager.service", "replace");
++            try
++            {
++                sdbusplus::message::message reloadResponse = dbus->call(serviceReload);
++            }
++            catch (sdbusplus::exception_t& e)
++            {
++                phosphor::logging::log<phosphor::logging::level::ERR>(e.what());
++            }
++*/
++            snprintf(
++                    buf, sizeof(buf),
++                    "systemctl restart xyz.openbmc_project.Inventory.Manager.service"
++                    );
++            system(buf);
++
++            // Create drive objects
++            for (int i=0; i < count; i++) {
++                createDriveObject(i);
++            }
++        } else if (count > resp.size()) {
++            // Empty old drive data
++            for (int i=0; i < resp.size(); i++) {
++                UpdateDriveObject(i, DRIVE_MODEL, "");
++                UpdateDriveObject(i, DRIVE_MANUFACTURER, "");
++                UpdateDriveObject(i, DRIVE_PART_NUMBER, "");
++                UpdateDriveObject(i, DRIVE_SERIAL_NUMBER, "");
++            }
++            // Create drive objects
++            for (int i=resp.size(); i < count; i++) {
++                createDriveObject(i);
++            }
++        }
++    }
++    else if (data->parameter == DRIVE_MODEL ||
++            data->parameter == DRIVE_MANUFACTURER ||
++            data->parameter == DRIVE_PART_NUMBER ||
++            data->parameter == DRIVE_SERIAL_NUMBER)
++    {
++        if (data->id >= resp.size())
++        {
++            *responseCode = IPMI_CC_INVALID_FIELD_REQUEST;
++            *dataLen = 1;
++            return IPMI_CC_INVALID_FIELD_REQUEST;
++        }
++
++        char driveInfo[maxDriveInfoLength] = {0};
++
++        if (*dataLen > 2)
++        {
++            memcpy(driveInfo, data->data, *dataLen - 2);
++        }
++
++        UpdateDriveObject(data->id, data->parameter, driveInfo);
++    } else {
++        *responseCode = IPMI_CC_INVALID_FIELD_REQUEST;
++        *dataLen = 1;
++        return IPMI_CC_INVALID_FIELD_REQUEST;
++    }
++
++    *responseCode = IPMI_CC_OK;
++    *dataLen = 1;
++    return IPMI_CC_OK;
++}
++
+ ipmi::RspType<> ipmiOEMDisableBMCSystemReset(bool disableResetOnSMI,
+                                              uint7_t reserved1)
+ {
+@@ -3727,6 +3958,10 @@ static void registerOEMFunctions(void)
+                          NULL, ipmiOEMSetSystemGUID,
+                          PRIVILEGE_ADMIN); // set system guid
+ 
++    ipmiPrintAndRegister(intel::netFnGeneral, intel::general::cmdOemSetDriveInfo,
++                        NULL, ipmiOEMSetDriveInfo,
++                        PRIVILEGE_ADMIN);
++
+     // <Disable BMC System Reset Action>
+     registerHandler(prioOemBase, intel::netFnGeneral,
+                     intel::general::cmdDisableBMCSystemReset, Privilege::Admin,
