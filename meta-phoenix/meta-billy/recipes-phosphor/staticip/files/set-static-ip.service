@@ -1,0 +1,11 @@
+[Unit]
+Description=setting static IP after boot up
+After=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/usr/sbin/set-static-ip/set-static-ip.sh
+
+[Install]
+WantedBy=network.target
