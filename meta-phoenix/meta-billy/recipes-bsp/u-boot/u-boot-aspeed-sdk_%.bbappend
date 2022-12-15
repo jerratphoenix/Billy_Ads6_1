@@ -45,6 +45,7 @@ file://0047-DP-drv-HeaderFile-updated.patch \
 file://0048-Add-q-uboot-stopKey.patch \
 file://0049-HASH-Integrity-skp.patch \
 file://0050-Add-PHYless-MACtoMAC-method.patch \
+file://0051-Remove-the-judgment-of-mfg-mode.patch \
 "
 
 do_copyfile () {

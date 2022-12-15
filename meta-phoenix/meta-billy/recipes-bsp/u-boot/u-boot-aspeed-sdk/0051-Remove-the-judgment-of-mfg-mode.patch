@@ -1,0 +1,41 @@
+From b240df768728241ddd859c907224d47b2c0f4cb8 Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Thu, 15 Dec 2022 11:28:19 +0000
+Subject: [PATCH] Remove the judgment of mfg mode since it's for Intel CRB
+
+It can reduce BMC boot time by 30 seconds.
+---
+ board/aspeed/ast2600_intel/intel.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/board/aspeed/ast2600_intel/intel.c b/board/aspeed/ast2600_intel/intel.c
+index ff70ebad90..6c13c2d975 100755
+--- a/board/aspeed/ast2600_intel/intel.c
++++ b/board/aspeed/ast2600_intel/intel.c
+@@ -615,7 +615,7 @@ extern void espi_init(void);
+ extern void kcs_init(void);
+ extern void timer_enable(int n, u32 interval_us, interrupt_handler_t *handler,
+ 			 void *cookie);
+-/* following definitions are leveraged from Baidu-ads-5.0 platform, and modified according to ast2600 spec*/		 
++/* following definitions are leveraged from Billy-ads-5.0 platform, and modified according to ast2600 spec*/
+ #define		AST_SCU_BASE		0x1E6E2000	
+ #define 	AST_SCU_MAC_CLK		0x340    /* MAC 12 interface clock delay setting register */
+ #define AST_SCU_MAC_RGMII_CLK_INTERNAL	0x80000000	/* RGMII internal clock select */
+@@ -652,9 +652,14 @@ int board_late_init(void)
+ 	else
+ 		set_boot_failures(0);
+ 
++/* Leverage from ADS 5.0, mark following avoiding 30 seconds wait
++ * Billy project doesn't even have pwr button
++ */
++#if 0
+ 	/* Update the special mode in bootargs */
+ 	if (gd->reset_reason & SYS_PWR_RESET_FLAG && is_mfg_mode_phy_req())
+ 		update_bootargs_cmd("special", "mfg");
++#endif
+ 
+ 	gpio_passthru_init();
+ 
+-- 
+2.17.1
+
