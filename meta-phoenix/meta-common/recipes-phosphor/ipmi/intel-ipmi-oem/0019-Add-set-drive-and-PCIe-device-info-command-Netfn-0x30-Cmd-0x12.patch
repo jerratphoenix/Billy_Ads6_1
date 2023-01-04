@@ -1,0 +1,469 @@
+From e34e9edb1b0375b302180a1075f3ac9b2184670f Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Wed, 4 Jan 2023 08:25:38 +0000
+Subject: [PATCH] Add set drive and PCIe device info command (Netfn: 0x30, Cmd:
+ 0x12)
+
+---
+ include/oemcommands.hpp |  21 +++
+ ipmi-whitelist.conf     |   1 +
+ src/oemcommands.cpp     | 371 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 393 insertions(+)
+
+diff --git a/include/oemcommands.hpp b/include/oemcommands.hpp
+index 6a5578a..1de9d6d 100644
+--- a/include/oemcommands.hpp
++++ b/include/oemcommands.hpp
+@@ -29,6 +29,7 @@ static constexpr NetFn netFnApp = netFnOemEight;
+ 
+ namespace general
+ {
++static constexpr Cmd cmdOemSetDriveInfo = 0x12;
+ static constexpr Cmd cmdRestoreConfiguration = 0x02;
+ static constexpr Cmd cmdGetSmSignal = 0x14;
+ static constexpr Cmd cmdSetSmSignal = 0x15;
+@@ -290,6 +291,15 @@ struct GUIDData
+     uint8_t timeLow4;
+ };
+ 
++static constexpr const uint8_t maxDriveInfoLength = 128;
++
++struct DriveInfo
++{
++    uint8_t parameter;
++    uint8_t id;
++    uint8_t data[maxDriveInfoLength];
++};
++
+ struct DeviceInfo
+ {
+     uint8_t biosIDLength;
+@@ -375,6 +385,17 @@ enum class dimmOffsetTypes : uint8_t
+     dimmPower = 0x2
+ };
+ 
++enum DEVICE_INFO_PARAMETER
++{
++    DRIVE_COUNT         = 0x00,
++    DRIVE_MODEL         = 0x01,
++    DRIVE_MANUFACTURER  = 0x02,
++    DRIVE_PART_NUMBER   = 0x03,
++    DRIVE_SERIAL_NUMBER = 0x04,
++    PCIE_DEV_COUNT      = 0x05,
++    PCIE_DEV_INFO       = 0x06,
++};
++
+ // FIXME: this stuff needs to be rewritten
+ enum IPMI_INTEL_OEM_RETURN_CODES
+ {
+diff --git a/ipmi-whitelist.conf b/ipmi-whitelist.conf
+index 353d3f0..e6dbbd9 100755
+--- a/ipmi-whitelist.conf
++++ b/ipmi-whitelist.conf
+@@ -204,6 +204,7 @@
+ 0x30:0x04:0xff7f   //<Intel General Application>:<Get NW Switch MIB>
+ 0x30:0x05:0xff7f   //<Intel General Application>:<Get PDB FW Version>
+ 0x30:0x09:0xff7f   //<Intel General Application>:<Get BMC Config>
++0x30:0x12:0x7f7f   //<Phoenix OEM>: <Set Drive Info>
+ 0x30:0x14:0xff7f   //<Intel General Application>:<Get SM Signal>
+ 0x30:0x15:0x7f7f   //<Intel General Application>:<Set SM Signal>
+ 0x30:0x19:0xff7f   //<Intel General Application>:<Read LAN Channel Port Value>
+diff --git a/src/oemcommands.cpp b/src/oemcommands.cpp
+index 3d5faf6..471f77d 100755
+--- a/src/oemcommands.cpp
++++ b/src/oemcommands.cpp
+@@ -114,6 +114,14 @@ static constexpr const char* dBusPropertyIntf =
+ static constexpr const char* dBusPropertyGetMethod = "Get";
+ static constexpr const char* dBusPropertySetMethod = "Set";
+ 
++static constexpr const char* inventoryNotifyMethodPrefix =
++    "busctl call xyz.openbmc_project.Inventory.Manager /xyz/openbmc_project/inventory \
++    xyz.openbmc_project.Inventory.Manager Notify a{oa{sa{sv}}} 1 ";
++static constexpr const char* driveObjectPathPrefix =
++    "/system/chassis/motherboard/drive";
++static constexpr const char* pcieDevObjectPathPrefix =
++    "/system/chassis/motherboard/pcie_dev";
++
+ // return code: 0 successful
+ int8_t getChassisSerialNumber(sdbusplus::bus::bus& bus, std::string& serial)
+ {
+@@ -226,6 +234,365 @@ ipmi_ret_t ipmiOEMSetSystemGUID(ipmi_netfn_t netfn, ipmi_cmd_t cmd,
+     return IPMI_CC_OK;
+ }
+ 
++void notifyDbusMethodCall(const char* bufPrefix, const char* objectPathPrefix,
++                          int index, const char* descString)
++{
++    char buf[512] = {0};
++
++    memset(buf, 0, sizeof(buf));
++    snprintf(
++        buf, sizeof(buf),
++        "%s%s%d 1 %s",
++        bufPrefix, objectPathPrefix, index, descString);
++    system(buf);
++}
++
++void setDevDbusProperty(std::string devObj, const std::string devIntf,
++                        const std::string property, std::string devInfo)
++{
++    std::shared_ptr<sdbusplus::asio::connection> dbus = getSdBus();
++    std::string devPath = "/xyz/openbmc_project/inventory/system/chassis/motherboard/" + devObj;
++    std::string service = getService(*dbus, devIntf, devPath);
++
++    try
++    {
++        setDbusProperty(*dbus, service, devPath, devIntf, property, devInfo);
++    }
++    catch (sdbusplus::exception_t& e)
++    {
++        phosphor::logging::log<phosphor::logging::level::ERR>(
++            "ipmiOEMSetDrivePcieDevInfo: can't set device info");
++    }
++}
++
++void setHexStrProperty(std::string devObj, const char* devIntf, const std::string property,
++                          char* dataString, int offset, int bytes)
++{
++    std::string devInfo = "";
++    char buf[32] = {0};
++
++    for (int i = (bytes-1); i >= 0 ; i--) {
++        memset(buf, 0, sizeof(buf));
++        snprintf(buf, sizeof(buf), "%02x", *(dataString + offset + i));
++        devInfo += buf;
++    }
++
++    setDevDbusProperty(devObj, devIntf, property, devInfo);
++}
++
++void createDriveObject(int index)
++{
++    // Call Notify method to add Drive object with Item interface
++    notifyDbusMethodCall(inventoryNotifyMethodPrefix, driveObjectPathPrefix, index,
++        "xyz.openbmc_project.Inventory.Item 1 \"Present\" \"b\" \"true\"");
++
++    // Call Notify method to add Drive object with Drive interface
++    notifyDbusMethodCall(inventoryNotifyMethodPrefix, driveObjectPathPrefix, index,
++        "xyz.openbmc_project.Inventory.Item.Drive 0");
++
++    // Call Notify method to add Drive object with Asset interface
++    notifyDbusMethodCall(inventoryNotifyMethodPrefix, driveObjectPathPrefix, index,
++        "xyz.openbmc_project.Inventory.Decorator.Asset 0");
++
++    phosphor::logging::log<phosphor::logging::level::INFO>(
++        "createDriveObject");
++}
++
++void createPcieDevObject(int index)
++{
++    // Call Notify method to add PCIe device object with Item interface
++    notifyDbusMethodCall(inventoryNotifyMethodPrefix, pcieDevObjectPathPrefix, index,
++        "xyz.openbmc_project.Inventory.Item 1 \"Present\" \"b\" \"true\"");
++
++    // Call Notify method to add PCIe device object with PCIe device interface
++    notifyDbusMethodCall(inventoryNotifyMethodPrefix, pcieDevObjectPathPrefix, index,
++        "xyz.openbmc_project.Inventory.Item.PCIeDevice 0");
++
++    phosphor::logging::log<phosphor::logging::level::INFO>(
++        "createPcieDevObject");
++}
++
++void updateDriveObject(int index, int parameter, char* dataString)
++{
++    char driveInfo[maxDriveInfoLength] = {0};
++    std::string devObj = "drive" + std::to_string(index);
++
++    constexpr const char* decoratorAssetIntf =
++        "xyz.openbmc_project.Inventory.Decorator.Asset";
++
++    memcpy(driveInfo, dataString, strlen(dataString));
++    char property[32] = {0};
++    switch (parameter)
++    {
++        case DRIVE_MODEL:
++            strcpy(property, "Model");
++            break;
++        case DRIVE_MANUFACTURER:
++            strcpy(property, "Manufacturer");
++            break;
++        case DRIVE_PART_NUMBER:
++            strcpy(property, "PartNumber");
++            break;
++        case DRIVE_SERIAL_NUMBER:
++            strcpy(property, "SerialNumber");
++            break;
++        default:
++            phosphor::logging::log<phosphor::logging::level::ERR>(
++                "ipmiOEMSetDrivePcieDevInfo: invaild parameter");
++            break;
++    }
++
++    setDevDbusProperty(devObj, decoratorAssetIntf, property, driveInfo);
++
++    // Call Notify method to update Drive object with Asset interface
++    notifyDbusMethodCall(inventoryNotifyMethodPrefix, driveObjectPathPrefix,
++                         index, "xyz.openbmc_project.Inventory.Decorator.Asset 0");
++}
++
++void updatePcieDevObject(int index, char* dataString)
++{
++    char buf[32] = {0};
++    std::string devInfo = "";
++    std::string devObj = "pcie_dev" + std::to_string(index);
++    constexpr const char* PCIeDevIntf =
++        "xyz.openbmc_project.Inventory.Item.PCIeDevice";
++
++    if (strlen(dataString) == 0)  // clear all values as ""
++    {
++        setDevDbusProperty(devObj, PCIeDevIntf, "BusDeviceFunction", "");
++        setDevDbusProperty(devObj, PCIeDevIntf, "ClassCode", "");
++        setDevDbusProperty(devObj, PCIeDevIntf, "SlotNumber", "");
++        setDevDbusProperty(devObj, PCIeDevIntf, "VendorId", "");
++        setDevDbusProperty(devObj, PCIeDevIntf, "DeviceId", "");
++        setDevDbusProperty(devObj, PCIeDevIntf, "SubvendorId", "");
++        setDevDbusProperty(devObj, PCIeDevIntf, "SubdeviceId", "");
++        setDevDbusProperty(devObj, PCIeDevIntf, "Reserved", "");
++    } else {
++        // BusDeviceFunction (2 bytes):
++        // Bus is 8 bits, device is 5 bits, and function is 3 bits
++        memset(buf, 0, sizeof(buf));
++        snprintf(buf, sizeof(buf), "%02x:", *(dataString + 1));
++        devInfo += buf;  // Bus
++        int int_dev_func = (int) *(dataString + 0);
++        memset(buf, 0, sizeof(buf));
++        snprintf(buf, sizeof(buf), "%02x.", (int_dev_func & 0xf8) >> 3);
++        devInfo += buf;  // Device
++        memset(buf, 0, sizeof(buf));
++        snprintf(buf, sizeof(buf), "%x", int_dev_func & 0x7);
++        devInfo += buf;  // Function
++        setDevDbusProperty(devObj, PCIeDevIntf, "BusDeviceFunction", devInfo);
++
++        // Class Code (1 byte)
++        setHexStrProperty(devObj, PCIeDevIntf, "ClassCode", dataString, 2, 1);
++
++        // Slot Number (1 byte)
++        setHexStrProperty(devObj, PCIeDevIntf, "SlotNumber", dataString, 3, 1);
++
++        // Vendor ID (2 bytes)
++        setHexStrProperty(devObj, PCIeDevIntf, "VendorId", dataString, 4, 2);
++
++        // Device ID (2 bytes)
++        setHexStrProperty(devObj, PCIeDevIntf, "DeviceId", dataString, 6, 2);
++
++        // Subvendor ID (2 bytes)
++        setHexStrProperty(devObj, PCIeDevIntf, "SubvendorId", dataString, 8, 2);
++
++        // Subdevice ID (2 bytes)
++        setHexStrProperty(devObj, PCIeDevIntf, "SubdeviceId", dataString, 10, 2);
++
++        // Reserved (2 bytes)
++        setHexStrProperty(devObj, PCIeDevIntf, "Reserved", dataString, 12, 2);
++    }
++
++    // Call Notify method to update PCIe device object with Asset interface
++    notifyDbusMethodCall(inventoryNotifyMethodPrefix, pcieDevObjectPathPrefix,
++                         index, "xyz.openbmc_project.Inventory.Item.PCIeDevice 0");
++}
++
++int getDeviceObjectCount(std::shared_ptr<sdbusplus::asio::connection> &dbus, const char* itemIntf)
++{
++   auto method =
++       dbus->new_method_call("xyz.openbmc_project.ObjectMapper",
++                             "/xyz/openbmc_project/object_mapper",
++                             "xyz.openbmc_project.ObjectMapper", "GetSubTree");
++
++    method.append("/", 0, std::array<const char*, 1>{itemIntf});
++
++    GetSubTreeType resp;
++    try
++    {
++        auto reply = dbus->call(method);
++        reply.read(resp);
++    }
++    catch (sdbusplus::exception_t&)
++    {
++        phosphor::logging::log<phosphor::logging::level::ERR>(
++            "getDeviceObjectCount: mapper error");
++    };
++
++    return resp.size();
++}
++
++ipmi_ret_t ipmiOEMSetDrivePcieDevInfo(ipmi_netfn_t netfn, ipmi_cmd_t cmd,
++                            ipmi_request_t request, ipmi_response_t response,
++                            ipmi_data_len_t dataLen, ipmi_context_t context)
++{
++    DriveInfo* data = reinterpret_cast<DriveInfo*>(request);
++    uint8_t* responseCode = static_cast<uint8_t*>(response);
++
++    std::shared_ptr<sdbusplus::asio::connection> dbus = getSdBus();
++
++    if (*dataLen < 2)
++    {
++        *dataLen = 0;
++        return IPMI_CC_REQ_DATA_LEN_INVALID;
++    }
++
++    constexpr const char* itemDriveIntf =
++        "xyz.openbmc_project.Inventory.Item.Drive";
++    constexpr const char* itemPcieDevIntf =
++        "xyz.openbmc_project.Inventory.Item.PCIeDevice";
++
++    int cnt_drive_obj = getDeviceObjectCount(dbus, itemDriveIntf);
++    int cnt_pcie_dev_obj = getDeviceObjectCount(dbus, itemPcieDevIntf);
++
++    if (data->parameter == DRIVE_COUNT)  // set drive count
++    {
++        if (*dataLen > 2)
++        {
++            *dataLen = 0;
++            return IPMI_CC_REQ_DATA_LEN_INVALID;
++        }
++
++        int drive_count = data->id;
++
++        if (drive_count < cnt_drive_obj)
++        {
++            // Restart Inventory Manager service for clean drive objects
++            char buf[512] = {0};
++            snprintf(
++                buf, sizeof(buf),
++                "rm -rf /var/lib/phosphor-inventory-manager/xyz/openbmc_project/inventory%s*",
++                driveObjectPathPrefix);
++            system(buf);
++            memset(buf, 0, sizeof(buf));
++            snprintf(
++                buf, sizeof(buf),
++                "systemctl restart xyz.openbmc_project.Inventory.Manager.service"
++            );
++            system(buf);
++
++            // Create drive objects
++            for (int i = 0; i < drive_count; i++) {
++                createDriveObject(i);
++            }
++        } else if (drive_count > cnt_drive_obj) {
++            // Empty old drive data
++            for (int i = 0; i < cnt_drive_obj; i++) {
++                updateDriveObject(i, DRIVE_MODEL, "");
++                updateDriveObject(i, DRIVE_MANUFACTURER, "");
++                updateDriveObject(i, DRIVE_PART_NUMBER, "");
++                updateDriveObject(i, DRIVE_SERIAL_NUMBER, "");
++            }
++            // Create drive objects
++            for (int i = cnt_drive_obj; i < drive_count; i++) {
++                createDriveObject(i);
++            }
++        }
++    }
++    else if (data->parameter == DRIVE_MODEL ||
++            data->parameter == DRIVE_MANUFACTURER ||
++            data->parameter == DRIVE_PART_NUMBER ||
++            data->parameter == DRIVE_SERIAL_NUMBER)
++    {
++        if (data->id >= cnt_drive_obj)
++        {
++            *dataLen = 0;
++            return IPMI_CC_INVALID_FIELD_REQUEST;
++        }
++
++        char driveInfo[maxDriveInfoLength] = {0};
++
++        if (*dataLen > 2)
++        {
++            memcpy(driveInfo, data->data, *dataLen - 2);
++        }
++
++        updateDriveObject(data->id, data->parameter, driveInfo);
++    }
++    else if (data->parameter == PCIE_DEV_COUNT)  // set PCIe device count
++    {
++        if (*dataLen > 2)
++        {
++            *dataLen = 0;
++            return IPMI_CC_REQ_DATA_LEN_INVALID;
++        }
++
++        int pciedev_count = data->id;
++
++        if (pciedev_count < cnt_pcie_dev_obj)
++        {
++            // Restart Inventory Manager service for clean PCIe device objects
++            char buf[512] = {0};
++            snprintf(
++                buf, sizeof(buf),
++                "rm -rf /var/lib/phosphor-inventory-manager/xyz/openbmc_project/inventory%s*",
++                pcieDevObjectPathPrefix);
++            system(buf);
++            memset(buf, 0, sizeof(buf));
++            snprintf(
++                buf, sizeof(buf),
++                "systemctl restart xyz.openbmc_project.Inventory.Manager.service"
++            );
++            system(buf);
++
++            // Create PCIe device objects
++            for (int i = 0; i < pciedev_count; i++) {
++                createPcieDevObject(i);
++            }
++        } else if (pciedev_count > cnt_pcie_dev_obj) {
++            // Empty old PCIe device data
++            for (int i = 0; i < cnt_pcie_dev_obj; i++) {
++                updatePcieDevObject(i, "");
++            }
++            // Create PCIe device objects
++            for (int i = cnt_pcie_dev_obj; i < pciedev_count; i++) {
++                createPcieDevObject(i);
++            }
++        }
++    }
++    else if (data->parameter == PCIE_DEV_INFO)
++    {
++        if (*dataLen > 16)
++        {
++            *dataLen = 0;
++            return IPMI_CC_REQ_DATA_LEN_INVALID;
++        }
++
++        if (data->id >= cnt_pcie_dev_obj)
++        {
++            *dataLen = 0;
++            return IPMI_CC_INVALID_FIELD_REQUEST;
++        }
++
++        char driveInfo[maxDriveInfoLength] = {0};
++
++        if (*dataLen > 2)
++        {
++            memcpy(driveInfo, data->data, *dataLen - 2);
++        }
++
++        updatePcieDevObject(data->id, driveInfo);
++    } else {
++        *dataLen = 0;
++        return IPMI_CC_INVALID_FIELD_REQUEST;
++    }
++
++    *responseCode = IPMI_CC_OK;
++    *dataLen = 1;
++    return IPMI_CC_OK;
++}
++
+ ipmi::RspType<> ipmiOEMDisableBMCSystemReset(bool disableResetOnSMI,
+                                              uint7_t reserved1)
+ {
+@@ -3727,6 +4094,10 @@ static void registerOEMFunctions(void)
+                          NULL, ipmiOEMSetSystemGUID,
+                          PRIVILEGE_ADMIN); // set system guid
+ 
++    ipmiPrintAndRegister(intel::netFnGeneral, intel::general::cmdOemSetDriveInfo,
++                        NULL, ipmiOEMSetDrivePcieDevInfo,
++                        PRIVILEGE_ADMIN);
++
+     // <Disable BMC System Reset Action>
+     registerHandler(prioOemBase, intel::netFnGeneral,
+                     intel::general::cmdDisableBMCSystemReset, Privilege::Admin,
+-- 
+2.17.1
+
