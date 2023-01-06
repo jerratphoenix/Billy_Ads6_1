@@ -1,0 +1,167 @@
+From 2a892bac562e5df8ab9cd974e6514dad13a44295 Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Fri, 6 Jan 2023 08:59:49 +0000
+Subject: [PATCH] Adjust the method of getting string length for
+ cmdOemSetDrivePcieDevInfo
+
+1. The strlen() will misjudge the length if that data does not include "\n".
+   It causes BMC to misjudge there is no data and not write anything to Dbus.
+
+   The solution is that pass the data length into the function to support showing human readable information.
+2. Adjust some parameters' names to identify which indicate to Drive or PCIe device.
+---
+ include/oemcommands.hpp |  8 ++++----
+ src/oemcommands.cpp     | 34 +++++++++++++++++-----------------
+ 2 files changed, 21 insertions(+), 21 deletions(-)
+
+diff --git a/include/oemcommands.hpp b/include/oemcommands.hpp
+index 1de9d6d..6c8a962 100644
+--- a/include/oemcommands.hpp
++++ b/include/oemcommands.hpp
+@@ -29,7 +29,7 @@ static constexpr NetFn netFnApp = netFnOemEight;
+ 
+ namespace general
+ {
+-static constexpr Cmd cmdOemSetDriveInfo = 0x12;
++static constexpr Cmd cmdOemSetDrivePcieDevInfo = 0x12;
+ static constexpr Cmd cmdRestoreConfiguration = 0x02;
+ static constexpr Cmd cmdGetSmSignal = 0x14;
+ static constexpr Cmd cmdSetSmSignal = 0x15;
+@@ -291,13 +291,13 @@ struct GUIDData
+     uint8_t timeLow4;
+ };
+ 
+-static constexpr const uint8_t maxDriveInfoLength = 128;
++static constexpr const uint8_t maxDrivePcieDevInfoLen = 128;
+ 
+-struct DriveInfo
++struct DrivePcieDevInfo
+ {
+     uint8_t parameter;
+     uint8_t id;
+-    uint8_t data[maxDriveInfoLength];
++    uint8_t data[maxDrivePcieDevInfoLen];
+ };
+ 
+ struct DeviceInfo
+diff --git a/src/oemcommands.cpp b/src/oemcommands.cpp
+index 471f77d..ef746cd 100755
+--- a/src/oemcommands.cpp
++++ b/src/oemcommands.cpp
+@@ -312,15 +312,15 @@ void createPcieDevObject(int index)
+         "createPcieDevObject");
+ }
+ 
+-void updateDriveObject(int index, int parameter, char* dataString)
++void updateDriveObject(int index, int parameter, char* dataString, int dataLen)
+ {
+-    char driveInfo[maxDriveInfoLength] = {0};
++    char driveInfo[maxDrivePcieDevInfoLen] = {0};
+     std::string devObj = "drive" + std::to_string(index);
+ 
+     constexpr const char* decoratorAssetIntf =
+         "xyz.openbmc_project.Inventory.Decorator.Asset";
+ 
+-    memcpy(driveInfo, dataString, strlen(dataString));
++    memcpy(driveInfo, dataString, dataLen);
+     char property[32] = {0};
+     switch (parameter)
+     {
+@@ -349,7 +349,7 @@ void updateDriveObject(int index, int parameter, char* dataString)
+                          index, "xyz.openbmc_project.Inventory.Decorator.Asset 0");
+ }
+ 
+-void updatePcieDevObject(int index, char* dataString)
++void updatePcieDevObject(int index, char* dataString, int dataLen)
+ {
+     char buf[32] = {0};
+     std::string devInfo = "";
+@@ -357,7 +357,7 @@ void updatePcieDevObject(int index, char* dataString)
+     constexpr const char* PCIeDevIntf =
+         "xyz.openbmc_project.Inventory.Item.PCIeDevice";
+ 
+-    if (strlen(dataString) == 0)  // clear all values as ""
++    if (dataLen == 0)  // clear all values as ""
+     {
+         setDevDbusProperty(devObj, PCIeDevIntf, "BusDeviceFunction", "");
+         setDevDbusProperty(devObj, PCIeDevIntf, "ClassCode", "");
+@@ -437,7 +437,7 @@ ipmi_ret_t ipmiOEMSetDrivePcieDevInfo(ipmi_netfn_t netfn, ipmi_cmd_t cmd,
+                             ipmi_request_t request, ipmi_response_t response,
+                             ipmi_data_len_t dataLen, ipmi_context_t context)
+ {
+-    DriveInfo* data = reinterpret_cast<DriveInfo*>(request);
++    DrivePcieDevInfo* data = reinterpret_cast<DrivePcieDevInfo*>(request);
+     uint8_t* responseCode = static_cast<uint8_t*>(response);
+ 
+     std::shared_ptr<sdbusplus::asio::connection> dbus = getSdBus();
+@@ -489,10 +489,10 @@ ipmi_ret_t ipmiOEMSetDrivePcieDevInfo(ipmi_netfn_t netfn, ipmi_cmd_t cmd,
+         } else if (drive_count > cnt_drive_obj) {
+             // Empty old drive data
+             for (int i = 0; i < cnt_drive_obj; i++) {
+-                updateDriveObject(i, DRIVE_MODEL, "");
+-                updateDriveObject(i, DRIVE_MANUFACTURER, "");
+-                updateDriveObject(i, DRIVE_PART_NUMBER, "");
+-                updateDriveObject(i, DRIVE_SERIAL_NUMBER, "");
++                updateDriveObject(i, DRIVE_MODEL, "", 0);
++                updateDriveObject(i, DRIVE_MANUFACTURER, "", 0);
++                updateDriveObject(i, DRIVE_PART_NUMBER, "", 0);
++                updateDriveObject(i, DRIVE_SERIAL_NUMBER, "", 0);
+             }
+             // Create drive objects
+             for (int i = cnt_drive_obj; i < drive_count; i++) {
+@@ -511,14 +511,14 @@ ipmi_ret_t ipmiOEMSetDrivePcieDevInfo(ipmi_netfn_t netfn, ipmi_cmd_t cmd,
+             return IPMI_CC_INVALID_FIELD_REQUEST;
+         }
+ 
+-        char driveInfo[maxDriveInfoLength] = {0};
++        char driveInfo[maxDrivePcieDevInfoLen] = {0};
+ 
+         if (*dataLen > 2)
+         {
+             memcpy(driveInfo, data->data, *dataLen - 2);
+         }
+ 
+-        updateDriveObject(data->id, data->parameter, driveInfo);
++        updateDriveObject(data->id, data->parameter, driveInfo, *dataLen - 2);
+     }
+     else if (data->parameter == PCIE_DEV_COUNT)  // set PCIe device count
+     {
+@@ -553,7 +553,7 @@ ipmi_ret_t ipmiOEMSetDrivePcieDevInfo(ipmi_netfn_t netfn, ipmi_cmd_t cmd,
+         } else if (pciedev_count > cnt_pcie_dev_obj) {
+             // Empty old PCIe device data
+             for (int i = 0; i < cnt_pcie_dev_obj; i++) {
+-                updatePcieDevObject(i, "");
++                updatePcieDevObject(i, "", 0);
+             }
+             // Create PCIe device objects
+             for (int i = cnt_pcie_dev_obj; i < pciedev_count; i++) {
+@@ -575,14 +575,14 @@ ipmi_ret_t ipmiOEMSetDrivePcieDevInfo(ipmi_netfn_t netfn, ipmi_cmd_t cmd,
+             return IPMI_CC_INVALID_FIELD_REQUEST;
+         }
+ 
+-        char driveInfo[maxDriveInfoLength] = {0};
++        char pcieDevInfo[maxDrivePcieDevInfoLen] = {0};
+ 
+         if (*dataLen > 2)
+         {
+-            memcpy(driveInfo, data->data, *dataLen - 2);
++            memcpy(pcieDevInfo, data->data, *dataLen - 2);
+         }
+ 
+-        updatePcieDevObject(data->id, driveInfo);
++        updatePcieDevObject(data->id, pcieDevInfo, *dataLen - 2);
+     } else {
+         *dataLen = 0;
+         return IPMI_CC_INVALID_FIELD_REQUEST;
+@@ -4094,7 +4094,7 @@ static void registerOEMFunctions(void)
+                          NULL, ipmiOEMSetSystemGUID,
+                          PRIVILEGE_ADMIN); // set system guid
+ 
+-    ipmiPrintAndRegister(intel::netFnGeneral, intel::general::cmdOemSetDriveInfo,
++    ipmiPrintAndRegister(intel::netFnGeneral, intel::general::cmdOemSetDrivePcieDevInfo,
+                         NULL, ipmiOEMSetDrivePcieDevInfo,
+                         PRIVILEGE_ADMIN);
+ 
+-- 
+2.17.1
+

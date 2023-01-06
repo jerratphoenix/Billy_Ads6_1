@@ -19,6 +19,7 @@ SRC_URI += "file://ptec-ipmi-whitelist.conf \
             file://0017-Fix-the-mapping-issue-of-FruDevice-object-and-IPMI-FRU-ID.patch \
             file://0018-Add-NM-Throttle-GetCmd.patch \
             file://0019-Add-set-drive-and-PCIe-device-info-command-Netfn-0x30-Cmd-0x12.patch \
+            file://0020-Adjust-the-method-of-getting-string-length-for-cmdOemSetDrivePcieDevInfo.patch \
            "
 
 
