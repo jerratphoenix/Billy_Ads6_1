@@ -1,0 +1,56 @@
+From 9bdb427c1a2779e2ebd26478e0642998f2cb1edc Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Fri, 13 Jan 2023 07:55:03 +0000
+Subject: [PATCH] Change the default IPv4 IP address
+
+---
+ src/ethernet_interface.cpp | 8 ++++----
+ src/network_config.cpp     | 4 ++--
+ 2 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/src/ethernet_interface.cpp b/src/ethernet_interface.cpp
+index d27ef56..ac2793b 100644
+--- a/src/ethernet_interface.cpp
++++ b/src/ethernet_interface.cpp
+@@ -114,7 +114,7 @@ EthernetInterface::EthernetInterface(sdbusplus::bus::bus& bus,
+         }
+     }
+ 
+-    defaultGateway = "192.168.10.1";
++    defaultGateway = "192.168.60.1";
+     EthernetInterfaceIntf::defaultGateway(defaultGateway);
+     EthernetInterfaceIntf::defaultGateway6(defaultGateway6);
+     // Don't get the mac address from the system as the mac address
+@@ -126,11 +126,11 @@ EthernetInterface::EthernetInterface(sdbusplus::bus::bus& bus,
+     EthernetInterfaceIntf::ntpServers(getNTPServersFromConf());
+ 
+     /* Set default network setting to Static
+-     * ipaddressipaddress: 192.168.10.150
++     * ipaddressipaddress: 192.168.60.150
+      * prefixLength: 24
+-     * gateway: 192.168.10.1
++     * gateway: 192.168.60.1
+      */
+-    EthernetInterface::ip(IP::Protocol::IPv4, "192.168.10.150", 24, "192.168.10.1");
++    EthernetInterface::ip(IP::Protocol::IPv4, "192.168.60.150", 24, "192.168.60.1");
+ 
+     EthernetInterfaceIntf::linkUp(linkUp());
+     EthernetInterfaceIntf::mtu(mtu());
+diff --git a/src/network_config.cpp b/src/network_config.cpp
+index 5fb1ef0..4c63e38 100644
+--- a/src/network_config.cpp
++++ b/src/network_config.cpp
+@@ -54,8 +54,8 @@ void writeStaticDefault(const std::string& filename, const std::string& interfac
+                 "IPv6AcceptRA=false\n";
+     if(interface == "eth0")
+     {
+-        filestream << "[Address]\nAddress=192.168.10.150/24\n"
+-		      "[Route]\nGateway=192.168.10.1\n";
++        filestream << "[Address]\nAddress=192.168.60.150/24\n"
++		      "[Route]\nGateway=192.168.60.1\n";
+     }
+     filestream.close();
+ }
+-- 
+2.17.1
+
