@@ -1,0 +1,28 @@
+From 3828f7267fbfe16976482102c9d9849db89e6cef Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Wed, 7 Dec 2022 02:43:43 +0000
+Subject: [PATCH] linux: adjust the model name and reference voltage for ADC
+ driver
+
+---
+ drivers/iio/adc/aspeed_adc.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/iio/adc/aspeed_adc.c b/drivers/iio/adc/aspeed_adc.c
+index 44510dc9eb99..6fb8146c5ff0 100644
+--- a/drivers/iio/adc/aspeed_adc.c
++++ b/drivers/iio/adc/aspeed_adc.c
+@@ -388,8 +388,8 @@ static const struct aspeed_adc_model_data ast2500_model_data = {
+ };
+ 
+ static const struct aspeed_adc_model_data ast2600_model_data = {
+-	.model_name = "ast2500-adc",
+-	.vref_voltage = 1800, /* mV --> can be 1.2v or 2.5 or ext 1.55~2.7v, 0.9v ~1.65v */
++	.model_name = "ast2600-adc",
++	.vref_voltage = 2500, /* mV --> can be 1.2v or 2.5 or ext 1.55~2.7v, 0.9v ~1.65v */
+ 	.min_sampling_rate = 1,
+ 	.max_sampling_rate = 1000000,
+ 	.wait_init_sequence = true,
+-- 
+2.17.1
+
