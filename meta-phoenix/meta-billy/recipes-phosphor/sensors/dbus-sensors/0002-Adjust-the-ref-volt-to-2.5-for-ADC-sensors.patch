@@ -1,0 +1,25 @@
+From d29d280a23c7d9670bd3b5d0f92c0ced620b5d20 Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Wed, 18 Jan 2023 08:41:12 +0000
+Subject: [PATCH] Adjust the reference voltage to 2.5 for ADC sensors
+
+---
+ src/ADCSensor.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ADCSensor.cpp b/src/ADCSensor.cpp
+index 8c335e5..0f21df9 100644
+--- a/src/ADCSensor.cpp
++++ b/src/ADCSensor.cpp
+@@ -38,7 +38,7 @@
+ static constexpr unsigned int sensorScaleFactor = 1000;
+ 
+ static constexpr double roundFactor = 10000;     // 3 decimal places
+-static constexpr double maxVoltageReading = 1.8; // pre sensor scaling
++static constexpr double maxVoltageReading = 2.5; // pre sensor scaling
+ static constexpr double minVoltageReading = 0;
+ 
+ ADCSensor::ADCSensor(const std::string& path,
+-- 
+2.17.1
+
