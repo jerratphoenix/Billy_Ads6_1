@@ -262,7 +262,7 @@
             "SensorUnits2-BaseUnit": "0x06",
             "SensorUnits3-ModifierUnit": "0x00",
             "Linearization": "0x00",
-            "M": "0x01",
+            "M": "0x02",
             "M-Tolerance": "0x00",
             "B": "0x00",
             "B-Accuracy": "0x00",

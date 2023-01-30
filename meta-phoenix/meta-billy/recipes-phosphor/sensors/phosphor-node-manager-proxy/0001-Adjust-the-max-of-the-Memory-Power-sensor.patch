@@ -1,0 +1,25 @@
+From 8331ddc20556730f3ff2221f97e22bca10f5bd9d Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Mon, 30 Jan 2023 08:23:17 +0000
+Subject: [PATCH] Adjust the max of the Memory Power sensor
+
+---
+ NodeManagerProxy.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/NodeManagerProxy.cpp b/NodeManagerProxy.cpp
+index 3502e6a..e92e93f 100644
+--- a/NodeManagerProxy.cpp
++++ b/NodeManagerProxy.cpp
+@@ -127,7 +127,7 @@ void createSensors()
+         std::make_unique<GlobalPowerCpu>(server, 0, 510, "power", "CPU_Power",
+                                          globalPowerStats, cpuSubsystem, 0));
+     configuredSensors.push_back(std::make_unique<GlobalPowerMemory>(
+-        server, 0, 255, "power", "Memory_Power", globalPowerStats,
++        server, 0, 510, "power", "Memory_Power", globalPowerStats,
+         memorySubsystem, 0));
+ }
+ 
+-- 
+2.17.1
+
