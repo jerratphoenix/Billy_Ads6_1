@@ -433,27 +433,6 @@
             "Type": "AspeedFan"
         },
         {
-            "C1": 92.16,
-            "C2": 107.52,
-            "MaxCFM": 17.5,
-            "Name": "System Airflow",
-            "TachMaxPercent": 100,
-            "TachMinPercent": 20,
-            "Tachs": [
-                "Fan 1",
-                "Fan 2",
-                "Fan 3",
-                "Fan 4",
-                "Fan 5",
-                "Fan 6",
-                "Fan 7",
-                "Fan 8",
-                "Fan 9",
-                "Fan 10"
-            ],
-            "Type": "CFMSensor"
-        },
-        {
             "Name": "CUPS",
             "Polling": {
                 "AveragingPeriod": 3000,
