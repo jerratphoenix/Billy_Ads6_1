@@ -7,12 +7,6 @@
             "Type": "EEPROM"
         },
         {
-            "Address": "0x50",
-            "Bus": "7",
-            "Name": "AC_psu_FRU",
-            "Type": "EEPROM"
-        },
-        {
             "Index": 0,
             "Name": "PVCCFAFIVRA_CPU0",
             "PowerState": "On",

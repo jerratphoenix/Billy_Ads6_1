@@ -1200,24 +1200,6 @@
             "SensorName": "ArcherCity"
         },
         {
-            "RecordID": "0x00c9",
-            "SDRVersion": "0x51",
-            "RecordType": "0x11",
-            "RecordLength": "0x13",
-            "SlaveAddress": "0x20",
-            "FRUDeviceID": "0x01",
-            "Log/physicalID": "0x80",
-            "ChannelNumber": "0x00",
-            "Reserved": "0x00",
-            "DeviceType": "0x10",
-            "DeviceTypeModifier": "0x00",
-            "EntityID": "0x00",
-            "EntityInstance": "0x01",
-            "OEM": "0x00",
-            "LengthCode": "0x08",
-            "SensorName": "IS162F22"
-        },
-        {
             "RecordID": "0x00ca",
             "SDRVersion": "0x51",
             "RecordType": "0x12",
