@@ -1196,8 +1196,8 @@
             "EntityID": "0x00",
             "EntityInstance": "0x01",
             "OEM": "0x00",
-            "LengthCode": "0x0a",
-            "SensorName": "ArcherCity"
+            "LengthCode": "0x05",
+            "SensorName": "Billy"
         },
         {
             "RecordID": "0x00ca",
