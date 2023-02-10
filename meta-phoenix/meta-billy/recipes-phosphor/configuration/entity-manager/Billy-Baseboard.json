@@ -1853,32 +1853,10 @@
         {
             "Address": "0x30",
             "Bus": 0,
-            "CpuID": 1,
-            "Name": "CPU 1",
+            "CpuID": 0,
+            "Name": "CPU 0",
             "PiromI2cAddress": "0x50",
             "PiromI2cBus": 12,
-            "PresenceGpio": [
-                {
-                    "Name": "CPU1_PRESENCE",
-                    "Polarity": "Low"
-                }
-            ],
-            "RequiredTempSensor": "DTS",
-            "Type": "XeonCPU"
-        },
-        {
-            "Address": "0x31",
-            "Bus": 0,
-            "CpuID": 2,
-            "Name": "CPU 2",
-            "PiromI2cAddress": "0x51",
-            "PiromI2cBus": 12,
-            "PresenceGpio": [
-                {
-                    "Name": "CPU2_PRESENCE",
-                    "Polarity": "Low"
-                }
-            ],
             "RequiredTempSensor": "DTS",
             "Type": "XeonCPU"
         }

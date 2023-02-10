@@ -1,0 +1,99 @@
+From 4f2a838f4f6ea7d7fbd4a630cbcbf23ff91592d9 Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Fri, 10 Feb 2023 02:42:33 +0000
+Subject: [PATCH] Add MUX control to select PECI path
+
+PECI mapping table:
+
+  PECI_CPU_MUX_OE   |  PECI_A_SG1_MUX_OE  |  PECI_B_SG1_MUX_OE  |  BMC PECI Connects to
+  (GPIOX5_SPI2MISO) |  (GPIOX4_SPI2MOSI)  |  (GPIOX3_SPI2CK)    |
+--------------------+---------------------+---------------------+-------------------------
+  1                 |  0                  |  0                  |  CPU PECI
+------------------------------------------------------------------------------------------
+  0                 |  1                  |  0                  |  SG1A PECI
+------------------------------------------------------------------------------------------
+  0                 |  0                  |  1                  |  SG1B PECI
+---
+ src/CPUSensorMain.cpp | 52 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 52 insertions(+)
+
+diff --git a/src/CPUSensorMain.cpp b/src/CPUSensorMain.cpp
+index 73f2ee1..9c9cafb 100644
+--- a/src/CPUSensorMain.cpp
++++ b/src/CPUSensorMain.cpp
+@@ -27,6 +27,7 @@
+ #include <sdbusplus/asio/connection.hpp>
+ #include <sdbusplus/asio/object_server.hpp>
+ #include <sdbusplus/bus/match.hpp>
++#include <gpiod.hpp>
+ 
+ #include <array>
+ #include <filesystem>
+@@ -101,6 +102,47 @@ void detectCpuAsync(
+     boost::container::flat_set<CPUConfig>& cpuConfigs,
+     ManagedObjectType& sensorConfigs);
+ 
++int setGpioValue(const std::string& name, int value, const int polarity)
++{
++    gpiod::line line;
++
++    line = gpiod::find_line(name);
++
++    if (!line) {
++        std::cerr << "Error finding GPIO: " << name.c_str() << std::endl;
++        return -1;
++    }
++
++    try
++    {
++        line.request({"cpu-sensors",
++            gpiod::line_request::DIRECTION_OUTPUT,
++            polarity == gpiod::line::ACTIVE_HIGH
++                        ? 0
++                        : gpiod::line_request::FLAG_ACTIVE_LOW});
++    }
++    catch (std::system_error&) {
++        std::cerr << "Error requesting GPIO: " << name.c_str() << std::endl;
++        line.release();
++        return -1;
++    }
++
++    try
++    {
++        line.set_value(value);
++    }
++    catch (std::system_error& exc)
++    {
++        std::cerr << "Error setting GPIO " << name.c_str() << " value to " << std::to_string(value)  << std::endl;
++        line.release();
++        return -1;
++    }
++
++    line.release();
++
++    return 0;
++}
++
+ std::string createSensorName(const std::string& label, const std::string& item,
+                              const int& cpuId)
+ {
+@@ -471,6 +513,16 @@ void detectCpu(boost::asio::deadline_timer& pingTimer,
+         State newState;
+         struct peci_ping_msg msg;
+         msg.addr = config.addr;
++
++        if (config.name == "CPU_0") {
++            setGpioValue("PECI_CPU_MUX_OE", 1, gpiod::line::ACTIVE_HIGH);
++            setGpioValue("PECI_A_SG1_MUX_OE", 0, gpiod::line::ACTIVE_HIGH);
++            setGpioValue("PECI_B_SG1_MUX_OE", 0, gpiod::line::ACTIVE_HIGH);
++
++        } else if (config.name == "SG1_A") {
++            // TBD, reserve the control for SG1_A
++        }
++
+         if (!ioctl(file, PECI_IOC_PING, &msg))
+         {
+             bool dimmReady = false;
+-- 
+2.17.1
+
