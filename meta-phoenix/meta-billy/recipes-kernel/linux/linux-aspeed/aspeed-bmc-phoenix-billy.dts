@@ -127,11 +127,6 @@
 			gpios = <&sgpiom0 55 GPIO_ACTIVE_HIGH>;
 		};
 	};
-
-	beeper {
-		compatible = "pwm-beeper";
-		pwms = <&pwm_tacho 7 1000000 0>;
-	};
 };
 
 &fmc {
@@ -897,65 +892,6 @@
 
 &pcieh {
 	status = "okay";
-};
-
-&pwm_tacho {
-	status = "okay";
-	#pwm-cells = <3>;
-	aspeed,pwm-outputs = <7>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_pwm0_default &pinctrl_tach0_default
-			&pinctrl_pwm1_default &pinctrl_tach1_default
-			&pinctrl_pwm2_default &pinctrl_tach2_default
-			&pinctrl_pwm3_default &pinctrl_tach3_default
-			&pinctrl_pwm4_default &pinctrl_tach4_default
-			&pinctrl_pwm5_default &pinctrl_tach5_default
-			&pinctrl_pwm12g1_default &pinctrl_tach6_default
-			&pinctrl_pwm13g1_default &pinctrl_tach7_default
-			&pinctrl_pwm14g1_default &pinctrl_tach8_default
-			&pinctrl_pwm15g1_default &pinctrl_tach9_default
-			&pinctrl_pwm7_default>;
-
-	fan@0 {
-		reg = <0x00>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x00>;
-	};
-	fan@1 {
-		reg = <0x01>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x01>;
-	};
-	fan@2 {
-		reg = <0x02>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x02>;
-	};
-	fan@3 {
-		reg = <0x03>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x03>;
-	};
-	fan@4 {
-		reg = <0x04>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x04>;
-	};
-	fan@5 {
-		reg = <0x05>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x05>;
-	};
-	fan@6 {
-		reg = <0x0c>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x06>;
-	};
-	fan@7 {
-		reg = <0x0d>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x07>;
-	};
-	fan@8 {
-		reg = <0x0e>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x08>;
-	};
-	fan@9 {
-		reg = <0x0f>;
-		aspeed,fan-tach-ch = /bits/ 8 <0x09>;
-	};
 };
 
 &video {
