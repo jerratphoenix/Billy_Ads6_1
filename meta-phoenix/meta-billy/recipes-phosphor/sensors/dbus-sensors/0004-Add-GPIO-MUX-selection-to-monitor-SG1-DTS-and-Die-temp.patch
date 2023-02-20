@@ -1,0 +1,302 @@
+From 5db69dcf0f953e1c27f78565f6f318a7c495f7a4 Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Thu, 16 Feb 2023 11:09:55 +0000
+Subject: [PATCH] Add GPIO MUX selection to monitor SG1 DTS and Die temperature
+
+---
+ include/CPUSensor.hpp | 91 ++++++++++++++++++++++++++++++++++++++++++-
+ src/CPUSensor.cpp     |  6 ++-
+ src/CPUSensorMain.cpp | 74 +++++++----------------------------
+ 3 files changed, 107 insertions(+), 64 deletions(-)
+
+diff --git a/include/CPUSensor.hpp b/include/CPUSensor.hpp
+index 29b8209..5ba718f 100644
+--- a/include/CPUSensor.hpp
++++ b/include/CPUSensor.hpp
+@@ -7,6 +7,7 @@
+ #include <gpiod.hpp>
+ #include <sdbusplus/asio/object_server.hpp>
+ #include <sensor.hpp>
++#include <gpiod.hpp>
+ 
+ #include <filesystem>
+ #include <fstream>
+@@ -24,8 +25,8 @@ class CPUSensor : public Sensor
+               std::shared_ptr<sdbusplus::asio::connection>& conn,
+               boost::asio::io_service& io, const std::string& sensorName,
+               std::vector<thresholds::Threshold>&& thresholds,
+-              const std::string& configuration, int cpuId, bool show,
+-              double dtsOffset);
++              const std::string& configuration, const std::string& cpuName,
++              bool show, double dtsOffset);
+     ~CPUSensor() override;
+     static constexpr unsigned int sensorScaleFactor = 1000;
+     static constexpr unsigned int sensorPollMs = 1000;
+@@ -110,3 +111,89 @@ inline bool cpuIsPresent(
+ 
+     return resp;
+ }
++
++inline int setGpioValue(const std::string& name, int value, const int polarity)
++{
++    gpiod::line line;
++
++    line = gpiod::find_line(name);
++
++    if (!line) {
++        std::cerr << "Error finding GPIO: " << name.c_str() << std::endl;
++        return -1;
++    }
++
++    try
++    {
++        line.request({"cpu-sensors",
++            gpiod::line_request::DIRECTION_OUTPUT,
++            polarity == gpiod::line::ACTIVE_HIGH
++                        ? 0
++                        : gpiod::line_request::FLAG_ACTIVE_LOW});
++    }
++    catch (std::system_error&) {
++        std::cerr << "Error requesting GPIO: " << name.c_str() << std::endl;
++        line.release();
++        return -1;
++    }
++
++    try
++    {
++        line.set_value(value);
++    }
++    catch (std::system_error& exc)
++    {
++        std::cerr << "Error setting GPIO " << name.c_str() << " value to " << std::to_string(value)  << std::endl;
++        line.release();
++        return -1;
++    }
++
++    line.release();
++
++    return 0;
++}
++
++inline void peciMuxSelection(std::string peciDevPath)
++{
++    static int devPrevIdx = 0;
++    int devCurrIdx = -1;
++
++    /* [PECI mapping table]
++        PECI_CPU_MUX_OE   |  PECI_A_SG1_MUX_OE  |  PECI_B_SG1_MUX_OE  |  BMC PECI Connects to
++        (GPIOX5_SPI2MISO) |  (GPIOX4_SPI2MOSI)  |  (GPIOX3_SPI2CK)    |
++      --------------------+---------------------+---------------------+------------------------------
++        1                 |  0                  |  0                  |  CPU PECI (bus 0, addr 0x30)
++      -----------------------------------------------------------------------------------------------
++        0                 |  1                  |  0                  |  SG1A PECI (bus 0, addr 0x32)
++      -----------------------------------------------------------------------------------------------
++        0                 |  0                  |  1                  |  SG1B PECI (unused)
++    */
++    if (peciDevPath.find("0-30") != std::string::npos) {
++        devCurrIdx = 0;  // CPU0
++    } else if (peciDevPath.find("0-32") != std::string::npos) {
++        devCurrIdx = 1;  // SG1_A
++    } else {
++        devCurrIdx = -1; // default
++    }
++
++    if (devCurrIdx != devPrevIdx) {
++        switch (devCurrIdx) {
++            case 0:
++                setGpioValue("PECI_CPU_MUX_OE", 1, gpiod::line::ACTIVE_HIGH);
++                setGpioValue("PECI_A_SG1_MUX_OE", 0, gpiod::line::ACTIVE_HIGH);
++                setGpioValue("PECI_B_SG1_MUX_OE", 0, gpiod::line::ACTIVE_HIGH);
++                break;
++            case 1:
++                setGpioValue("PECI_CPU_MUX_OE", 0, gpiod::line::ACTIVE_HIGH);
++                setGpioValue("PECI_A_SG1_MUX_OE", 1, gpiod::line::ACTIVE_HIGH);
++                setGpioValue("PECI_B_SG1_MUX_OE", 0, gpiod::line::ACTIVE_HIGH);
++                break;
++            default:
++                setGpioValue("PECI_CPU_MUX_OE", 0, gpiod::line::ACTIVE_HIGH);
++                setGpioValue("PECI_A_SG1_MUX_OE", 0, gpiod::line::ACTIVE_HIGH);
++                setGpioValue("PECI_B_SG1_MUX_OE", 0, gpiod::line::ACTIVE_HIGH);
++                break;
++        }
++        devPrevIdx = devCurrIdx;
++    }
++}
+diff --git a/src/CPUSensor.cpp b/src/CPUSensor.cpp
+index f12a0b7..00a86cb 100644
+--- a/src/CPUSensor.cpp
++++ b/src/CPUSensor.cpp
+@@ -38,7 +38,7 @@ CPUSensor::CPUSensor(const std::string& path, const std::string& objectType,
+                      std::shared_ptr<sdbusplus::asio::connection>& conn,
+                      boost::asio::io_service& io, const std::string& sensorName,
+                      std::vector<thresholds::Threshold>&& thresholdsIn,
+-                     const std::string& sensorConfiguration, int cpuId,
++                     const std::string& sensorConfiguration, const std::string& cpuName,
+                      bool show, double dtsOffset) :
+     Sensor(boost::replace_all_copy(sensorName, " ", "_"),
+            std::move(thresholdsIn), sensorConfiguration, objectType, false, 0,
+@@ -49,7 +49,7 @@ CPUSensor::CPUSensor(const std::string& path, const std::string& objectType,
+     minMaxReadCounter(0)
+ {
+     nameTcontrol = labelTcontrol;
+-    nameTcontrol += " CPU" + std::to_string(cpuId);
++    nameTcontrol += " " + cpuName;
+     if (show)
+     {
+         if (auto fileParts = splitFileName(path))
+@@ -118,6 +118,7 @@ void CPUSensor::setupRead(void)
+     if (readingStateGood())
+     {
+         inputDev.close();
++        peciMuxSelection(path);
+         int fd = open(path.c_str(), O_RDONLY);
+         if (fd >= 0)
+         {
+@@ -165,6 +166,7 @@ void CPUSensor::updateMinMaxValues(void)
+             },
+         };
+ 
++    peciMuxSelection(path);
+     if (auto fileParts = splitFileName(path))
+     {
+         auto& [fileType, fileNr, fileItem] = *fileParts;
+diff --git a/src/CPUSensorMain.cpp b/src/CPUSensorMain.cpp
+index 9c9cafb..af7c203 100644
+--- a/src/CPUSensorMain.cpp
++++ b/src/CPUSensorMain.cpp
+@@ -27,7 +27,6 @@
+ #include <sdbusplus/asio/connection.hpp>
+ #include <sdbusplus/asio/object_server.hpp>
+ #include <sdbusplus/bus/match.hpp>
+-#include <gpiod.hpp>
+ 
+ #include <array>
+ #include <filesystem>
+@@ -102,56 +101,15 @@ void detectCpuAsync(
+     boost::container::flat_set<CPUConfig>& cpuConfigs,
+     ManagedObjectType& sensorConfigs);
+ 
+-int setGpioValue(const std::string& name, int value, const int polarity)
+-{
+-    gpiod::line line;
+-
+-    line = gpiod::find_line(name);
+-
+-    if (!line) {
+-        std::cerr << "Error finding GPIO: " << name.c_str() << std::endl;
+-        return -1;
+-    }
+-
+-    try
+-    {
+-        line.request({"cpu-sensors",
+-            gpiod::line_request::DIRECTION_OUTPUT,
+-            polarity == gpiod::line::ACTIVE_HIGH
+-                        ? 0
+-                        : gpiod::line_request::FLAG_ACTIVE_LOW});
+-    }
+-    catch (std::system_error&) {
+-        std::cerr << "Error requesting GPIO: " << name.c_str() << std::endl;
+-        line.release();
+-        return -1;
+-    }
+-
+-    try
+-    {
+-        line.set_value(value);
+-    }
+-    catch (std::system_error& exc)
+-    {
+-        std::cerr << "Error setting GPIO " << name.c_str() << " value to " << std::to_string(value)  << std::endl;
+-        line.release();
+-        return -1;
+-    }
+-
+-    line.release();
+-
+-    return 0;
+-}
+-
+ std::string createSensorName(const std::string& label, const std::string& item,
+-                             const int& cpuId)
++                             const std::string& cpuName)
+ {
+     std::string sensorName = label;
+     if (item.compare("input") != 0)
+     {
+         sensorName += " " + item;
+     }
+-    sensorName += " CPU" + std::to_string(cpuId);
++    sensorName += " " + cpuName;
+     // converting to Upper Camel case whole name
+     bool isWordEnd = true;
+     std::transform(sensorName.begin(), sensorName.end(), sensorName.begin(),
+@@ -326,14 +284,13 @@ bool createSensors(boost::asio::io_service& io,
+             continue;
+         }
+ 
+-        auto findCpuId = baseConfiguration->second.find("CpuID");
+-        if (findCpuId == baseConfiguration->second.end())
++        auto configurationName = baseConfiguration->second.find("Name");
++        if (configurationName == baseConfiguration->second.end())
+         {
+-            std::cerr << "could not determine CPU ID for " << hwmonName << "\n";
++            std::cerr << "error finding name in configuration";
+             continue;
+         }
+-        int cpuId =
+-            std::visit(VariantToUnsignedIntVisitor(), findCpuId->second);
++        std::string cpuName = std::get<std::string>(configurationName->second);
+ 
+         auto directory = hwmonNamePath.parent_path();
+         std::vector<fs::path> inputPaths;
+@@ -356,6 +313,8 @@ bool createSensors(boost::asio::io_service& io,
+             auto inputPathStr = inputPath.string();
+             auto labelPath =
+                 boost::replace_all_copy(inputPathStr, item, "label");
++
++            peciMuxSelection(inputPathStr);
+             std::ifstream labelFile(labelPath);
+             if (!labelFile.good())
+             {
+@@ -366,7 +325,7 @@ bool createSensors(boost::asio::io_service& io,
+             std::getline(labelFile, label);
+             labelFile.close();
+ 
+-            std::string sensorName = createSensorName(label, item, cpuId);
++            std::string sensorName = createSensorName(label, item, cpuName);
+ 
+             auto findSensor = gCpuSensors.find(sensorName);
+             if (findSensor != gCpuSensors.end())
+@@ -425,8 +384,8 @@ bool createSensors(boost::asio::io_service& io,
+             sensorPtr = nullptr;
+             sensorPtr = std::make_unique<CPUSensor>(
+                 inputPathStr, sensorType, objectServer, dbusConnection, io,
+-                sensorName, std::move(sensorThresholds), *interfacePath, cpuId,
+-                show, dtsOffset);
++                sensorName, std::move(sensorThresholds), *interfacePath,
++                cpuName, show, dtsOffset);
+             createdSensors.insert(sensorName);
+             if (debug)
+             {
+@@ -514,14 +473,9 @@ void detectCpu(boost::asio::deadline_timer& pingTimer,
+         struct peci_ping_msg msg;
+         msg.addr = config.addr;
+ 
+-        if (config.name == "CPU_0") {
+-            setGpioValue("PECI_CPU_MUX_OE", 1, gpiod::line::ACTIVE_HIGH);
+-            setGpioValue("PECI_A_SG1_MUX_OE", 0, gpiod::line::ACTIVE_HIGH);
+-            setGpioValue("PECI_B_SG1_MUX_OE", 0, gpiod::line::ACTIVE_HIGH);
+-
+-        } else if (config.name == "SG1_A") {
+-            // TBD, reserve the control for SG1_A
+-        }
++        char peciDevNode[10] = {0};
++        snprintf(peciDevNode, sizeof(peciDevNode), "%d-%x", config.bus, config.addr);
++        peciMuxSelection(peciDevNode);
+ 
+         if (!ioctl(file, PECI_IOC_PING, &msg))
+         {
+-- 
+2.17.1
+

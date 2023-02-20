@@ -1,0 +1,55 @@
+From 39652b6ea4be9aeb5cd3e24a9d6f7680ccad42f2 Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@phoenix.com>
+Date: Thu, 16 Feb 2023 10:36:02 +0000
+Subject: [PATCH] Add SG1 information  to CPU check table
+
+The SG1's CPU model is the same as Tiger Lake, so define the same ID code for SG1.
+The information includes CPU family, mode, etc.
+---
+ drivers/mfd/intel-peci-client.c       | 6 ++++++
+ include/linux/mfd/intel-peci-client.h | 5 +++++
+ 2 files changed, 11 insertions(+)
+
+diff --git a/drivers/mfd/intel-peci-client.c b/drivers/mfd/intel-peci-client.c
+index 34391b698102..fa29020665b6 100644
+--- a/drivers/mfd/intel-peci-client.c
++++ b/drivers/mfd/intel-peci-client.c
+@@ -69,6 +69,12 @@ static const struct cpu_gen_info cpu_gen_info_table[] = {
+ 		.core_mask_bits = CORE_MASK_BITS_ON_SPR,
+ 		.chan_rank_max  = CHAN_RANK_MAX_ON_SPR,
+ 		.dimm_idx_max   = DIMM_IDX_MAX_ON_SPR },
++	{ /* Tigerlake or GPU */
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_TIGERLAKE_L,
++		.core_mask_bits = CORE_MASK_BITS_ON_TGL,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_TGL,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_TGL },
+ };
+ 
+ static int peci_client_get_cpu_gen_info(struct peci_client_manager *priv)
+diff --git a/include/linux/mfd/intel-peci-client.h b/include/linux/mfd/intel-peci-client.h
+index e9ad77b19595..6f580bc3fbee 100644
+--- a/include/linux/mfd/intel-peci-client.h
++++ b/include/linux/mfd/intel-peci-client.h
+@@ -20,6 +20,7 @@
+ #define INTEL_FAM6_SKYLAKE_XD		0x56
+ #define INTEL_FAM6_ICELAKE_X		0x6A
+ #define INTEL_FAM6_ICELAKE_XD		0x6C
++#define INTEL_FAM6_TIGERLAKE_L		0x8C
+ #define INTEL_FAM6_SAPPHIRERAPIDS	0x8F
+ #endif
+ 
+@@ -53,6 +54,10 @@
+ #define CHAN_RANK_MAX_ON_SPR   8  /* Max number of channel ranks on Sapphire Rapids */
+ #define DIMM_IDX_MAX_ON_SPR    2  /* Max DIMM index per channel on Sapphire Rapids */
+ 
++#define CORE_MASK_BITS_ON_TGL  64
++#define CHAN_RANK_MAX_ON_TGL   8  /* Max number of channel ranks on Tigerlake */
++#define DIMM_IDX_MAX_ON_TGL    2  /* Max DIMM index per channel on Tigerlake */
++
+ #define CORE_MASK_BITS_MAX     CORE_MASK_BITS_ON_SPR
+ #define CHAN_RANK_MAX          CHAN_RANK_MAX_ON_HSX
+ #define DIMM_IDX_MAX           DIMM_IDX_MAX_ON_HSX
+-- 
+2.17.1
+

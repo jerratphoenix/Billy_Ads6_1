@@ -708,9 +708,17 @@
             "Address": "0x30",
             "Bus": 0,
             "CpuID": 0,
-            "Name": "CPU 0",
+            "Name": "CPU0",
             "PiromI2cAddress": "0x50",
             "PiromI2cBus": 12,
+            "RequiredTempSensor": "DTS",
+            "Type": "XeonCPU"
+        },
+        {
+            "Address": "0x32",
+            "Bus": 0,
+            "CpuID": 1,
+            "Name": "SG1 A",
             "RequiredTempSensor": "DTS",
             "Type": "XeonCPU"
         }
