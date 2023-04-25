@@ -46,6 +46,7 @@ file://0048-Add-q-uboot-stopKey.patch \
 file://0049-HASH-Integrity-skp.patch \
 file://0050-Add-PHYless-MACtoMAC-method.patch \
 file://0051-Remove-the-judgment-of-mfg-mode.patch \
+file://0052-Modify-the-VGA-memory-size-from-16MB-to-32MB.patch \
 "
 
 do_copyfile () {

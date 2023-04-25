@@ -1,0 +1,35 @@
+From af7bb2042ffec4e1232236f8f584a88ccd403bce Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@Phoenix.com>
+Date: Tue, 25 Apr 2023 12:22:09 +0000
+Subject: [PATCH] Modify the VGA memory size from 16MB to 32MB
+
+---
+ arch/arm/mach-aspeed/ast2600/platform.S | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/mach-aspeed/ast2600/platform.S b/arch/arm/mach-aspeed/ast2600/platform.S
+index cc1d6b7a61..90181cd6d0 100644
+--- a/arch/arm/mach-aspeed/ast2600/platform.S
++++ b/arch/arm/mach-aspeed/ast2600/platform.S
+@@ -280,15 +280,15 @@ wait_lock:
+ 	bne	2f
+ 
+ 1:
+-	/* set VGA memory size to 16MB (A1 only) */
++	/* set VGA memory size to 32MB (A1 only) */
+ 	ldr	r0, =AST_SCU_HW_STRAP1_CLR
+-	movw	r1, #0x4000
++	movw	r1, #0x2000
+ 	movt	r1, #0x0000
+ 	str	r1, [r0]
+ 
+ 	ldr	r0, =AST_SCU_HW_STRAP1
+ 	ldr	r1, [r0]
+-	orr	r1, #0x2000
++	orr	r1, #0x4000
+ 	str	r1, [r0]
+ 
+ 	/* disable DMA arbitration on MAC1 (A1 bug) */
+-- 
+2.17.1
+
