@@ -191,8 +191,8 @@
             "Reserved": "0x00",
             "Reserved": "0x00",
             "OEM": "0x00",
-            "LengthCode": "0x09",
-            "SensorName": "DTS SG1 A"
+            "LengthCode": "0x0e",
+            "SensorName": "DTS Inst SG1 A"
         },
         {
             "RecordID": "0x00b0",

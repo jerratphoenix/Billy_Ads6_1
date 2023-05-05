@@ -1,0 +1,154 @@
+From 3866fbeed8e4b41aa29d37e347017bb4641aa4d6 Mon Sep 17 00:00:00 2001
+From: Amy Chang <Amy_Chang@Phoenix.com>
+Date: Fri, 5 May 2023 06:20:03 +0000
+Subject: [PATCH] Add to support getting CPU DTS instantaneous temperature
+
+1. Get Package Temperature Read (Index 2)
+2. Calculate the instantaneous DTS reading
+   Instant DTS Temp = Tjmax + PkgTemp
+---
+ drivers/hwmon/peci-cputemp.c | 79 +++++++++++++++++++++++++++++++++++-
+ 1 file changed, 77 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/hwmon/peci-cputemp.c b/drivers/hwmon/peci-cputemp.c
+index 1763b53cc234..b793ee269453 100644
+--- a/drivers/hwmon/peci-cputemp.c
++++ b/drivers/hwmon/peci-cputemp.c
+@@ -10,7 +10,7 @@
+ #include <linux/platform_device.h>
+ #include "peci-hwmon.h"
+ 
+-#define DEFAULT_CHANNEL_NUMS	5
++#define DEFAULT_CHANNEL_NUMS	6
+ #define HBMTEMP_CHANNEL_NUMS	8
+ #define HBM_PARAM_OFFSET	0xe0
+ #define MODTEMP_CHANNEL_NUMS	(CORE_MASK_BITS_MAX + HBMTEMP_CHANNEL_NUMS)
+@@ -22,6 +22,8 @@ struct temp_group {
+ 	u32				die_raw_prev;
+ 	struct peci_sensor_data		dts;
+ 	u32				dts_raw_prev;
++	struct peci_sensor_data		dts_instant;
++	u32				dts_instant_raw_prev;
+ 	struct peci_sensor_data		tcontrol;
+ 	struct peci_sensor_data		tthrottle;
+ 	struct peci_sensor_data		tjmax;
+@@ -51,6 +53,7 @@ enum cputemp_channels {
+ 	channel_tcontrol,
+ 	channel_tthrottle,
+ 	channel_tjmax,
++	channel_dts_instant,
+ 	channel_core,
+ 	channel_hbm,
+ };
+@@ -73,6 +76,10 @@ static const u32 config_table[] = {
+ 	/* Tjmax temperature */
+ 	HWMON_T_LABEL | HWMON_T_INPUT,
+ 
++	/* DTS instantaneous margin */
++        HWMON_T_LABEL | HWMON_T_INPUT | HWMON_T_MAX | HWMON_T_CRIT |
++        HWMON_T_CRIT_HYST,
++
+ 	/* Core temperature - for all core channels */
+ 	HWMON_T_LABEL | HWMON_T_INPUT,
+ 
+@@ -86,7 +93,8 @@ static const char *cputemp_label[DEFAULT_CHANNEL_NUMS] = {
+ 	"DTS",
+ 	"Tcontrol",
+ 	"Tthrottle",
+-	"Tjmax"
++	"Tjmax",
++	"DTS Inst"
+ };
+ 
+ static s32 ten_dot_six_to_millidegree(s32 val)
+@@ -293,6 +301,65 @@ static int get_module_temp(struct peci_cputemp *priv, int index)
+ 	return 0;
+ }
+ 
++static int get_instant_dts(struct peci_cputemp *priv)
++{
++	s32 instant_dts_margin;
++	u8  pkg_cfg[4];
++	int ret;
++	bool discard = false;
++
++	if (!peci_sensor_need_update(&priv->temp.dts_instant))
++		return 0;
++
++	ret = peci_client_read_package_config(priv->mgr,
++					      PECI_MBX_INDEX_PKG_TEMP_READ, 0,
++					      pkg_cfg);
++
++	if (ret)
++		return ret;
++
++	instant_dts_margin = le16_to_cpup((__le16 *)pkg_cfg);
++
++	/*
++	 * There is a small window (500us) for read instant_dts_margin (RdPkgConfig 2)
++	 * to return cc 0x40, and dts_margin of 0 after cpu reset, before
++	 * runtime image is loaded to set it to 0x8000 (dts reading not ready).
++	 * DTS sensor is polled by user application at a slower rate than this
++	 * window. Treat the first zero reading as data not available.
++	 * Consecutive zeros will be returned so true hot condition is not be
++	 * missed.
++	 */
++	if (instant_dts_margin == 0 && priv->temp.dts_instant_raw_prev != 0) {
++		dev_err(priv->dev,
++			"discard first 0 reading from RdPkgConfig 2\n");
++		discard = true;
++	}
++	priv->temp.dts_instant_raw_prev = instant_dts_margin;
++	if (discard)
++		return -ENODATA;
++
++	/**
++	 * Processors return a value of instantaneous DTS reading in 10.6 format
++	 * (10 bits signed decimal, 6 bits fractional).
++	 * Error codes:
++	 *   0x8000: General sensor error
++	 *   0x8001: Reserved
++	 *   0x8002: Underflow on reading value
++	 *   0x8003-0x81ff: Reserved
++	 */
++	if (instant_dts_margin >= 0x8000 && instant_dts_margin <= 0x81ff)
++		return -EIO;
++
++	instant_dts_margin = ten_dot_six_to_millidegree(instant_dts_margin);
++
++	/* Note that the tcontrol should be available before calling it */
++	priv->temp.dts_instant.value = priv->temp.tjmax.value + instant_dts_margin;
++
++	peci_sensor_mark_updated(&priv->temp.dts_instant);
++
++	return 0;
++}
++
+ static int cputemp_read_string(struct device *dev,
+ 			       enum hwmon_sensor_types type,
+ 			       u32 attr, int channel, const char **str)
+@@ -351,6 +418,13 @@ static int cputemp_read(struct device *dev,
+ 		case channel_tjmax:
+ 			*val = priv->temp.tjmax.value;
+ 			break;
++		case channel_dts_instant:
++			ret = get_instant_dts(priv);
++			if (ret)
++				break;
++
++			*val = priv->temp.dts_instant.value;
++			break;
+ 		default:
+ 			module_index = channel - DEFAULT_CHANNEL_NUMS;
+ 			ret = get_module_temp(priv, module_index);
+@@ -612,6 +686,7 @@ static int peci_cputemp_probe(struct platform_device *pdev)
+ 	priv->temp_config[priv->config_idx++] = config_table[channel_tcontrol];
+ 	priv->temp_config[priv->config_idx++] = config_table[channel_tthrottle];
+ 	priv->temp_config[priv->config_idx++] = config_table[channel_tjmax];
++	priv->temp_config[priv->config_idx++] = config_table[channel_dts_instant];
+ 
+ 	ret = create_module_temp_info(priv);
+ 	if (ret)
+-- 
+2.17.1
+
