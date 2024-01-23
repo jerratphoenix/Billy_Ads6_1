@@ -1,0 +1,12 @@
+[Unit]
+Description=SetRGMIIDelayArgs
+After=phosphor-ipmi-net@eth0.service
+After=phosphor-ipmi-net@eth0.socket
+
+[Service]
+ExecStart=/usr/bin/rgmii-delay.sh
+Type=oneshot
+
+[Install]
+WantedBy=basic.target
+
