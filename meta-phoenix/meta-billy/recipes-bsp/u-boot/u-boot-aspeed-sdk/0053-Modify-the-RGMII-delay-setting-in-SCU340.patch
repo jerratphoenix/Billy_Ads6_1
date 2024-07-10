@@ -1,0 +1,35 @@
+From 88b121f9561f9fc6a69677d4c631c0c1cc51112e Mon Sep 17 00:00:00 2001
+From: swang <shaw_wang@phoenix.com>
+Date: Wed, 10 Jul 2024 06:11:47 +0000
+Subject: [PATCH 1/1] Modify the RGMII delay setting in SCU340
+
+Signed-off-by: swang <shaw_wang@phoenix.com>
+---
+ board/aspeed/ast2600_intel/intel.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/board/aspeed/ast2600_intel/intel.c b/board/aspeed/ast2600_intel/intel.c
+index 6c13c2d975..79d2f8267b 100755
+--- a/board/aspeed/ast2600_intel/intel.c
++++ b/board/aspeed/ast2600_intel/intel.c
+@@ -669,13 +669,16 @@ int board_late_init(void)
+ 	/* Select RGMII 125Mhz external clock source
+                 and set TX and RX internal delays
+         */
+-		
++		/*
+         val = readl(AST_SCU_BASE + AST_SCU_MAC_CLK);
+         val &= ~AST_SCU_MAC_RGMII_CLK_INTERNAL;
+         val &= ~AST_SCU_MAC_RGMII2_TX_DELAY_MASK;
+         val |= (9 << AST_SCU_MAC_RGMII2_TX_DELAY_OFFSET);
+         val &= ~AST_SCU_MAC_RGMII2_RX_DELAY_MASK;
+         val |= (5 << AST_SCU_MAC_RGMII2_RX_DELAY_OFFSET);
++		*/
++		// OEM set RGMII clock for Billy
++		val = 0x90600600;
+         writel(val, AST_SCU_BASE + AST_SCU_MAC_CLK);
+ 		
+         // /* Disable RGMII2 TX Pulldowns */
+-- 
+2.17.1
+
