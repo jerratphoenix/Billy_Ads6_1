@@ -1,0 +1,10 @@
+[Unit]
+Description=Auto trigger crashdump
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/auto-crashdump.sh
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
