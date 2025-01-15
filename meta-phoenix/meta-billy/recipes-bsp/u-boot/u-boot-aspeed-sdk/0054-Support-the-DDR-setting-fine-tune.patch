@@ -1,0 +1,110 @@
+From e8c2c8c81dc9d544e4a3c7b04e7f3b9ac367ef64 Mon Sep 17 00:00:00 2001
+From: swang <shaw_wang@phoenix.com>
+Date: Wed, 15 Jan 2025 04:40:18 +0000
+Subject: [PATCH 1/1] Support the DDR setting fine tune
+
+Signed-off-by: swang <shaw_wang@phoenix.com>
+---
+ board/aspeed/ast2600_intel/intel.c | 79 ++++++++++++++++++++++++++++++
+ 1 file changed, 79 insertions(+)
+
+diff --git a/board/aspeed/ast2600_intel/intel.c b/board/aspeed/ast2600_intel/intel.c
+index 79d2f8267b..2ef52bbd51 100755
+--- a/board/aspeed/ast2600_intel/intel.c
++++ b/board/aspeed/ast2600_intel/intel.c
+@@ -611,6 +611,84 @@ static bool is_mfg_mode_phy_req(void)
+ 	return true;
+ }
+ 
++#define AST_MCR_BASE 0x1E6E0000
++#define AST_MCR_014  0x014
++#define AST_MCR_020  0x020
++#define AST_MCR_024  0x024
++#define AST_MCR_028  0x028
++#define AST_MCR_130  0x130
++#define AST_MCR_154  0x154
++#define AST_MCR_158  0x158
++#define AST_MCR_15C  0x15C
++#define AST_MCR_180  0x180
++#define AST_MCR_1A8  0x1A8
++#define AST_MCR_298  0x298
++#define AST_MCR_304  0x304
++
++void set_ram_ddr_config(void)
++{
++	//Unlock the MCR registers
++	writel(0xFC600309, AST_MCR_BASE);
++	// Set 0x1e6e0304[0] = 0x1
++	writel(((readl(AST_MCR_BASE | AST_MCR_304) & 0xFFFFFFFE) | 0x00000001),
++		AST_MCR_BASE | AST_MCR_304);
++	// Set 0x1e6e0304[15:8] = 0x10
++	writel(((readl(AST_MCR_BASE | AST_MCR_304) & 0xFFFF00FF) | 0x00001000),
++		AST_MCR_BASE | AST_MCR_304);
++	// Set 0x1e6e0020[12:0] = 0x314
++	writel(((readl(AST_MCR_BASE | AST_MCR_020) & 0xFFFFE000) | 0x00000314),
++		AST_MCR_BASE | AST_MCR_020);
++	// Set 0x1e6e0014[19:16] = 0x7
++	writel(((readl(AST_MCR_BASE | AST_MCR_014) & 0xFFF0FFFF) | 0x00070000),
++		AST_MCR_BASE | AST_MCR_014);
++	// Set 0x1e6e0180[15:8] = 0x0a
++	writel(((readl(AST_MCR_BASE | AST_MCR_180) & 0xFFFF00FF) | 0x00000A00),
++		AST_MCR_BASE | AST_MCR_180);
++	// Set 0x1e6e01A8[31] = 0x0
++	writel(((readl(AST_MCR_BASE | AST_MCR_1A8) & 0x7FFFFFFF) | 0x00000000),
++		AST_MCR_BASE | AST_MCR_1A8);
++	// Set 0x1e6e0298[0] = 0
++	// Set 0x1e6e0298[15:8] = 0
++	writel(((readl(AST_MCR_BASE | AST_MCR_298) & 0xFFFF00FE) | 0x00000000),
++		AST_MCR_BASE | AST_MCR_298);
++	// 240 ohms divid to the value
++	// Set 0x1e6e0130[14:12] = 0x7 (34 ohms)
++	writel(((readl(AST_MCR_BASE | AST_MCR_130) & 0xFFFF8FFF) | 0x00007000),
++		AST_MCR_BASE | AST_MCR_130);
++	// Set 0x1e6e0130[18:16] = 0x7 (34 ohms)
++	writel(((readl(AST_MCR_BASE | AST_MCR_130) & 0xFFF8FFFF) | 0x00070000),
++		AST_MCR_BASE | AST_MCR_130);
++	// Set 0x1e6e0020[26:24] = 0x5 (48 ohms)
++	writel(((readl(AST_MCR_BASE | AST_MCR_020) & 0xF8FFFFFF) | 0x05000000),
++		AST_MCR_BASE | AST_MCR_020);
++	// Set 0x1e6e0158[10:8] = 0x5 (48 ohms)
++	writel(((readl(AST_MCR_BASE | AST_MCR_158) & 0xFFFFF8FF) | 0x00000500),
++		AST_MCR_BASE | AST_MCR_158);
++	// Set 0x1e6e0028[24:22] = 0x5 (48 ohms)
++	writel(((readl(AST_MCR_BASE | AST_MCR_028) & 0xFE3FFFFF) | 0x01400000),
++		AST_MCR_BASE | AST_MCR_028);
++	// Set 0x1e6e015c[24:22] = 0x5 (48 ohms)
++	writel(((readl(AST_MCR_BASE | AST_MCR_15C) & 0xFE3FFFFF) | 0x01400000),
++		AST_MCR_BASE | AST_MCR_15C);
++	// Set 0x1e6e0024[11:9] = 0x0 (disable)
++	writel(((readl(AST_MCR_BASE | AST_MCR_024) & 0xFFFFF1FF) | 0x00000000),
++		AST_MCR_BASE | AST_MCR_024);
++	// Set 0x1e6e0154[11:9] = 0x0 (disable)
++	writel(((readl(AST_MCR_BASE | AST_MCR_154) & 0xFFFFF1FF) | 0x00000000),
++		AST_MCR_BASE | AST_MCR_154);
++	// Set 0x1e6e0020[18:17] = 0x0 (RZQ/7 = 34 ohms AST2600_datasheet page.414)
++	writel(((readl(AST_MCR_BASE | AST_MCR_020) & 0xFFF9FFFF) | 0x00000000),
++		AST_MCR_BASE | AST_MCR_020);
++	// Set 0x1e6e0158[2:1] = 0x0 (RZQ/7 = 34 ohms AST2600_datasheet page.414)
++	writel(((readl(AST_MCR_BASE | AST_MCR_158) & 0xFFFFFFF9) | 0x00000000),
++		AST_MCR_BASE | AST_MCR_158);
++	// Set 0x1e6e0130[10:8] = 0x3 (80 ohms)
++	writel(((readl(AST_MCR_BASE | AST_MCR_130) & 0xFFFFF8FF) | 0x00000300),
++		AST_MCR_BASE | AST_MCR_130);
++	//Soft lock the MCR registers
++	writel(0x0, AST_MCR_BASE);
++}
++
+ extern void espi_init(void);
+ extern void kcs_init(void);
+ extern void timer_enable(int n, u32 interval_us, interrupt_handler_t *handler,
+@@ -685,6 +763,7 @@ int board_late_init(void)
+         // val = readl(AST_SCU_BASE + AST_SCU_FUN_PIN_CTRL5);
+         // val |= SCU_FUC_PIN_MII2_TX_DWN_DIS;
+         // writel(val, AST_SCU_BASE + AST_SCU_FUN_PIN_CTRL5);
++		set_ram_ddr_config();
+ 
+         //gd->bd->bi_boot_params = CONFIG_SYS_SDRAM_BASE + 0x100; //no idea what these 2 lines are doing, will look into it later;
+         //gd->flags = 0;
+-- 
+2.17.1
+
