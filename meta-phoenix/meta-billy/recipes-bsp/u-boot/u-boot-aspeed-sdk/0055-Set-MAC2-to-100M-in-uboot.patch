@@ -1,0 +1,44 @@
+From 324b2ea2a25ac72600190ba482f225ba50d41832 Mon Sep 17 00:00:00 2001
+From: swang <shaw_wang@phoenix.com>
+Date: Wed, 15 Jan 2025 06:22:06 +0000
+Subject: [PATCH 1/1] Set MAC2 to 100M in uboot
+
+Signed-off-by: swang <shaw_wang@phoenix.com>
+---
+ board/aspeed/ast2600_intel/intel.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/board/aspeed/ast2600_intel/intel.c b/board/aspeed/ast2600_intel/intel.c
+index 2ef52bbd51..5a14f48e80 100755
+--- a/board/aspeed/ast2600_intel/intel.c
++++ b/board/aspeed/ast2600_intel/intel.c
+@@ -689,6 +689,18 @@ void set_ram_ddr_config(void)
+ 	writel(0x0, AST_MCR_BASE);
+ }
+ 
++#define AST_MAC2_BASE   0x1E680000
++#define AST_MAC2_MAC50  0x50
++void set_mac_100m(void)
++{
++	// Set 0x1e680050[19] = 0x1
++	writel(((readl(AST_MAC2_BASE | AST_MAC2_MAC50) & 0xFFF7FFFF) | 0x80000),
++		AST_MAC2_BASE | AST_MAC2_BASE);
++	// Set 0x1e680050[9] = 0x0
++	writel(((readl(AST_MAC2_BASE | AST_MAC2_MAC50) & 0xFFFFFDFF)),
++		AST_MAC2_BASE | AST_MAC2_BASE);
++}
++
+ extern void espi_init(void);
+ extern void kcs_init(void);
+ extern void timer_enable(int n, u32 interval_us, interrupt_handler_t *handler,
+@@ -764,6 +776,7 @@ int board_late_init(void)
+         // val |= SCU_FUC_PIN_MII2_TX_DWN_DIS;
+         // writel(val, AST_SCU_BASE + AST_SCU_FUN_PIN_CTRL5);
+ 		set_ram_ddr_config();
++		set_mac_100m();
+ 
+         //gd->bd->bi_boot_params = CONFIG_SYS_SDRAM_BASE + 0x100; //no idea what these 2 lines are doing, will look into it later;
+         //gd->flags = 0;
+-- 
+2.17.1
+
