@@ -50,6 +50,7 @@ file://0052-Modify-the-VGA-memory-size-from-16MB-to-32MB.patch \
 file://0053-Modify-the-RGMII-delay-setting-in-SCU340.patch \
 file://0054-Support-the-DDR-setting-fine-tune.patch \
 file://0055-Set-MAC2-to-100M-in-uboot.patch \
+file://0056-BMC-sdram-ast2600.patch \
 "
 
 do_copyfile () {
