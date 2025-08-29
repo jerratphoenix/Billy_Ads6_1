@@ -1,0 +1,15 @@
+diff --git a/crashdump.cpp b/crashdump.cpp
+index 83c8b88..c78bc83 100644
+--- a/crashdump.cpp
++++ b/crashdump.cpp
+@@ -114,7 +114,9 @@ static const std::string getUuid()
+ 
+ void getClientAddrs(std::vector<CPUInfo>& cpuInfo)
+ {
+-    for (int cpu = 0, addr = MIN_CLIENT_ADDR; addr <= MAX_CLIENT_ADDR;
++	#define ONLY_SUPPORT_MINADDR_0X30	MIN_CLIENT_ADDR
++
++    for (int cpu = 0, addr = MIN_CLIENT_ADDR; addr <= ONLY_SUPPORT_MINADDR_0X30;
+          cpu++, addr++)
+     {
+         if (peci_Ping(addr) == PECI_CC_SUCCESS)

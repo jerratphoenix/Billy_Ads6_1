@@ -295,6 +295,26 @@
 	/*X0-X7*/	"","SMI","POST_COMPLETE","PECI_B_SG1_MUX_OE","PECI_A_SG1_MUX_OE","PECI_CPU_MUX_OE","","",
 	/*Y0-Y7*/	"","IRQ_SML0_ALERT_BMC_R2_N","","IRQ_SML1_PMBUS_BMC_ALERT_N","SPI_BMC_BOOT_R_IO2","SPI_BMC_BOOT_R_IO3","PU_SPI_BMC_BOOT_ABR","PU_SPI_BMC_BOOT_WP_N",
 	/*Z0-Z7*/	"PWRGD_P3V3_RISER1","PWRGD_P3V3_RISER2","","HW_STRAP_5","HW_STRAP_6","HW_STRAP_7","HW_STRAP_2","HW_STRAP_3";
+
+	peci_sg1_a {
+		gpio-hog;
+		gpios = <ASPEED_GPIO(X,4) GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "FORCED_X4_HIGH_FOR_PECI_SG1_A";
+	};
+	peci_cpu {
+		gpio-hog;
+		gpios = <ASPEED_GPIO(X,5) GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "FORCED_X5_HIGH_FOR_PECI_CPU";
+	};
+	peci_sg1_b {
+		gpio-hog;
+		gpios = <ASPEED_GPIO(X,3) GPIO_ACTIVE_HIGH>;
+		input;
+		bias-high-impedance;
+		line-name = "FORCED_X3_HIGHZ_FOR_PECI_SG1_B";
+	};
 };
 
 &gpio1 {

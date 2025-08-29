@@ -52,6 +52,8 @@ file://0054-Support-the-DDR-setting-fine-tune.patch \
 file://0055-Set-MAC2-to-100M-in-uboot.patch \
 file://0056-BMC-sdram-ast2600.patch \
 "
+#file://0057-cpu-sg1-gpio-high-crashdump-only-0x30.patch \
+#"
 
 do_copyfile () {
     cp ${WORKDIR}/phoenix-billy.dts ${S}/arch/arm/dts

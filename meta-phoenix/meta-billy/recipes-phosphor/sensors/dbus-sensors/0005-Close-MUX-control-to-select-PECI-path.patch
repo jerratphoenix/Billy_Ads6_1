@@ -1,0 +1,30 @@
+diff --git a/include/CPUSensor.hpp b/include/CPUSensor.hpp
+index 5ba718f..62ada6e 100644
+--- a/include/CPUSensor.hpp
++++ b/include/CPUSensor.hpp
+@@ -57,6 +57,7 @@ extern boost::container::flat_map<std::string, std::unique_ptr<CPUSensor>>
+ 
+ // this is added to cpusensor.hpp to avoid having every sensor have to link
+ // against libgpiod, if another sensor needs it we may move it to utils
++#ifdef USE_PECI_MUX
+ inline bool cpuIsPresent(
+     const boost::container::flat_map<std::string, BasicVariantType>& gpioConfig)
+ {
+@@ -197,3 +198,17 @@ inline void peciMuxSelection(std::string peciDevPath)
+         devPrevIdx = devCurrIdx;
+     }
+ }
++#else
++inline bool cpuIsPresent(
++    [[maybe_unused]] const boost::container::flat_map<std::string, BasicVariantType>& gpioConfig)
++{
++	return true;
++}
++inline int setGpioValue([[maybe_unused]] const std::string& name,[[maybe_unused]] int value,[[maybe_unused]] const int polarity)
++{
++    return 0;
++}
++inline void peciMuxSelection([[maybe_unused]] std::string peciDevPath)
++{
++}
++#endif

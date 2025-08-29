@@ -1,0 +1,163 @@
+From 066cb4e7cdf5862fe11039b728a2c99eec9c7db8 Mon Sep 17 00:00:00 2001
+From: liuchunming <liuchunming@baidu.com>
+Date: Tue, 19 Aug 2025 14:15:13 +0800
+Subject: [PATCH] acd: 1.gpio high 2.addr support0x30
+
+Signed-off-by: liuchunming <liuchunming@baidu.com>
+---
+ .../linux-aspeed/aspeed-bmc-phoenix-billy.dts | 20 +++++++++++++
+ .../auto-crashdump/files/auto-crashdump.sh    | 22 +++++++++-----
+ .../crashdump/crashdump_git.bbappend          |  2 ++
+ .../files/0001-Ping-signal-addr-0x30.patch    | 15 ++++++++++
+ ...lose-MUX-control-to-select-PECI-path.patch | 30 +++++++++++++++++++
+ .../sensors/dbus-sensors_%.bbappend           |  1 +
+ 6 files changed, 82 insertions(+), 8 deletions(-)
+ create mode 100755 meta-phoenix/meta-billy/recipes-phosphor/crashdump/crashdump_git.bbappend
+ create mode 100644 meta-phoenix/meta-billy/recipes-phosphor/crashdump/files/0001-Ping-signal-addr-0x30.patch
+ create mode 100644 meta-phoenix/meta-billy/recipes-phosphor/sensors/dbus-sensors/0005-Close-MUX-control-to-select-PECI-path.patch
+
+diff --git a/meta-phoenix/meta-billy/recipes-kernel/linux/linux-aspeed/aspeed-bmc-phoenix-billy.dts b/meta-phoenix/meta-billy/recipes-kernel/linux/linux-aspeed/aspeed-bmc-phoenix-billy.dts
+index 9e0f68be..7ac7c983 100755
+--- a/meta-phoenix/meta-billy/recipes-kernel/linux/linux-aspeed/aspeed-bmc-phoenix-billy.dts
++++ b/meta-phoenix/meta-billy/recipes-kernel/linux/linux-aspeed/aspeed-bmc-phoenix-billy.dts
+@@ -295,6 +295,26 @@
+ 	/*X0-X7*/	"","SMI","POST_COMPLETE","PECI_B_SG1_MUX_OE","PECI_A_SG1_MUX_OE","PECI_CPU_MUX_OE","","",
+ 	/*Y0-Y7*/	"","IRQ_SML0_ALERT_BMC_R2_N","","IRQ_SML1_PMBUS_BMC_ALERT_N","SPI_BMC_BOOT_R_IO2","SPI_BMC_BOOT_R_IO3","PU_SPI_BMC_BOOT_ABR","PU_SPI_BMC_BOOT_WP_N",
+ 	/*Z0-Z7*/	"PWRGD_P3V3_RISER1","PWRGD_P3V3_RISER2","","HW_STRAP_5","HW_STRAP_6","HW_STRAP_7","HW_STRAP_2","HW_STRAP_3";
++
++	peci_sg1_a {
++		gpio-hog;
++		gpios = <ASPEED_GPIO(X,4) GPIO_ACTIVE_HIGH>;
++		output-high;
++		line-name = "FORCED_X4_HIGH_FOR_PECI_SG1_A";
++	};
++	peci_cpu {
++		gpio-hog;
++		gpios = <ASPEED_GPIO(X,5) GPIO_ACTIVE_HIGH>;
++		output-high;
++		line-name = "FORCED_X5_HIGH_FOR_PECI_CPU";
++	};
++	peci_sg1_b {
++		gpio-hog;
++		gpios = <ASPEED_GPIO(X,3) GPIO_ACTIVE_HIGH>;
++		input;
++		bias-high-impedance;
++		line-name = "FORCED_X3_HIGHZ_FOR_PECI_SG1_B";
++	};
+ };
+ 
+ &gpio1 {
+diff --git a/meta-phoenix/meta-billy/recipes-phosphor/auto-crashdump/files/auto-crashdump.sh b/meta-phoenix/meta-billy/recipes-phosphor/auto-crashdump/files/auto-crashdump.sh
+index 448d6be8..ed8b1a3c 100644
+--- a/meta-phoenix/meta-billy/recipes-phosphor/auto-crashdump/files/auto-crashdump.sh
++++ b/meta-phoenix/meta-billy/recipes-phosphor/auto-crashdump/files/auto-crashdump.sh
+@@ -3,15 +3,21 @@
+ echo "Start to monitor CATERR to trigger crashdump"
+ 
+ GPIO020=0x1e780020
++counter=0
+ while true
+ do
+     # Judge GPIO H5 IERR = 0
+     VAL=$(devmem ${GPIO020} 32)
+-    if [ $((${VAL} & 0x20000000)) -eq 0 ]; then
+-        echo "Trigger crashdump"
+-        busctl call com.intel.crashdump /com/intel/crashdump com.intel.crashdump.Stored GenerateStoredLog s "cpuError"
+-        sleep 30
+-    else
+-        sleep 1
+-    fi
+-done
+\ No newline at end of file
++	if [ $((${VAL} & 0x20000000)) -eq 0 ]; then
++		counter=$(($counter+1))
++		sleep 0.1
++		VAL=$(devmem ${GPIO020} 32)
++		if [ $counter -eq 20 ]; then
++			echo "Trigger IERR crashdump"
++			busctl call com.intel.crashdump /com/intel/crashdump com.intel.crashdump.Stored GenerateStoredLog s "cpuError"
++			break
++		fi
++	else
++		sleep 0.5
++	fi
++done
+diff --git a/meta-phoenix/meta-billy/recipes-phosphor/crashdump/crashdump_git.bbappend b/meta-phoenix/meta-billy/recipes-phosphor/crashdump/crashdump_git.bbappend
+new file mode 100755
+index 00000000..fc3c94e9
+--- /dev/null
++++ b/meta-phoenix/meta-billy/recipes-phosphor/crashdump/crashdump_git.bbappend
+@@ -0,0 +1,2 @@
++FILESEXTRAPATHS:append := "${THISDIR}/files:"
++SRC_URI += "file://0001-Ping-signal-addr-0x30.patch"
+diff --git a/meta-phoenix/meta-billy/recipes-phosphor/crashdump/files/0001-Ping-signal-addr-0x30.patch b/meta-phoenix/meta-billy/recipes-phosphor/crashdump/files/0001-Ping-signal-addr-0x30.patch
+new file mode 100644
+index 00000000..5f542c69
+--- /dev/null
++++ b/meta-phoenix/meta-billy/recipes-phosphor/crashdump/files/0001-Ping-signal-addr-0x30.patch
+@@ -0,0 +1,15 @@
++diff --git a/crashdump.cpp b/crashdump.cpp
++index 83c8b88..c78bc83 100644
++--- a/crashdump.cpp
+++++ b/crashdump.cpp
++@@ -114,7 +114,9 @@ static const std::string getUuid()
++ 
++ void getClientAddrs(std::vector<CPUInfo>& cpuInfo)
++ {
++-    for (int cpu = 0, addr = MIN_CLIENT_ADDR; addr <= MAX_CLIENT_ADDR;
+++	#define ONLY_SUPPORT_MINADDR_0X30	MIN_CLIENT_ADDR
+++
+++    for (int cpu = 0, addr = MIN_CLIENT_ADDR; addr <= ONLY_SUPPORT_MINADDR_0X30;
++          cpu++, addr++)
++     {
++         if (peci_Ping(addr) == PECI_CC_SUCCESS)
+diff --git a/meta-phoenix/meta-billy/recipes-phosphor/sensors/dbus-sensors/0005-Close-MUX-control-to-select-PECI-path.patch b/meta-phoenix/meta-billy/recipes-phosphor/sensors/dbus-sensors/0005-Close-MUX-control-to-select-PECI-path.patch
+new file mode 100644
+index 00000000..7e114afb
+--- /dev/null
++++ b/meta-phoenix/meta-billy/recipes-phosphor/sensors/dbus-sensors/0005-Close-MUX-control-to-select-PECI-path.patch
+@@ -0,0 +1,30 @@
++diff --git a/include/CPUSensor.hpp b/include/CPUSensor.hpp
++index 5ba718f..62ada6e 100644
++--- a/include/CPUSensor.hpp
+++++ b/include/CPUSensor.hpp
++@@ -57,6 +57,7 @@ extern boost::container::flat_map<std::string, std::unique_ptr<CPUSensor>>
++ 
++ // this is added to cpusensor.hpp to avoid having every sensor have to link
++ // against libgpiod, if another sensor needs it we may move it to utils
+++#ifdef USE_PECI_MUX
++ inline bool cpuIsPresent(
++     const boost::container::flat_map<std::string, BasicVariantType>& gpioConfig)
++ {
++@@ -197,3 +198,17 @@ inline void peciMuxSelection(std::string peciDevPath)
++         devPrevIdx = devCurrIdx;
++     }
++ }
+++#else
+++inline bool cpuIsPresent(
+++    [[maybe_unused]] const boost::container::flat_map<std::string, BasicVariantType>& gpioConfig)
+++{
+++	return true;
+++}
+++inline int setGpioValue([[maybe_unused]] const std::string& name,[[maybe_unused]] int value,[[maybe_unused]] const int polarity)
+++{
+++    return 0;
+++}
+++inline void peciMuxSelection([[maybe_unused]] std::string peciDevPath)
+++{
+++}
+++#endif
+diff --git a/meta-phoenix/meta-billy/recipes-phosphor/sensors/dbus-sensors_%.bbappend b/meta-phoenix/meta-billy/recipes-phosphor/sensors/dbus-sensors_%.bbappend
+index 4a15566c..8a26b7a0 100644
+--- a/meta-phoenix/meta-billy/recipes-phosphor/sensors/dbus-sensors_%.bbappend
++++ b/meta-phoenix/meta-billy/recipes-phosphor/sensors/dbus-sensors_%.bbappend
+@@ -4,5 +4,6 @@ SRC_URI += "file://0001-Shorten-the-name-to-keep-the-length-below-16-as-much.pat
+             file://0002-Adjust-the-ref-volt-to-2.5-for-ADC-sensors.patch \
+             file://0003-Add-MUX-control-to-select-PECI-path.patch \
+             file://0004-Add-GPIO-MUX-selection-to-monitor-SG1-DTS-and-Die-temp.patch \
++			file://0005-Close-MUX-control-to-select-PECI-path.patch \
+            "
+ 
+-- 
+2.25.1
+
