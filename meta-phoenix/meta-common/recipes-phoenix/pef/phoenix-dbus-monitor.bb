@@ -2,17 +2,40 @@ SUMMARY = "Phoenix DBus Monitor"
 DESCRIPTION = "Phoenix DBus Monitor is a general purpose DBus application \
 that watches DBus traffic for events and takes actions based on those events."
 PR = "r1.1"
-LICENSE = "CLOSED"
+LICENSE = "Apache-2.0"
+LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/Apache-2.0;md5=89aea4e17d99a7cacdbeed46a0096b10"
 
-SRC_URI = "file://phoenix-dbus-monitor.service \
+SRC_URI = "git://git@github.com/pteceng/phoenix-dbus-monitor.git;protocol=ssh \
+           file://phoenix-dbus-monitor.service \
           "
+SRCREV = "4f01bd828c3c87d1aca82e9a5e023c0a96a64450"
 
-S = "${WORKDIR}"
+S = "${WORKDIR}/git"
+PV = "0.1+git${SRCPV}"
+
+inherit autotools \
+        pkgconfig \
+        python3native \
+        obmc-phosphor-systemd
 
 FILESEXTRAPATHS:append := "${THISDIR}/${PN}:"
 SYSTEMD_SERVICE:${PN} += "phoenix-dbus-monitor.service"
 
+DEPENDS += " \
+        phosphor-logging \
+        autoconf-archive-native \
+        ${PYTHON_PN}-sdbus++-native \
+        sdeventplus \
+        sdbusplus \
+        phosphor-snmp \
+        systemd \
+        boost \
+        nlohmann-json \
+        libesmtp \
+        "
+
 do_install:append() {
-    install -Dm 0666 ${S}/PtecPEFConfig.json ${D}/${datadir}/${PN}/PtecPEFConfig.json
-    install -Dm 0666 ${S}/PtecEmailConfig.json ${D}/${datadir}/${PN}/PtecEmailConfig.json
+    install -Dm 0666 ${S}/config/PtecPEFConfig.json ${D}/${datadir}/${PN}/PtecPEFConfig.json
+    install -Dm 0666 ${S}/config/PtecEmailConfig.json ${D}/${datadir}/${PN}/PtecEmailConfig.json
 }
+
