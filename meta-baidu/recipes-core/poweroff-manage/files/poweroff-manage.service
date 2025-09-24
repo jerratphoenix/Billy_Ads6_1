@@ -1,0 +1,13 @@
+[Unit]
+Description=BMC Poweroff Manage Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/poweroff-manage
+StandardOutput=append:/var/log/poweroff-manage.log
+StandardError=append:/var/log/poweroff-manage.log       
+User=root
+
+[Install]
+WantedBy=multi-user.target

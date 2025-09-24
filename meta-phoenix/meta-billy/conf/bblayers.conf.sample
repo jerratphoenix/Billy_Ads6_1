@@ -18,4 +18,5 @@ BBLAYERS ?= " \
   ##OEROOT##/meta-aspeed \
   ##OEROOT##/meta-phoenix \
   ##OEROOT##/meta-phoenix/meta-billy \
+  ##OEROOT##/meta-baidu \
 "
