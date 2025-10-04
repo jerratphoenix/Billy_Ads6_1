@@ -1,4 +1,4 @@
-From 7baf35b88d742032a2dc456c396843e17e866f8e Mon Sep 17 00:00:00 2001
+From f1f63cb7bcaeb6b180c27ef71ab0477264d47716 Mon Sep 17 00:00:00 2001
 From: Ming Liu <peter.x.liu@external.atlascopco.com>
 Date: Wed, 27 Jun 2018 14:04:57 +0800
 Subject: [PATCH] Include sys/time.h
@@ -9,6 +9,7 @@ Upstream-Status: Inappropriate [musl libc specific]
 
 Signed-off-by: Ming Liu <peter.x.liu@external.atlascopco.com>
 Signed-off-by: Changqing Li <changqing.li@windriver.com>
+
 ---
  tests/msleep.c | 4 ----
  1 file changed, 4 deletions(-)
@@ -29,4 +30,3 @@ index 98dbece..96f6950 100644
  #if defined(HAVE_SYS_SELECT_H)
  #include <sys/select.h>
  #endif
-2.7.4
