@@ -28,3 +28,11 @@
     notifempty
     copytruncate
 }
+# Keep up to three 1M files for VR sensor monitor
+/var/log/vr_controller.log {
+    size 1M
+    rotate 3
+    missingok
+    notifempty
+    copytruncate
+}
