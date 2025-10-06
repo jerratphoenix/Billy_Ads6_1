@@ -22,7 +22,7 @@
 }
 # Keep up to six 500k files for journal
 /var/log/journal.log {
-    size 500k
+    size 490k
     rotate 6
     missingok
     notifempty
