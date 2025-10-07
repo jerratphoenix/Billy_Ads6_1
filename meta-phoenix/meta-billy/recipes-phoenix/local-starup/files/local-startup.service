@@ -1,0 +1,11 @@
+[Unit]
+Description=Execute all executable scripts in /var/startup
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'for f in /var/startup/*; do [ -x "$f" ] && echo "[local-startup] Running $f" && "$f"; done || true'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
