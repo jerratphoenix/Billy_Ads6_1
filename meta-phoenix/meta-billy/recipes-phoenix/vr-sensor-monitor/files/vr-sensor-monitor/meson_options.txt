@@ -1,3 +1,0 @@
-option('yocto-deps',        type: 'feature',    value: 'disabled',  description : 'Use YOCTO dependencies system')
-option('tests',             type: 'feature',    value: 'enabled',   description : 'Enable unit tests')
-option('install-service',   type: 'feature',    value: 'disabled',  description : 'Install service files for systemd')
