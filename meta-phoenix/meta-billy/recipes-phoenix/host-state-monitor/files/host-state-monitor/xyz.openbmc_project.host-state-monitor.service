@@ -1,0 +1,15 @@
+[Unit]
+Description=cpu state monitor
+
+[Service]
+Restart=on-failure
+RestartSec=1
+StartLimitInterval=30s
+StartLimitBurst=2
+ExecStart=/usr/bin/host-state-monitor
+SyslogIdentifier=host-state-monitor
+Type=dbus
+BusName=xyz.openbmc_project.PHX.HostState.Monitor
+
+[Install]
+WantedBy=multi-user.target
