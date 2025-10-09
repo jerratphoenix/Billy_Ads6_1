@@ -22,8 +22,8 @@
 }
 # Keep up to six 500k files for journal
 /var/log/journal.log {
-    size 490k
-    rotate 6
+    size 480k
+    rotate 5
     missingok
     notifempty
     copytruncate
