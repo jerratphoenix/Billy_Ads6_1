@@ -1,7 +1,7 @@
 #!/bin/sh
 
 while true; do
-    sleep 60
+    sleep 10
     /usr/sbin/logrotate /etc/logrotate.d/logrotate.rsyslog
     ec=$?
     if [ $ec -ne 0 ] ; then
