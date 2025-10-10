@@ -4,7 +4,8 @@ After=multi-user.target
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash -c 'for f in /var/startup/*; do [ -x "$f" ] && echo "[local-startup] Running $f" && "$f" & done || true'
+ExecStart=/usr/bin/startup-manager.sh start
+ExecStop=/usr/bin/startup-manager.sh stop
 RemainAfterExit=yes
 
 [Install]
