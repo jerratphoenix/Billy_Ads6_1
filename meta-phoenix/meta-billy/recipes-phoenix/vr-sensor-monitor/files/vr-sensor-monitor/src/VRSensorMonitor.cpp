@@ -106,7 +106,7 @@ void VRSensorMonitor::registerDbusProperty()
         }
     );
 
-    iface->register_method("LogReload", [this]() {
+    iface->register_method("ReloadConf", [this]() {
         reloadSensorConfig();
     });
     
@@ -118,10 +118,6 @@ void VRSensorMonitor::setupRead()
     filterTimer.expires_after(std::chrono::seconds(1));
     filterTimer.async_wait([this](const boost::system::error_code& error) mutable {
         if (!error) {
-            if (access("/tmp/GetVRLogToVar", F_OK) == 0)
-            {
-                DumpRingBufferToLog();
-            }
             if (!sensorConfigs.empty())
             {
                 for (auto& cfg : sensorConfigs)
