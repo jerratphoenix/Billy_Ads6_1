@@ -83,8 +83,8 @@ PHOSPHOR_OS_RELEASE_DISTRO_VERSION := "${@run_git(d, 'describe --tags --dirty')}
 DISTRO_VERSION ??= "${PHOSPHOR_OS_RELEASE_DISTRO_VERSION}"
 
 VERSION_SPLIT := "${@strip_specific_str(d, 'VERSION_ID', '@')}"
-VERSION = "60.28"
-VERSION_ID = "wht-60.28-1-gab3500-38384ac"
+VERSION = "60.29"
+VERSION_ID = "wht-60.29-1-gab3500-38384ac"
 
 BUILD_ID_TAG := "${@run_git(d, 'describe --tags --abbrev=0')}"
 BUILD_ID := "${@strip_specific_str(d, 'BUILD_ID_TAG', '@')}"
