@@ -64,11 +64,6 @@ void HostStateMonitor::registerDbusMethod()
             eventTrigger();
         }
     });
-    iface->register_method("LogSend", [this]() {
-        //std::cout << "[DBus] TriggerAction called!" << std::endl;
-        sendLogToHost();
-
-    });
     iface->initialize();
 }
 
@@ -111,7 +106,7 @@ bool HostStateMonitor::isPowerOn()
         }
         catch (const sdbusplus::exception::SdBusError& e)
         {
-            std::cerr << "D-Bus call failed: " << e.what() << std::endl;
+            //std::cerr << "D-Bus call failed: " << e.what() << std::endl;
             return 1;
         }
 
@@ -120,13 +115,13 @@ bool HostStateMonitor::isPowerOn()
 
         if (hostState == "xyz.openbmc_project.State.Host.HostState.Running")
         {
-            std::cout << "Host is running!" << std::endl;
+            //std::cout << "Host is running!" << std::endl;
             return true;
         }
         else
         {
             /* code */
-            std::cout << "Host is not running." << std::endl;
+            //std::cout << "Host is not running." << std::endl;
             return false;
         }
 }

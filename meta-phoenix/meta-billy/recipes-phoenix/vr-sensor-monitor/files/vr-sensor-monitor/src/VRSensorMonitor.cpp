@@ -31,7 +31,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <systemd/sd-journal.h>
-#define DEBUG
+//#define DEBUG
 const std::vector<uint8_t> addr_sensor = {0x60, 0x61, 0x62, 0x63};
 std::string bus8 = std::to_string(8);
 std::vector<SensorConfig> sensorConfigs;
@@ -143,7 +143,7 @@ std::vector<SensorConfig> VRSensorMonitor::loadSensorConfig(const std::string& f
     std::ifstream file(filename);
     if (!file.is_open())
     {
-        std::cerr << "Failed to open " << filename << std::endl;
+        //std::cerr << "Failed to open " << filename << std::endl;
         return sensors;
     }
 
@@ -209,7 +209,7 @@ void VRSensorMonitor::DumpRingBufferToLog()
     std::ofstream ofs("/tmp/vr_controller.log", std::ios::trunc);
     if (!ofs)
     {
-        std::cerr << "Failed to open log file" << std::endl;
+        //std::cerr << "Failed to open log file" << std::endl;
         return;
     }
     
