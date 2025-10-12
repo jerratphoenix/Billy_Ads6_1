@@ -206,7 +206,10 @@ void VRSensorMonitor::ReadState(const SensorConfig& cfg)
 void VRSensorMonitor::DumpRingBufferToLog()
 {
     //std::ofstream ofs("/tmp/vr_controller.log", std::ios::app);
-    std::ofstream ofs("/tmp/vr_controller.log", std::ios::trunc);
+    //std::ofstream ofs("/tmp/vr_controller.log", std::ios::trunc);
+    std::string tempFile = "/tmp/vr_controller.log.tmp";
+    std::string finalFile = "/tmp/vr_controller.log";
+    std::ofstream ofs(tempFile, std::ios::trunc);
     if (!ofs)
     {
         //std::cerr << "Failed to open log file" << std::endl;
@@ -282,9 +285,9 @@ void VRSensorMonitor::DumpRingBufferToLog()
             << "-0x" << std::setw(2) << static_cast<int>(entry.value)
             << std::dec << "\n";
     }
-    
+    ofs.flush();
     ofs.close();
-    std::remove("/tmp/GetVRLogToVar");
+    std::rename(tempFile.c_str(), finalFile.c_str());
 }
 #if 0
 void VRSensorMonitor::CreateDefaultJson()
