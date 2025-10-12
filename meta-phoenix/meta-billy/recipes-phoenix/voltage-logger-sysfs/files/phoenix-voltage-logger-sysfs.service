@@ -1,0 +1,17 @@
+[Unit]
+Description=Phoenix Voltage Logger (sysfs continuous)
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/voltage_logger_sysfs
+Restart=always
+RestartSec=5
+Nice=5
+IOSchedulingClass=idle
+NoNewPrivileges=true
+StandardOutput=null
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
