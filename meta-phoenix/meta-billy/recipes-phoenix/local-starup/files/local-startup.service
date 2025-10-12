@@ -7,6 +7,7 @@ Type=oneshot
 ExecStart=/usr/bin/startup-manager.sh start
 ExecStop=/usr/bin/startup-manager.sh stop
 RemainAfterExit=yes
+Restart=no
 
 [Install]
 WantedBy=multi-user.target

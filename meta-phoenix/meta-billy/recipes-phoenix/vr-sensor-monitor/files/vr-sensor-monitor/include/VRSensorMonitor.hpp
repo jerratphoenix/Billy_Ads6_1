@@ -38,6 +38,15 @@ struct SensorConfig {
     char type;  // 'b' = 1 byte
 };
 
+struct SensorSample
+{
+    std::chrono::system_clock::time_point timestamp;
+    uint8_t bus;
+    uint8_t address;
+    uint8_t reg;
+    uint8_t value;
+};
+
 class VRSensorMonitor
 {
   public:
@@ -46,13 +55,17 @@ class VRSensorMonitor
     void setupRead();
     void Initialize();
     void ReadState(const SensorConfig& cfg);
-    void CreateDefaultJson();
+    //void CreateDefaultJson();
     void registerDbusProperty();
+    void reloadSensorConfig();
+    void DumpRingBufferToLog();
     std::vector<SensorConfig> loadSensorConfig(const std::string& filename);
 
   private:
     std::shared_ptr<sdbusplus::asio::object_server> server;
     std::shared_ptr<sdbusplus::asio::dbus_interface> iface;
     boost::asio::steady_timer filterTimer;
+
+    std::vector<SensorConfig> sensorConfigs;
 
 };

@@ -31,11 +31,14 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <systemd/sd-journal.h>
-//#define DEBUG
+#define DEBUG
 const std::vector<uint8_t> addr_sensor = {0x60, 0x61, 0x62, 0x63};
 std::string bus8 = std::to_string(8);
 std::vector<SensorConfig> sensorConfigs;
 std::map<std::string, uint8_t> lastValues;
+
+std::map<std::string, std::deque<std::pair<uint8_t, std::chrono::system_clock::time_point>>> ringBuffers;
+constexpr static size_t ringBufferSize = 600;
 
 namespace fs = std::filesystem;
 
@@ -53,10 +56,24 @@ VRSensorMonitor::VRSensorMonitor(boost::asio::io_context& ioc,
     filterTimer(ioc)
 {
     registerDbusProperty();
-    CreateDefaultJson();
+    //CreateDefaultJson();
+    reloadSensorConfig();
     setupRead();
 }
 
+void VRSensorMonitor::reloadSensorConfig()
+{
+    auto newConfigs = loadSensorConfig("/tmp/vr_controller.json");
+
+    if (newConfigs.empty())
+    {
+        //std::cerr << "[WARN] No valid sensor configuration loaded.\n";
+        return;
+    }
+
+    sensorConfigs = std::move(newConfigs);
+    //std::cout << "[INFO] Reloaded " << sensorConfigs.size() << " sensors.\n";
+}
 void VRSensorMonitor::registerDbusProperty()
 {
     auto iface = server->add_interface(sensorMonitorPath, sensorMonitorIface);
@@ -88,6 +105,10 @@ void VRSensorMonitor::registerDbusProperty()
             return result;
         }
     );
+
+    iface->register_method("LogReload", [this]() {
+        reloadSensorConfig();
+    });
     
     iface->initialize();
 }
@@ -97,9 +118,17 @@ void VRSensorMonitor::setupRead()
     filterTimer.expires_after(std::chrono::seconds(1));
     filterTimer.async_wait([this](const boost::system::error_code& error) mutable {
         if (!error) {
-            sensorConfigs = loadSensorConfig("/tmp/vr_controller.json");
-            for (auto& cfg : sensorConfigs) {
-                ReadState(cfg);
+            if (access("/tmp/GetVRLogToVar", F_OK) == 0)
+            {
+                DumpRingBufferToLog();
+            }
+            if (!sensorConfigs.empty())
+            {
+                for (auto& cfg : sensorConfigs)
+                {
+                    ReadState(cfg);
+                }
+                DumpRingBufferToLog();
             }
             setupRead();
         } else {
@@ -140,9 +169,6 @@ std::vector<SensorConfig> VRSensorMonitor::loadSensorConfig(const std::string& f
 
 void VRSensorMonitor::ReadState(const SensorConfig& cfg)
 {
-    using namespace std::chrono;
-    static auto lastRotate = steady_clock::now();
-
     size_t byteCount = 1;
     switch (cfg.type) {
         case 'b': byteCount = 1; break;
@@ -152,51 +178,115 @@ void VRSensorMonitor::ReadState(const SensorConfig& cfg)
 
     std::vector<uint8_t> wbuf = { cfg.reg };
     std::vector<uint8_t> rbuf(byteCount, 0);
+
 #ifndef DEBUG
     int ret = i2cWriteRead("/dev/i2c-" + std::to_string(cfg.bus), cfg.address, wbuf, rbuf);
-
     if (ret != 0 || rbuf.empty()) return;
 #else
-    std::fill(rbuf.begin(), rbuf.end(), 0x00);
+    std::fill(rbuf.begin(), rbuf.end(), 0xAB); // debug value
 #endif
-    auto now = steady_clock::now();
-    if (duration_cast<minutes>(now - lastRotate).count() > 10) {
-        std::ofstream ofs("/tmp/vr_controller.log", std::ios::trunc);
-        lastRotate = now;
-    }
 
-    std::ofstream ofs("/tmp/vr_controller.log", std::ios::app);
-    if (!ofs) return;
-
-    auto t = system_clock::now();
-    std::time_t tt = system_clock::to_time_t(t);
-    auto ms = duration_cast<milliseconds>(t.time_since_epoch()) % 1000;
-
-    for (size_t i = 0; i < rbuf.size(); ++i) {
+    for (size_t i = 0; i < rbuf.size(); ++i)
+    {
         uint8_t value = rbuf[i];
+
         std::string key = std::to_string(cfg.bus) + ":" +
                           std::to_string(cfg.address) + ":" +
                           std::to_string(cfg.reg);
+
         lastValues[key] = value;
-        #ifdef DEBUG
-        // --- Debug print ---
-        std::cout << "[DEBUG] bus=0x" << std::hex << int(cfg.bus)
-        << " addr=0x" << int(cfg.address)
-        << " reg=0x" << int(cfg.reg)
-        << " value=0x" << int(value) << std::endl;
-        // --------------------
-        #endif
-        std::tm tm;
-        localtime_r(&tt, &tm);
-        ofs << std::put_time(&tm, "%Y-%m-%d %H:%M:%S")
-            << "." << std::setw(3) << std::setfill('0') << ms.count()
-            << "-vr_sensor-0x" << std::hex << std::setw(2) << std::setfill('0') << int(cfg.bus)
-            << "-0x" << std::setw(2) << int(cfg.address)
-            << "-0x" << std::setw(2) << int(cfg.reg)
-            << "-0x" << std::setw(2) << int(value) << std::endl;
+
+        auto& buffer = ringBuffers[key];
+        if (buffer.size() >= ringBufferSize)
+            buffer.pop_front();
+        buffer.push_back({value, std::chrono::system_clock::now()});
     }
 }
 
+void VRSensorMonitor::DumpRingBufferToLog()
+{
+    //std::ofstream ofs("/tmp/vr_controller.log", std::ios::app);
+    std::ofstream ofs("/tmp/vr_controller.log", std::ios::trunc);
+    if (!ofs)
+    {
+        std::cerr << "Failed to open log file" << std::endl;
+        return;
+    }
+    
+    struct LogEntry {
+        std::chrono::system_clock::time_point timestamp;
+        int bus;
+        int addr;
+        int reg;
+        uint8_t value;
+    };
+    
+    std::vector<LogEntry> allEntries;
+    
+    for (const auto& [key, buffer] : ringBuffers)
+    {
+        size_t pos1 = key.find(':');
+        size_t pos2 = key.rfind(':');
+        std::string busStr = key.substr(0, pos1);
+        std::string addrStr = key.substr(pos1 + 1, pos2 - pos1 - 1);
+        std::string regStr = key.substr(pos2 + 1);
+        int bus = std::stoi(busStr);
+        int addr = std::stoi(addrStr);
+        int reg = std::stoi(regStr);
+        
+        for (const auto& sample : buffer)
+        {
+            allEntries.push_back({sample.second, bus, addr, reg, sample.first});
+        }
+    }
+    
+    std::sort(allEntries.begin(), allEntries.end(),
+              [](const LogEntry& a, const LogEntry& b) {
+                  auto a_sec = std::chrono::duration_cast<std::chrono::seconds>(
+                      a.timestamp.time_since_epoch()).count();
+                  auto b_sec = std::chrono::duration_cast<std::chrono::seconds>(
+                      b.timestamp.time_since_epoch()).count();
+                  
+                  if (a_sec != b_sec)
+                      return a_sec < b_sec;
+                  
+                  if (a.bus != b.bus)
+                      return a.bus < b.bus;
+                  if (a.addr != b.addr)
+                      return a.addr < b.addr;
+                  return a.reg < b.reg;
+              });
+    
+    for (const auto& entry : allEntries)
+    {
+        auto ts = std::chrono::system_clock::to_time_t(entry.timestamp);
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                      entry.timestamp.time_since_epoch()) % 1000;
+        std::tm tm;
+        localtime_r(&ts, &tm);
+        char timebuf[32];
+        snprintf(timebuf, sizeof(timebuf),
+                 "%04d-%02d-%02d %02d:%02d:%02d.%03ld",
+                 tm.tm_year + 1900,
+                 tm.tm_mon + 1,
+                 tm.tm_mday,
+                 tm.tm_hour,
+                 tm.tm_min,
+                 tm.tm_sec,
+                 static_cast<long>(ms.count()));
+        
+        ofs << timebuf
+            << "-vr_sensor-0x" << std::hex << std::setw(2) << std::setfill('0') << entry.bus
+            << "-0x" << std::setw(2) << entry.addr
+            << "-0x" << std::setw(2) << entry.reg
+            << "-0x" << std::setw(2) << static_cast<int>(entry.value)
+            << std::dec << "\n";
+    }
+    
+    ofs.close();
+    std::remove("/tmp/GetVRLogToVar");
+}
+#if 0
 void VRSensorMonitor::CreateDefaultJson()
 {
     const std::string filePath = "/tmp/vr_controller.json";
@@ -232,3 +322,4 @@ void VRSensorMonitor::CreateDefaultJson()
 
         std::cout << "File created: " << filePath << std::endl;
 }
+#endif

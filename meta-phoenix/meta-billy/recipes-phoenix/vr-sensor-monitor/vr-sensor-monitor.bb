@@ -7,7 +7,9 @@ LICENSE = "CLOSED"
 LIC_FILES_CHKSUM=""
 USERADD_PARAM_${PN} = "--groups messagebus"
 
-SRC_URI += "file://vr-sensor-monitor"
+SRC_URI += "file://vr-sensor-monitor \
+            file://vr_controller.json \
+            "
 S = "${WORKDIR}/git"
 
 
@@ -34,4 +36,9 @@ EXTRA_OEMESON = "--buildtype=minsize \
 addtask do_copyfile after do_patch before do_configure
 do_copyfile() {
     /usr/bin/cp ${WORKDIR}/vr-sensor-monitor/* ${WORKDIR}/git -rf
+}
+
+do_install:append() {
+    install -d ${D}${bindir}
+    install -m 0755 ${WORKDIR}/vr_controller.json ${D}${bindir}/vr_controller.json
 }
