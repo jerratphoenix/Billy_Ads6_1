@@ -59,9 +59,40 @@ void HostStateMonitor::registerDbusMethod()
     iface = server->add_interface(sensorMonitorPath, sensorMonitorIface);
     iface->register_method("CrashdumpTrigger", [this]() {
         //std::cout << "[DBus] TriggerAction called!" << std::endl;
-        if (isPowerOn())
+        if (access("/tmp/crashdumpFlag", F_OK) == 0)
         {
             eventTrigger();
+        }
+    });
+    iface->register_method("LogDump", [this]() {
+        //std::cout << "[DBus] TriggerAction called!" << std::endl;
+        if (access("/tmp/voltage_dump.log", F_OK) == 0)
+        {
+            try
+            {
+                fs::copy_file("/tmp/voltage_dump.log",
+                    "/var/log/voltage_dump.log",
+                    fs::copy_options::overwrite_existing);
+                //std::cout << "Copied /tmp/voltage_dump.log -> /var/log/voltage_dump.log\n";
+            }
+            catch (const fs::filesystem_error& e)
+            {
+                std::cerr << "Copy failed: " << e.what() << "\n";
+            }
+        }
+        if (access("/tmp/vr_controller.log", F_OK) == 0)
+        {
+            try
+            {
+                fs::copy_file("/tmp/vr_controller.log",
+                    "/var/log/vr_controller.log",
+                    fs::copy_options::overwrite_existing);
+                //std::cout << "Copied /tmp/vr_controller.log -> /var/log/vr_controller.log\n";
+            }
+            catch (const fs::filesystem_error& e)
+            {
+                std::cerr << "Copy failed: " << e.what() << "\n";
+            }
         }
     });
     iface->initialize();
@@ -73,13 +104,27 @@ void HostStateMonitor::eventTrigger()
     if (!isLogging.exchange(true)) 
     { 
         isLogging = true; 
-        std::thread([this]() { 
-            int ret = system("/usr/bin/ParserLog.sh"); 
-            if (ret != 0) 
-            { 
-                std::cerr << "Failed to execute log script, ret=" << ret << std::endl; 
+        std::thread([this]() {
+            if (access("/tmp/crashdumpFlag", F_OK) == 0)
+            {
+                /* code */
+                int ret = system("/usr/bin/ParserLog.sh crashdump"); 
+                if (ret != 0) 
+                { 
+                    std::cerr << "Failed to execute log script, ret=" << ret << std::endl; 
+                }
+                std::remove("/tmp/crashdumpFlag");
+                isLogging = false;
             }
-            isLogging = false;
+            else
+            {
+                int ret = system("/usr/bin/ParserLog.sh poweroff"); 
+                if (ret != 0) 
+                { 
+                    std::cerr << "Failed to execute log script, ret=" << ret << std::endl; 
+                }
+                isLogging = false;
+            }
         }).detach();
     } 
     
@@ -126,11 +171,6 @@ bool HostStateMonitor::isPowerOn()
         }
 }
 
-void HostStateMonitor::sendLogToHost()
-{
-    //Todo : Send the logs to host
-}
-
 void HostStateMonitor::setupRead()
 {
     filterTimer.expires_after(std::chrono::seconds(1));
@@ -156,7 +196,10 @@ void HostStateMonitor::setupRead()
                     if(lastpowerState != pState)
                     {
                         lastpowerState = pState;
-                        eventTrigger();
+                        if (access("/tmp/crashdumpFlag", F_OK) != 0)
+                        {
+                            eventTrigger();
+                        }
                     }
                 }
                 

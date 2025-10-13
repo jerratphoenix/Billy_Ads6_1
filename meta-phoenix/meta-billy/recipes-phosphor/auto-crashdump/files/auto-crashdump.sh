@@ -14,6 +14,7 @@ do
 		VAL=$(devmem ${GPIO020} 32)
 		if [ $counter -eq 20 ]; then
 			echo "Trigger IERR crashdump"
+			touch "/tmp/crashdumpFlag"
 			busctl call xyz.openbmc_project.PHX.HostState.Monitor /xyz/openbmc_project/phx/hoststate/monitor xyz.openbmc_project.PHX.HostState.Monitor CrashdumpTrigger
 			busctl call com.intel.crashdump /com/intel/crashdump com.intel.crashdump.Stored GenerateStoredLog s "cpuError"
 			break

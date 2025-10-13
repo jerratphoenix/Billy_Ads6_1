@@ -63,7 +63,7 @@ VRSensorMonitor::VRSensorMonitor(boost::asio::io_context& ioc,
 
 void VRSensorMonitor::reloadSensorConfig()
 {
-    auto newConfigs = loadSensorConfig("/tmp/vr_controller.json");
+    auto newConfigs = loadSensorConfig("/var/lib/vr-sensor-monitor/vr_controller.json");
 
     if (newConfigs.empty())
     {

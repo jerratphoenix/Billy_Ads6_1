@@ -14,7 +14,7 @@ S = "${WORKDIR}/git"
 
 
 
-FILES:${PN}= "/lib /lib/systemd/ /usr /usr/bin"
+FILES:${PN} = "/lib /lib/systemd/ /usr /usr/bin /var/lib/vr-sensor-monitor"
 SYSTEMD_PACKAGES = "${PN}"
 inherit meson pkgconfig systemd externalsrc
 
@@ -40,5 +40,8 @@ do_copyfile() {
 
 do_install:append() {
     install -d ${D}${bindir}
-    install -m 0755 ${WORKDIR}/vr_controller.json ${D}${bindir}/vr_controller.json
+
+    install -d ${D}${localstatedir}/lib/vr-sensor-monitor
+
+    install -m 0644 ${WORKDIR}/vr_controller.json ${D}${localstatedir}/lib/vr-sensor-monitor/vr_controller.json
 }

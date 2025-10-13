@@ -36,7 +36,6 @@ class HostStateMonitor
     void setupRead();
     void eventTrigger();
     void registerDbusMethod();
-    void sendLogToHost();
     bool isPowerOn();
     std::atomic<bool> isLogging{false};
 
