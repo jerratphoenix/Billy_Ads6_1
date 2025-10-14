@@ -27,13 +27,74 @@
 #include <random>
 #include <stdexcept>
 
+#include <sdbusplus/bus.hpp>
+#include <sdbusplus/message.hpp>
+
 // User may implement their own "is_power_on" function to get power state.
 // Or use our api_get_power_on to get from OpenBMC chassis dbus
+//bool is_power_on(void)
+//{
+//    bool system_power_good = api_get_power_on();
+//
+//    return system_power_good;
+//}
+
+// Use D-Bus chassis power state for accurate detection
 bool is_power_on(void)
 {
-    bool system_power_good = api_get_power_on();
+//    static constexpr auto chassisService = "xyz.openbmc_project.State.Chassis";
+//    static constexpr auto chassisPath = "/xyz/openbmc_project/state/chassis0";
+//    static constexpr auto iface = "xyz.openbmc_project.State.Chassis";
+//    static constexpr auto prop = "CurrentPowerState";
+//
+//    try
+//    {
+//        auto bus = sdbusplus::bus::new_default();
+//        auto method = bus.new_method_call(chassisService, chassisPath,
+//                                          "org.freedesktop.DBus.Properties", "Get");
+//        method.append(iface, prop);
+//
+//        sdbusplus::message::variant<std::string> value;
+//        bus.call(method).read(value);
+//        std::string state = std::get<std::string>(value);
+//
+//        // Typical values:
+//        // "xyz.openbmc_project.State.Chassis.PowerState.On"
+//        // "xyz.openbmc_project.State.Chassis.PowerState.Off"
+//        if (state.find("On") != std::string::npos)
+//        {
+//            return true;
+//        }
+//    }
+//    catch (const std::exception& e)
+//    {
+//        std::cerr << "Failed to read chassis power state: " << e.what() << std::endl;
+//    }
+//
+//    return false; // default: treat as power off if cannot read
 
-    return system_power_good;
+    try
+    {
+        static constexpr auto chassisService = "xyz.openbmc_project.State.Chassis";
+        static constexpr auto chassisPath = "/xyz/openbmc_project/state/chassis0";
+        static constexpr auto iface = "xyz.openbmc_project.State.Chassis";
+        static constexpr auto prop = "CurrentPowerState";
+
+        auto bus = sdbusplus::bus::new_default();
+        auto msg = bus.new_method_call(
+            chassisService, chassisPath, "org.freedesktop.DBus.Properties", "Get");
+
+        msg.append(iface, prop);
+
+        std::string value; // just std::string
+        bus.call(msg).read(value); // read directly into std::string
+
+        return value.find("On") != std::string::npos;
+    }
+    catch (...)
+    {
+        return false;
+    }
 }
 
 // Let user could implement initial code, before first sensor get raw reading
