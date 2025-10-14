@@ -46,5 +46,5 @@ do_install() {
 
 addtask do_copyfile after do_patch before do_configure
 do_copyfile() {
-    /usr/bin/cp ${WORKDIR}/host-state-monitor/* ${WORKDIR}/git -rf
+    cp ${WORKDIR}/host-state-monitor/* ${WORKDIR}/git -rf
 }
