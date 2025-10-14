@@ -59,10 +59,7 @@ void HostStateMonitor::registerDbusMethod()
     iface = server->add_interface(sensorMonitorPath, sensorMonitorIface);
     iface->register_method("CrashdumpTrigger", [this]() {
         //std::cout << "[DBus] TriggerAction called!" << std::endl;
-        if (access("/tmp/crashdumpFlag", F_OK) == 0)
-        {
-            eventTrigger();
-        }
+        eventTrigger();
     });
     iface->register_method("LogDump", [this]() {
         //std::cout << "[DBus] TriggerAction called!" << std::endl;
