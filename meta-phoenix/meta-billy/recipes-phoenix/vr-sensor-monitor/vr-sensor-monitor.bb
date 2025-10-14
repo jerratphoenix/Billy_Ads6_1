@@ -35,7 +35,7 @@ EXTRA_OEMESON = "--buildtype=minsize \
 
 addtask do_copyfile after do_patch before do_configure
 do_copyfile() {
-    /usr/bin/cp ${WORKDIR}/vr-sensor-monitor/* ${WORKDIR}/git -rf
+    cp ${WORKDIR}/vr-sensor-monitor/* ${WORKDIR}/git -rf
 }
 
 do_install:append() {
