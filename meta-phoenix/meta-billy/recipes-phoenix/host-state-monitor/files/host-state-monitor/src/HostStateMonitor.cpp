@@ -61,7 +61,23 @@ void HostStateMonitor::registerDbusMethod()
         //std::cout << "[DBus] TriggerAction called!" << std::endl;
         eventTrigger();
     });
-    iface->register_method("LogDump", [this]() {
+    iface->register_method("StoredVRLog", [this]() {
+        if (access("/tmp/vr_controller.log", F_OK) == 0)
+        {
+            try
+            {
+                fs::copy_file("/tmp/vr_controller.log",
+                    "/var/log/vr_controller.log",
+                    fs::copy_options::overwrite_existing);
+                //std::cout << "Copied /tmp/vr_controller.log -> /var/log/vr_controller.log\n";
+            }
+            catch (const fs::filesystem_error& e)
+            {
+                std::cerr << "Copy failed: " << e.what() << "\n";
+            }
+        }
+    });
+    iface->register_method("StoredADCLog", [this]() {
         //std::cout << "[DBus] TriggerAction called!" << std::endl;
         if (access("/tmp/voltage_dump.log", F_OK) == 0)
         {
@@ -71,20 +87,6 @@ void HostStateMonitor::registerDbusMethod()
                     "/var/log/voltage_dump.log",
                     fs::copy_options::overwrite_existing);
                 //std::cout << "Copied /tmp/voltage_dump.log -> /var/log/voltage_dump.log\n";
-            }
-            catch (const fs::filesystem_error& e)
-            {
-                std::cerr << "Copy failed: " << e.what() << "\n";
-            }
-        }
-        if (access("/tmp/vr_controller.log", F_OK) == 0)
-        {
-            try
-            {
-                fs::copy_file("/tmp/vr_controller.log",
-                    "/var/log/vr_controller.log",
-                    fs::copy_options::overwrite_existing);
-                //std::cout << "Copied /tmp/vr_controller.log -> /var/log/vr_controller.log\n";
             }
             catch (const fs::filesystem_error& e)
             {
