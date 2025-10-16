@@ -74,6 +74,32 @@ static double readSensor(const char* path, int deviceId,
     return convert_to_volt(raw, scale, divider);
 }
 
+// ---------- new helper for D-Bus ----------
+static double read_dbus_voltage(const char* sensor_name)
+{
+    if (strcmp(sensor_name, "P3V_BAT") != 0)
+        return -1.0;
+
+    FILE* fp = popen("busctl get-property xyz.openbmc_project.ADCSensor "
+                     "/xyz/openbmc_project/sensors/voltage/P3V_BAT "
+                     "xyz.openbmc_project.Sensor.Value Value", "r");
+    if (!fp) return -1.0;
+
+    char buf[128] = {0};
+    if (!fgets(buf, sizeof(buf), fp)) {
+        pclose(fp);
+        return -1.0;
+    }
+    pclose(fp);
+
+    // 格式通常是： d 3.056
+    double val = 0.0;
+    if (sscanf(buf, "d %lf", &val) == 1) {
+        return val;
+    }
+    return -1.0;
+}
+
 static void getPreciseTimestamp(char* buf, size_t len)
 {
     struct timeval tv;
@@ -146,6 +172,15 @@ int main(void)
         {
             double value = readSensor(sensors[i].path, sensors[i].deviceId,
                                       scale0, scale1, sensors[i].divider);
+
+            // --- special case: override P3V_BAT via D-Bus ---
+            if (strcmp(sensors[i].name, "P3V_BAT") == 0) {
+                double dbus_val = read_dbus_voltage("P3V_BAT");
+                if (dbus_val > 0.0) {
+                    value = dbus_val;
+                }
+            }
+
             if (value < 0) {
                 // N/A: output and reset state so we don't carry a stale lastValue
                 char tmp[64];
@@ -166,7 +201,6 @@ int main(void)
                     sensors[i].deltaCount = 0;
                 }
             } else {
-                // first valid sample: establish baseline
                 sensors[i].deltaCount = 0;
                 sensors[i].hasLast = 1;
             }
