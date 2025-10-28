@@ -1,45 +1,70 @@
-# ============================================================
-#  Phoenix Billy Platform – Kernel Upgrade to Linux 5.15 (Intel)
-#  Source: github.com/Intel-BMC/linux.git  branch=dev-5.15-intel
-# ============================================================
+FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
-# --- Search Path for Files ---
-FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}/linux-aspeed:${THISDIR}/${PN}:"
+LINUX_VERSION = "5.10.60"
 
-# --- Kernel Source & Version ---
-LINUX_VERSION = "5.15.80"
-KBRANCH = "dev-5.15-intel"
-KSRC = "git://github.com/Intel-BMC/linux.git;protocol=https;branch=${KBRANCH}"
-SRCREV = "${AUTOREV}"
+KBRANCH = "dev-5.10-intel"
+KSRC = "git://github.com/Intel-BMC/linux;protocol=ssh;branch=${KBRANCH}"
+# Include this as a comment only for downstream auto-bump
+# SRC_URI = "git://github.com/Intel-BMC/linux;protocol=ssh;branch=dev-5.10-intel"
+SRCREV="9c808fc8b3ad7c030fe546b1b5c6c38556fa784a"
 
-# --- Kernel Config ---
-KMETA = ""
-KERNEL_FEATURES = ""
-LINUX_KERNEL_TYPE = ""
-KBUILD_DEFCONFIG = "multi_v7_defconfig"
-KERNEL_CONFIG_FRAGMENTS += "billy.cfg disable-drm.cfg"
-
-# --- Skip sanity checks ---
-KERNEL_VERSION_SANITY_SKIP = "1"
-do_kernel_configcheck[noexec] = "1"
-
-# --- Compiler flags ---
-do_compile:prepend() {
-    export DTC_FLAGS=-@
+do_compile:prepend(){
+   # device tree compiler flags
+   export DTC_FLAGS=-@
 }
 
-# --- Source Files (custom DTS and configs) ---
-SRC_URI = "${KSRC} \
-           file://aspeed-bmc-phoenix-billy.dts \
-           file://billy.cfg \
-           file://disable-drm.cfg \
-"
+SRC_URI += " \
+        file://aspeed-bmc-phoenix-billy.dts \
+        file://aspeed-g6.dtsi \
+        file://aspeed-g6-pinctrl.dtsi \
+        file://billy.cfg \
+        file://0001-peci-Add-debug-printing-to-check-caller-PID.patch \
+        file://0002-soc-aspeed-add-AST2600-A0-specific-fix-into-mbox-dri.patch \
+        file://0003-Fix-libmctp-build-error.patch \
+        file://0004-Add-a-quick-fix-to-resolve-USB-gadget-DMA-issue.patch \
+        file://0005-Die_CPU-filter-first-zero-from-GetTemp.patch \
+        file://0006-DTS_CPU-filter-first-zero-from-RdPkgConfig-10.patch \
+        file://0007-peci-cputemp-filter-the-first-zero-from-RdPkgConfig-.patch \
+        file://0008-vegman-kernel-add-RTC-driver-for-PCHC620.patch \
+        file://0009-ARM-dts-add-rtc-pch-node-into-aspeed-bmc-intel-ast2x.patch \
+        file://0501-ARM-dts-add-aspeed-bmc-intel-ast2600-acm-machine.patch \
+        file://0502-mfd-peci-Add-SPR-generation-info.patch \
+        file://0503-hwmon-peci-platformpower-implementation.patch \
+        file://0505-Add-FM_BMC_DEBUG_EN_N-pin-in-DTS-for-Archer-City-Mod.patch \
+        file://0506-peci-cputemp-Add-HBM-temperature-sensor-support.patch \
+        file://0507-peci-add-SG1-info-to-CPU-check-table.patch \
+        file://0010-Add-PhyLess-MACtoMAC-drv-modify.patch \
+        file://0011-disabled-IPV6-Protocol-Kconfig.patch \
+        file://0012-Adjust-the-model-name-and-ref-voltage-for-adc-driver.patch \
+        file://0013-Add-to-support-getting-CPU-DTS-instantaneous-temp.patch \
+        "
 
-# --- Copy Billy DTS into kernel source tree ---
-do_configure:append() {
-    echo "[linux-aspeed.bbappend] Copying aspeed-bmc-phoenix-billy.dts into kernel source tree..."
-    cp ${WORKDIR}/aspeed-bmc-phoenix-billy.dts ${S}/arch/arm/boot/dts/ || true
+#SRC_URI += "${@bb.utils.contains('IMAGE_FSTYPES', 'intel-pfr', 'file://1000-128MB-flashmap-for-PFR.patch', '', d)}"
+#SRC_URI += "${@bb.utils.contains('EXTRA_IMAGE_FEATURES', 'debug-tweaks', 'file://debug.cfg', '', d)}"
+
+do_patch:append() {
+    if [ -r "${WORKDIR}/aspeed-bmc-phoenix-billy.dts" ]; then
+        cp ${WORKDIR}/aspeed-bmc-phoenix-billy.dts \
+            ${STAGING_KERNEL_DIR}/arch/${ARCH}/boot/dts
+    fi
+    if [ -r "${DEVTOOL_TEMPDIR}/oe-local-files/aspeed-bmc-phoenix-billy.dts" ]; then
+        cp ${DEVTOOL_TEMPDIR}/oe-local-files/aspeed-bmc-phoenix-billy.dts \
+            ${STAGING_KERNEL_DIR}/arch/${ARCH}/boot/dts
+    fi
+    if [ -r "${WORKDIR}/aspeed-g6.dtsi" ]; then
+        cp ${WORKDIR}/aspeed-g6.dtsi \
+            ${STAGING_KERNEL_DIR}/arch/${ARCH}/boot/dts
+    fi
+    if [ -r "${DEVTOOL_TEMPDIR}/oe-local-files/aspeed-g6.dtsi" ]; then
+        cp ${DEVTOOL_TEMPDIR}/oe-local-files/aspeed-g6.dtsi \
+            ${STAGING_KERNEL_DIR}/arch/${ARCH}/boot/dts
+    fi
+    if [ -r "${WORKDIR}/aspeed-g6-pinctrl.dtsi" ]; then
+        cp ${WORKDIR}/aspeed-g6-pinctrl.dtsi \
+            ${STAGING_KERNEL_DIR}/arch/${ARCH}/boot/dts
+    fi
+    if [ -r "${DEVTOOL_TEMPDIR}/oe-local-files/aspeed-g6-pinctrl.dtsi" ]; then
+        cp ${DEVTOOL_TEMPDIR}/oe-local-files/aspeed-g6-pinctrl.dtsi \
+            ${STAGING_KERNEL_DIR}/arch/${ARCH}/boot/dts
+    fi
 }
-
-# --- Device Tree Target ---
-KERNEL_DEVICETREE = "aspeed-bmc-phoenix-billy.dtb"
