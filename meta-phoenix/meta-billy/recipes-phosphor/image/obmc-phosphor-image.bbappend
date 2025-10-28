@@ -15,3 +15,15 @@ IMAGE_INSTALL:append = " local-startup"
 IMAGE_INSTALL:append = " vr-sensor-monitor"
 IMAGE_INSTALL:append = " host-state-monitor"
 IMAGE_INSTALL:append = " phoenix-voltage-logger-sysfs"
+
+
+# ============================================================
+#  Billy Platform override
+#  Fix: fitImage too large when kernel upgraded to 5.15
+# ============================================================
+IMAGE_FITIMAGE_SIZE = "20971520"
+FITIMAGE_SIZE_LIMIT = "20971520"
+FITIMAGE_MAX_SIZE = "20971520"
+
+
+
