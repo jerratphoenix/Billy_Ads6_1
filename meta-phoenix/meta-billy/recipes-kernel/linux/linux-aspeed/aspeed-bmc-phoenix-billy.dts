@@ -529,11 +529,11 @@
 	multi-master;
 	status = "okay";
 };
-
+/*
 &i3cglobal {
 	status = "okay";
 };
-
+*/
 &i3c0 {
 	/* I3C_SPD_DDRABCD_CPU0_BMC */
 	status = "okay";

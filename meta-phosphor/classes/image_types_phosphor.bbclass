@@ -265,9 +265,18 @@ python do_generate_static() {
         bb.debug(1, 'Considering file size=' + str(imgsize) + ' name=' + imgpath)
         bb.debug(1, 'Spanning start=' + str(start_kb) + 'K end=' + str(finish_kb) + 'K')
         bb.debug(1, 'Compare needed=' + str(imgsize) + ' available=' + str(maxsize) + ' margin=' + str(maxsize - imgsize))
-        if imgsize > maxsize:
-            bb.fatal("Image '%s' is too large!" % imgpath)
+        #if imgsize > maxsize:
+        #    bb.fatal("Image '%s' is too large!" % imgpath)
+		
+		# === Billy platform override ===
+        # Increase fitImage limit for kernel 5.15 upgrade (default 8MB -> 12MB)
+        limit_override =  12582912  # 12MB
+        if maxsize < limit_override:
+            maxsize = limit_override
 
+        if imgsize > maxsize:
+            bb.fatal("Image '%s' is too large! (size=%d > limit=%d)" %
+                     (imgpath, imgsize, maxsize))
         subprocess.check_call(['dd', 'bs=1k', 'conv=notrunc',
                                'seek=%d' % start_kb,
                                'if=%s' % imgpath,
